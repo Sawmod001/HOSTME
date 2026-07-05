@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const BookingSchema = new mongoose.Schema(
     {
         listingId: { type: mongoose.Schema.Types.ObjectId, ref: "Listing", required: true, index: true },
-        guestId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+        guestId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
         bookingType: { type: String, enum: ["capacity", "exclusive"], required: true },
         eventStart: { type: Date, required: true },
         eventEnd: { type: Date, required: true },

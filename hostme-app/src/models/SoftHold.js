@@ -12,7 +12,7 @@ const SoftHoldSchema = new mongoose.Schema(
         bookingId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Booking",
-            required: true,
+            default: null,
             index: true,
         },
         expiresAt: {

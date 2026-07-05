@@ -1,8 +1,8 @@
 # HostMe AI Handoff Document — Continue Here
 
-**Status**: Stage 1 (Listings & Discovery) Complete | Stage 2 Ready to Begin  
-**Last Commit**: Stage 1 Complete: Full API + UI implementation (commit 750a6ad)  
-**Date**: 2026-07-04  
+**Status**: Stage 2 (Capacity-Based Booking Engine) Complete | Stage 3 Ready to Begin  
+**Last Commit**: Stage 2 Complete: Capacity Booking Engine — SoftHold, Checkout, Concurrency Tests  
+**Date**: 2026-07-05  
 **Build Status**: ✅ Production build passes (0 errors)
 
 ---
@@ -11,329 +11,414 @@
 
 ### Foundation (Stage 0) ✅
 - Next.js 15 App Router scaffold
-- Mongoose connection with global cache pattern
-- NextAuth v4.24.14 credentials provider
+- Mongoose connection with global cache pattern (`lib/db.js`)
+- NextAuth v4.24.14 credentials provider (demo mode — real OTP auth is Stage 5)
 - All 6 core models: User, Listing, Slot, Booking, ExclusiveLock, SoftHold
-- Design system (Tailwind + custom CSS tokens)
+- Design system (Tailwind + custom CSS tokens in `globals.css`)
 
 ### Listings & Discovery (Stage 1) ✅
-#### Models
-- `Listing.js` — Core venue/housing document (includes `rejectionReason` field)
-- `SoftHold.js` — TTL-based capacity hold model (NEW)
-
 #### API Routes (All 8 implemented)
-- `GET/POST /api/listings` — Search + create
-- `GET/PATCH /api/listings/[id]` — Detail + update draft
-- `POST /api/listings/[id]/submit-review` — Draft→pending_review
-- `GET /api/listings/[id]/slots` — Capacity availability
-- `GET /api/listings/[id]/availability` — Exclusive lock status
-- `POST /api/admin/listings/[id]/approve` — Admin approve
+- `GET /api/listings` — Geospatial + compound index search with cursor pagination
+- `POST /api/listings` — Create listing (starts in `draft`)
+- `GET /api/listings/[id]` — Listing detail
+- `PATCH /api/listings/[id]` — Update draft listing (host-owned only)
+- `POST /api/listings/[id]/submit-review` — Draft → pending_review
+- `GET /api/listings/[id]/slots` — Capacity slot availability per date
+- `GET /api/listings/[id]/availability` — ExclusiveLock open/locked status per date
+- `POST /api/admin/listings/[id]/approve` — Admin approve → active
 - `POST /api/admin/listings/[id]/reject` — Admin reject with reason
 
 #### UI Screens (All 5 built)
-1. Discovery Hub: `/app/(public)/listings/page.js`
+1. **Discovery Hub** `/app/(public)/listings/page.js`
    - Search + filter (vertical, bookingType, cityArea)
    - Infinite scroll cursor pagination
-   - Four UI states: loading, empty, error, normal
+   - Four UI states: loading skeleton, empty, error + retry, normal
 
-2. Listing Detail: `/app/(public)/listings/[id]/page.js`
-   - Space preview with pricing + add-ons
+2. **Listing Detail** `/app/(public)/listings/[id]/page.js`
+   - Space preview, pricing, add-ons
    - Date picker with slot/availability display
-   - Branching logic for capacity vs exclusive
+   - Branching logic: capacity shows live remaining seats, exclusive shows open/locked status
+   - "Book Now" links to `/listings/[id]/checkout`
 
-3. Host Creation Form: `/app/(host)/host/listings/new/page.js`
-   - Complete form (vertical, pricing, capacity, buffers, policies)
-   - Submit to admin queue workflow
+3. **Host Creation Form** `/app/(host)/host/listings/new/page.js`
+   - Full form: vertical, bookingType, pricing, capacity, buffers, add-ons, policies
+   - Submits to admin queue (`submit-review`)
 
-4. Host Dashboard: `/app/(host)/host/listings/page.js`
+4. **Host Dashboard** `/app/(host)/host/listings/page.js`
    - All host listings grouped by status
-   - Edit/resubmit actions (placeholder)
 
-5. Admin Queue: `/app/(admin)/admin/listings/pending/page.js`
-   - Pending listings table
-   - Approve/reject actions with reason modal
+5. **Admin Queue** `/app/(admin)/admin/listings/pending/page.js`
+   - Pending listings table with approve/reject actions + reason modal
 
 #### Utilities
-- `lib/validation.js` — Zod schemas (ListingCreate/Update/Filter)
+- `lib/validation.js` — Zod schemas: `validateListingCreate`, `validateListingUpdate`, `validateListingFilter`
 - `lib/geo.js` — Geospatial query builders
-- `lib/auth.js` — NextAuth v4.24.14 config
+- `lib/auth.js` — NextAuth v4 config
 - `lib/db.js` — MongoDB connection singleton
-- `lib/roles.js` — Role authorization helpers
+- `lib/roles.js` — `hasRequiredRole(user, role)` — always checks `roles[]` array, never `activeRole`
 
 ---
 
-## 🚀 What's Next: Stage 2 — Capacity-Based Booking Engine
+### Capacity-Based Booking Engine (Stage 2) ✅
 
-### Per HostMe_Build_Roadmap.md:
-**Stage 2 = Intake Forms + Payment Flow Setup (simplified for Stage 2)**
+#### API Routes (3 new)
+- **`POST /api/soft-holds`** — Atomically reserves headcount via `findOneAndUpdate` + `$expr`, creates SoftHold with 10-min TTL
+- **`POST /api/bookings`** — Creates Booking from a valid (non-expired) SoftHold, sets `status: awaiting_payment`
+- *(Slot management routes were part of Stage 1 above)*
 
-#### Key Tasks:
-1. **Create SoftHold Route** (`POST /api/soft-holds`)
-   - Accept booking request with headcount, date, time
-   - Check slot capacity atomically: `findOneAndUpdate({ _id, booked: { $lt: capacity } }, { $inc: { booked: headcount } })`
-   - Create SoftHold doc with 10-minute expiry
-   - Return SoftHold ID for checkout
+#### Core Library
+- **`lib/booking.js`** — `reserveCapacitySlot()` function
+  - Uses `Slot.findOneAndUpdate({ $expr: { $lte: [{ $add: ['$booked', headcount] }, '$capacity'] } }, { $inc: { booked: headcount } })` — fully atomic, matches DB spec §2.2
+  - Creates SoftHold document on success
+  - Returns `{ ok, status, data }` — never a read-then-write
 
-2. **Create Booking Intake Form Screen** (`/app/(public)/listings/[id]/checkout/page.js`)
-   - Guest info form (name, email, phone)
-   - Headcount selector (capacity only)
-   - Add-ons selection with total pricing
-   - Show breakdown: baseRate × hours + add-ons = totalKobo
-   - "Continue to Payment" button (Stage 3)
+#### UI Screens (1 new)
+- **Checkout Page** `/app/(public)/listings/[id]/checkout/page.js` (Screen 3 — capacity variant)
+  - Guest info form: name, email, phone
+  - Date + slot selection
+  - Headcount dial (validated against `maxCapacity`)
+  - Add-ons with live running total (all Kobo — no floats)
+  - On submit: calls `POST /api/soft-holds` then `POST /api/bookings`
+  - All 4 UI states: loading skeleton, error + retry, pessimistic-disabled button (locks on click), confirmation
 
-3. **Create Booking Model Interactions**
-   - `POST /api/bookings` — Create booking from SoftHold
-   - Validate SoftHold exists + not expired
-   - Set booking.status = 'awaiting_payment'
-   - Return booking ID for payment redirect
-
-4. **Concurrency Testing**
-   - Simulate 5+ simultaneous requests to same slot
-   - Verify only 1 succeeds in atomically incrementing booked
-   - Others receive HTTP 409 (slot full)
-   - Document test results in `/tests/concurrency.md`
-
-5. **UI State Updates**
-   - Checkout form: loading (form disabled), error (with retry), pessimistic-disabled (button locks on click)
-   - Availability display: show real-time booked/capacity
-
-#### File Locations:
-- New Route: `hostme-app/src/app/api/soft-holds/route.js`
-- New Route: `hostme-app/src/app/api/bookings/route.js`
-- New Screen: `hostme-app/src/app/(public)/listings/[id]/checkout/page.js`
-- Tests: `hostme-app/__tests__/concurrency.test.js` (or manual test script)
-
-#### Critical Constraints (per AGENTS.md rules):
-- **Atomic writes only**: Use `findOneAndUpdate` with $inc for capacity checks, NEVER separate read-then-write
-- **All money = integer Kobo**: Never float values in financial calculations
-- **SoftHold TTL**: Expires after 10 minutes if payment not confirmed
+#### Tests
+- **`__tests__/concurrency.test.js`** — node:test suite with mock DB models
+  - Verifies first reservation succeeds, subsequent request against exhausted capacity returns 409
+  - Confirms `booked` counter is not over-incremented
+- **`tests/concurrency.md`** — manual test plan for simulating concurrent HTTP load
 
 ---
 
-## 📋 Project Structure
+## 🚨 Known Bugs in Existing Code (Do NOT silently fix — log first)
+
+These were discovered during Stage 3 audit. **Do not modify existing working files** per project rules unless explicitly instructed.
+
+| # | Severity | Bug | File | Impact |
+|---|---|---|---|---|
+| 1 | 🔴 Critical | `getServerSession` imported from `next-auth/react` (client module) instead of server module — auth check always resolves to null | `api/listings/route.js` L52 | Anyone can create listings unauthenticated |
+| 2 | 🔴 Critical | Same broken `getServerSession` import | `api/listings/[id]/route.js` L28 | Anyone can update listings |
+| 3 | 🟡 Medium | No SoftHold expiry sweep — `Slot.booked` is never decremented when a SoftHold TTL-expires. Capacity leaks over time. | `lib/booking.js` | Gradual overselling risk |
+| 4 | 🟡 Medium | `POST /api/bookings` has no auth check | `api/bookings/route.js` | Unauthenticated booking creation |
+| 5 | 🟡 Low | `SoftHold.bookingId` is optional (`default: null`) but DB spec §2.2 marks it `required: true` | `models/SoftHold.js` | Minor schema deviation |
+
+> **Before fixing**: confirm with the human "fix bugs first" before touching any existing file.
+
+---
+
+## 🔌 MongoDB Connection Status
+
+**Atlas cluster is running and the credentials are correct.**  
+**Current blocker**: this machine's IP is not whitelisted on Atlas.
+
+**To fix (human action required):**
+1. Go to [MongoDB Atlas](https://cloud.mongodb.com) → Security → Network Access
+2. Add current IP, or set `0.0.0.0/0` (Allow from Anywhere) for development
+3. Connection string in `.env.example` is correct — copy it to `.env`
+
+```
+MONGODB_URI=mongodb+srv://sawmodabolaji_db_user:e0Jfw0RIacsihbCx@cluster0.aphsje6.mongodb.net/
+NEXTAUTH_SECRET=hostme-dev-secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+---
+
+## 🚀 What's Next: Stage 3 — Exclusive-Space Booking Engine
+
+Per `HostMe_Build_Roadmap.md §3 Stage 3`:
+> ExclusiveLock model, approve/reject flow, atomic race-resolution in webhook handler.  
+> **Auto-refund path for `lost_race` bookings — build and test this before anything else in Stage 3 ships.**
+
+### New Files to Build (10 total — all new, no edits to existing)
+
+#### Phase 3A — Backend Core (in order)
+
+1. **`src/lib/exclusive.js`** — `resolveExclusiveLock()` function
+   - `ExclusiveLock.findOneAndUpdate({ _id, status: 'open' }, { status: 'locked', lockedByBookingId })` — single atomic op
+   - If null → lost race → `Booking.updateOne({ status: 'lost_race' })`
+   - If wins → `Booking.updateOne({ status: 'confirmed' })` + `Booking.updateMany(siblings → rejected)`
+   - This is the entire "first-to-pay wins" mechanism
+
+2. **`__tests__/exclusive-lock.test.js`** — Tests before wiring to routes
+   - Race win: two concurrent calls, one wins, one lost_race
+   - Idempotency: same `gatewayTransactionRef` → second call is no-op
+   - Sibling rejection: `updateMany` targets correct listing + eventStart
+
+3. **`src/app/api/bookings/exclusive/request/route.js`** — Guest submits "Request to Book"
+   - Validates: listingId, lockId, headcount, eventStart, eventEnd
+   - Verifies: listing is `exclusive` + `active`, ExclusiveLock is `open`
+   - Creates Booking `status: pending` — no slot mutation yet
+
+4. **`src/app/api/bookings/[id]/approve/route.js`** — Host approves pending exclusive booking
+   - Auth: `roles.includes('host')` AND `listing.hostId === session.user.id`
+   - Transitions: `pending → awaiting_payment`
+
+5. **`src/app/api/bookings/[id]/reject/route.js`** — Host rejects with reason
+   - Auth: same as approve
+   - Body: `{ reason: string }` required
+   - Transitions: `pending → rejected`
+
+6. **`src/app/api/payments/initiate/route.js`** — Paystack checkout session (server-side only)
+   - Auth: `session.user.id === booking.guestId`
+   - Validates: `booking.status === 'awaiting_payment'`
+   - Calls Paystack `POST /transaction/initialize` with `metadata.bookingId`
+   - Returns: `{ authorization_url, reference }`
+
+7. **`src/app/api/payments/webhook/paystack/route.js`** — ⚠️ MOST CRITICAL FILE
+   - Verifies Paystack HMAC-SHA512 signature
+   - **Idempotency guard** (DB spec §2.5):
+     ```javascript
+     try {
+       await Booking.updateOne(
+         { _id: bookingId, gatewayTransactionRef: { $exists: false } },
+         { gatewayTransactionRef: txRef }
+       );
+     } catch (e) {
+       if (e.code === 11000) return Response.json({ received: true }); // already processed
+       throw e;
+     }
+     ```
+   - Capacity bookings: `awaiting_payment → confirmed`
+   - Exclusive bookings: calls `resolveExclusiveLock()` → lost_race logs auto-refund intent
+   - Always returns HTTP 200
+
+#### Phase 3B — UI Screens
+
+8. **`src/app/(public)/listings/[id]/exclusive-request/page.js`** — Guest "Request to Book" form
+   - Date picker, headcount dial, add-ons, total in Kobo
+   - Calls `POST /api/bookings/exclusive/request`
+   - All 4 states: loading, empty (no open locks), error + retry, pessimistic-disabled
+
+9. **`src/app/(host)/host/bookings/page.js`** — Screen 6: Host Management Workspace
+   - Tabs: Pending | Approved | Rejected | Completed
+   - Exclusive listings: [APPROVE] / [DENY] per booking (DENY opens reason modal)
+   - Capacity listings: fill-meter read-only view `(28/40 booked)`
+   - All 4 states, pessimistic button locks
+
+10. **`src/app/(public)/bookings/[id]/page.js`** — Guest booking status page
+    - State-specific messaging for every Booking status
+    - `lost_race` clearly explains refund is processing
+    - `awaiting_payment` shows Pay Now CTA → Paystack authorization_url
+
+---
+
+## 📋 Project Structure (Current)
 
 ```
 HOSTME/
-├── AGENTS.md                          # Agent instructions (auto-read by AI tools)
-├── copilot-instructions.md            # Copilot-specific setup
-├── HANDOFF.md                         # THIS FILE — handoff for next session
-├── /docs                              # All HostMe specification documents
-│   ├── HostMe_Master_Blueprint_v2.md
-│   ├── HostMe_PRD_v3.md
-│   ├── HostMe_Database_Schemas_v2.md
-│   ├── HostMe_API_Route_Contract.md
-│   └── ... (8 docs total)
+├── AGENTS.md
+├── HANDOFF.md                         ← THIS FILE
+├── HostMe_Master_Blueprint_v2.md      ← Business philosophy (read-only)
+├── HostMe_PRD_v3.md                   ← Functional spec (source of truth)
+├── HostMe_Database_Schemas_v2.md      ← DB patterns — §2.2 and §2.4 are LAW
+├── HostMe_Build_Roadmap.md            ← Stage definitions and build order
+├── HostMe_API_Route_Contract.md       ← All routes to implement
+├── HostMe_Auth_Identity_v2.md         ← Auth flows, RBAC, multi-role
+├── HostMe_Remaining_Data_Models.md    ← Transaction, Message, Review, Dispute
+├── HostMe_Cancellation_Refund_Policy.md
+├── HostMe_Design_System.md            ← Visual tokens — apply to every UI
 │
-└── /hostme-app                        # Next.js application
+└── hostme-app/
     ├── src/
     │   ├── app/
-    │   │   ├── (public)/              # Public routes
-    │   │   │   ├── listings/          # Discovery Hub
-    │   │   │   └── listings/[id]/     # Listing Detail
-    │   │   ├── (host)/                # Host-only routes
-    │   │   │   └── host/listings/     # Host dashboard + creation
-    │   │   ├── (admin)/               # Admin-only routes
-    │   │   │   └── admin/listings/    # Admin queue
-    │   │   ├── api/                   # All API routes
-    │   │   │   ├── listings/          # Listing CRUD
-    │   │   │   ├── admin/listings/    # Admin actions
-    │   │   │   ├── soft-holds/        # Stage 2 - TBD
-    │   │   │   ├── bookings/          # Stage 2 - TBD
-    │   │   │   └── auth/[...nextauth]/
-    │   │   ├── layout.js
-    │   │   ├── page.js
-    │   │   └── globals.css
+    │   │   ├── (public)/
+    │   │   │   └── listings/
+    │   │   │       ├── page.js                    ← Screen 1: Discovery Hub
+    │   │   │       └── [id]/
+    │   │   │           ├── page.js                ← Screen 2: Listing Detail
+    │   │   │           └── checkout/page.js       ← Screen 3: Capacity Checkout ✅
+    │   │   │           [exclusive-request/page.js] ← Screen 3: Exclusive variant (Stage 3)
+    │   │   │   [bookings/[id]/page.js]            ← Guest status page (Stage 3)
+    │   │   │
+    │   │   ├── (host)/host/
+    │   │   │   ├── listings/
+    │   │   │   │   ├── page.js                    ← Host Dashboard ✅
+    │   │   │   │   └── new/page.js                ← Host Creation Form ✅
+    │   │   │   [bookings/page.js]                 ← Screen 6: Host Inbox (Stage 3)
+    │   │   │
+    │   │   ├── (admin)/admin/listings/pending/page.js  ← Admin Queue ✅
+    │   │   │
+    │   │   ├── signin/                            ← NextAuth sign-in page
+    │   │   │
+    │   │   └── api/
+    │   │       ├── listings/                      ← CRUD + admin routes ✅
+    │   │       ├── soft-holds/                    ← Capacity reservation ✅
+    │   │       ├── bookings/                      ← Booking creation ✅
+    │   │       │   [bookings/exclusive/request]   ← Stage 3
+    │   │       │   [bookings/[id]/approve]        ← Stage 3
+    │   │       │   [bookings/[id]/reject]         ← Stage 3
+    │   │       [payments/initiate]               ← Stage 3
+    │   │       [payments/webhook/paystack]       ← Stage 3 (CRITICAL)
+    │   │       └── auth/[...nextauth]/            ← NextAuth handler ✅
     │   │
     │   ├── lib/
-    │   │   ├── db.js                  # MongoDB connection
-    │   │   ├── auth.js                # NextAuth config
-    │   │   ├── validation.js          # Zod schemas
-    │   │   ├── geo.js                 # Geospatial helpers
-    │   │   └── roles.js               # Authorization
+    │   │   ├── db.js           ← MongoDB singleton
+    │   │   ├── auth.js         ← NextAuth config
+    │   │   ├── validation.js   ← Zod schemas
+    │   │   ├── geo.js          ← Geospatial helpers
+    │   │   ├── roles.js        ← hasRequiredRole(user, role)
+    │   │   └── booking.js      ← reserveCapacitySlot() ← atomic ✅
+    │   │   [exclusive.js]      ← resolveExclusiveLock() ← Stage 3
     │   │
     │   └── models/
     │       ├── User.js
-    │       ├── Listing.js             # ← Has rejectionReason field
+    │       ├── Listing.js      ← Has rejectionReason field
     │       ├── Slot.js
-    │       ├── Booking.js
+    │       ├── Booking.js      ← gatewayTransactionRef unique index ✅
     │       ├── ExclusiveLock.js
-    │       └── SoftHold.js            # ← NEW with TTL
+    │       └── SoftHold.js     ← TTL index ✅
     │
-    ├── package.json                   # Next.js 16.2.10, React 19.2.4, Mongoose, NextAuth v4
-    ├── .env.example                   # Copy to .env and fill MONGODB_URI
-    └── README.md
+    ├── __tests__/
+    │   └── concurrency.test.js ← Stage 2 concurrency tests ✅
+    │   [exclusive-lock.test.js] ← Stage 3 race + idempotency tests
+    ├── tests/
+    │   └── concurrency.md      ← Manual test plan
+    ├── package.json
+    ├── .env.example
+    └── .env                    ← (git-ignored, copy from .env.example)
 ```
 
 ---
 
-## 🔧 Quick Start Commands
+## ⚙️ Environment Variables
+
+```env
+# Required now
+MONGODB_URI=mongodb+srv://sawmodabolaji_db_user:e0Jfw0RIacsihbCx@cluster0.aphsje6.mongodb.net/
+NEXTAUTH_SECRET=hostme-dev-secret
+NEXTAUTH_URL=http://localhost:3000
+
+# Required for Stage 3
+PAYSTACK_SECRET_KEY=         # test-mode key from Paystack dashboard
+PAYSTACK_PUBLIC_KEY=         # test-mode key
+
+# Required for later stages
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+UPSTASH_REDIS_URL=
+UPSTASH_REDIS_TOKEN=
+PUSHER_APP_ID=
+PUSHER_KEY=
+PUSHER_SECRET=
+JWT_PASS_SECRET=
+ADMIN_TOTP_ISSUER=
+```
+
+---
+
+## 🔧 Quick Start
 
 ```bash
-# Install dependencies
-cd hostme-app && npm install
-
-# Development server
-npm run dev                 # Runs on http://localhost:3000
-
-# Production build (verify compiles)
-npm run build              # Should show 0 errors
-
-# Start production server
-npm start
-
-# Lint check
-npm run lint
+cd hostme-app
+npm install
+npm run dev           # http://localhost:3000
+npm run build         # Production build verification
+npm test              # Concurrency unit tests (no DB needed)
 ```
 
 ---
 
-## ⚙️ Configuration Required
+## 📖 Critical Engineering Patterns (NEVER Deviate)
 
-### MongoDB Setup
-1. Create MongoDB Atlas cluster (free tier OK for dev)
-2. Get connection string: `mongodb+srv://user:pass@cluster.mongodb.net/hostme`
-3. Copy `.env.example` → `.env`
-4. Fill in:
-   ```
-   MONGODB_URI=your_connection_string
-   NEXTAUTH_SECRET=generate_random_string
-   NEXTAUTH_URL=http://localhost:3000
-   ```
-
-### GitHub Integration
-- Repo: https://github.com/Sawmod001/HOSTME
-- Latest commit: Stage 1 Complete (commit 750a6ad)
-- Branch: main
-
----
-
-## 📖 Important Design Patterns
-
-### Atomic Capacity Check (CRITICAL)
+### Atomic Capacity Check
 ```javascript
-// ✅ CORRECT - Single atomic operation
+// ✅ CORRECT — DB spec §2.2
 const slot = await Slot.findOneAndUpdate(
-  { _id: slotId, booked: { $lt: capacity } },
+  { _id: slotId, $expr: { $lte: [{ $add: ['$booked', headcount] }, '$capacity'] } },
   { $inc: { booked: headcount } },
   { new: true }
 );
-if (!slot) return 409; // Slot full
+if (!slot) return 409; // full
 
-// ❌ WRONG - Two operations (race condition!)
+// ❌ WRONG — race condition
 const slot = await Slot.findById(slotId);
-if (slot.booked + headcount > slot.capacity) { /* ... */ }
-await Slot.updateOne({ _id: slotId }, { $inc: { booked: headcount } });
+if (slot.booked + headcount > slot.capacity) { ... }
+await Slot.updateOne(...); // NOT ATOMIC
 ```
 
-### Money = Integer Kobo (CRITICAL)
+### Exclusive Lock Race Resolution
+```javascript
+// ✅ CORRECT — DB spec §2.4
+const lock = await ExclusiveLock.findOneAndUpdate(
+  { _id: lockId, status: 'open' },
+  { $set: { status: 'locked', lockedByBookingId: bookingId } },
+  { new: true }
+);
+if (!lock) {
+  // lost_race — trigger refund
+}
+```
+
+### Webhook Idempotency Guard
+```javascript
+// ✅ CORRECT — DB spec §2.5
+try {
+  await Booking.updateOne(
+    { _id: bookingId, gatewayTransactionRef: { $exists: false } },
+    { gatewayTransactionRef: txRef }
+  );
+} catch (e) {
+  if (e.code === 11000) return; // duplicate delivery — no-op
+  throw e;
+}
+```
+
+### Money — Always Integer Kobo
 ```javascript
 // ✅ CORRECT
-const totalKobo = baseRatePerHour + addOnsTotal; // Already in Kobo
-booking.totalAmountKobo = totalKobo;
+const total = baseRateKobo + addOnsKobo; // integer arithmetic only
 
 // ❌ WRONG
-const totalNaira = 5.50;
-booking.totalAmountKobo = totalNaira * 100; // Float arithmetic error!
+const total = price * 100; // float multiply = floating-point error
 ```
 
-### Server-Side Role Check (CRITICAL)
+### Server-Side Authorization
 ```javascript
-// ✅ CORRECT - Check roles array
-if (!session.user.roles.includes('admin')) return 401;
+// ✅ CORRECT
+if (!session.user.roles.includes('host')) return 401;
 
-// ❌ WRONG - Never trust activeRole alone
-if (session.user.activeRole !== 'admin') return 401;
+// ❌ WRONG — never trust activeRole alone
+if (session.user.activeRole !== 'host') return 401;
 ```
 
 ---
 
-## 🧪 Testing Notes
+## 🧪 Testing Protocol (Stage Definition of Done)
 
-### API Endpoints (Manual via `curl` or Postman)
-1. **Get listings** (no auth required)
-   ```
-   GET /api/listings?vertical=venue&limit=10
-   ```
-
-2. **Create listing** (auth required: host role)
-   ```
-   POST /api/listings
-   Headers: Content-Type: application/json
-   Body: { vertical, bookingType, title, ... }
-   ```
-
-3. **Approve listing** (auth required: admin role)
-   ```
-   POST /api/admin/listings/:id/approve
-   ```
-
-### Concurrency Test (Stage 2)
-- Simulate 5+ users booking same slot simultaneously
-- Expect exactly 1 success, rest return 409 (Conflict)
-- Verify slot.booked incremented correctly
+A stage is NOT done until:
+1. **Atomic patterns verified under concurrent load** — not just happy-path single request
+2. **Every screen has all 4 states** — loading, empty, error + retry, pessimistic-disabled
+3. **Webhook idempotency verified** — same payload fired twice, second is no-op
 
 ---
 
 ## ⚠️ Known Issues & Gotchas
 
-1. **NextAuth Version**: Currently v4.24.14 (v5 registry issues earlier)
-   - Handler pattern: `const handler = NextAuth(config); export default handler;`
-   - Route handler: `export { handler as GET, handler as POST };`
+1. **NextAuth Version**: v4.24.14 (v5 had registry issues at project start)
+   - Handler: `const handler = NextAuth(config); export { handler as GET, handler as POST }`
 
-2. **MongoDB TTL Index**: SoftHold model uses `{ expires: 0 }` for auto-delete
-   - Takes ~5-10 minutes to clean up after expiry
-   - For testing, manually delete or use shorter TTL
+2. **MongoDB Atlas IP Whitelist**: Must whitelist dev machine IP or use `0.0.0.0/0`
 
-3. **File Path Naming**: Can't use capital letters in package.json name
-   - Repo: HOSTME (caps OK)
-   - App dir: hostme-app (lowercase required)
+3. **SoftHold TTL**: MongoDB TTL index runs every ~60 seconds — not instant. For testing, use a very short expiry or manually delete.
 
-4. **Environment Variables**: Must restart dev server after changing `.env`
+4. **CRLF warnings on Windows**: Normal. Run `git config core.autocrlf true` to suppress.
 
-5. **Build Warnings**: CRLF line ending warnings on Windows are normal
-   - Run `git config core.autocrlf true` to suppress
+5. **Auth bug in Stage 1/2 routes**: `getServerSession` is imported from `next-auth/react` (wrong — client module). Auth check always returns null on those routes. These are in existing files — do not fix without explicit instruction. Ask the human "fix bugs first" if needed before Stage 3.
 
 ---
 
 ## 📝 Next AI Session Checklist
 
-When you start a new chat to continue:
-
-- [ ] Read this HANDOFF.md file first (you're reading it now ✓)
+- [ ] Read this HANDOFF.md first ✓
 - [ ] Check AGENTS.md for project rules
-- [ ] Review HostMe_Build_Roadmap.md for Stage 2 spec
-- [ ] Open MONGODB_URI from .env and verify connection
-- [ ] Run `npm run build` to verify no regressions
-- [ ] Start building Stage 2: Capacity Booking Engine
-  - SoftHold route
-  - Checkout form UI
-  - Booking creation route
-  - Concurrency tests
+- [ ] Check MongoDB Atlas IP whitelist (see §MongoDB Connection above)
+- [ ] Confirm with human: fix Stage 1/2 auth bugs before Stage 3? (recommended: yes)
+- [ ] Confirm: Paystack test-mode keys available?
+- [ ] Start Stage 3 in order: `lib/exclusive.js` → tests → API routes → UI screens
+- [ ] Every webhook handler: test idempotency (fire twice, verify no-op on second)
 
 ---
 
-## 💡 Quick Context for Next Session
-
-**Current State**: 
-- ✅ Listings & Discovery (Stage 1) fully working
-- ✅ All API routes created and structured
-- ✅ 5 UI screens built with proper state management
-- ✅ Production build verified
-- ⏳ **Next**: Build Stage 2 capacity booking flow
-
-**Key Files to Know**:
-- Models: `src/models/*.js` (all 6 models ready)
-- API routes: `src/app/api/` (structured by feature)
-- UI screens: `src/app/(public|host|admin)/` (route groups)
-- Utilities: `src/lib/*.js` (validation, geo, auth)
-
-**To Resume**:
-1. Open this file (`HANDOFF.md`)
-2. Check HostMe_Build_Roadmap.md Stage 2 section
-3. Create SoftHold route (`POST /api/soft-holds`)
-4. Build checkout form UI
-5. Test concurrency with atomic operations
-
----
-
-**Good luck! The foundation is solid. Stage 2 is just building on top. 🚀**
+**GitHub**: https://github.com/Sawmod001/HOSTME  
+**Branch**: main

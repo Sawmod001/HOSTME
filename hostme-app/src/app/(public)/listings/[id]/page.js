@@ -198,9 +198,12 @@ export default function ListingDetailPage({ params }) {
                             </div>
                         )}
 
-                        <button className="w-full mt-4 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
+                        <Link
+                            href={`/listings/${params.id}/checkout`}
+                            className="mt-4 block w-full rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center font-semibold text-white"
+                        >
                             Book Now
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
