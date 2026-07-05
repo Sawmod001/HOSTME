@@ -40,11 +40,11 @@ export const ListingCreateSchema = z.object({
 export const ListingUpdateSchema = ListingCreateSchema.partial();
 
 export const ListingFilterSchema = z.object({
-    vertical: z.enum(["venue", "housing", "preorder"]).optional(),
-    cityArea: z.string().optional(),
-    bookingType: z.enum(["capacity", "exclusive"]).optional(),
+    vertical: z.enum(["venue", "housing", "preorder"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
+    cityArea: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
+    bookingType: z.enum(["capacity", "exclusive"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
     limit: z.number().int().min(1).max(100).default(20),
-    cursor: z.string().optional(),
+    cursor: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
     lat: z.number().min(-90).max(90).optional(),
     lng: z.number().min(-180).max(180).optional(),
     radiusKm: z.number().min(0.1).max(100).default(50),

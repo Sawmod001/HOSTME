@@ -1,6 +1,8 @@
+import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { Listing } from "@/models/Listing";
 import { validateListingUpdate } from "@/lib/validation";
+import { getDemoListingById } from "@/lib/demo-data";
 import mongoose from "mongoose";
 
 export async function GET(request, { params }) {
@@ -9,14 +11,23 @@ export async function GET(request, { params }) {
             return Response.json({ error: "Invalid listing ID" }, { status: 400 });
         }
 
-        await connectToDatabase();
+        try {
+            await connectToDatabase();
 
-        const listing = await Listing.findById(params.id).lean();
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
+            const listing = await Listing.findById(params.id).lean();
+            if (!listing) {
+                return Response.json({ error: "Listing not found" }, { status: 404 });
+            }
+
+            return Response.json(listing);
+        } catch (databaseError) {
+            const demoListing = getDemoListingById(params.id);
+            if (!demoListing) {
+                return Response.json({ error: "Listing not found" }, { status: 404 });
+            }
+
+            return Response.json(demoListing);
         }
-
-        return Response.json(listing);
     } catch (error) {
         console.error(`GET /api/listings/${params.id} error:`, error);
         return Response.json({ error: "Failed to fetch listing" }, { status: 500 });
@@ -25,8 +36,8 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
     try {
-        const session = await import("next-auth/react").then((m) => m.getServerSession);
-        if (!session) {
+        const session = await auth();
+        if (!session?.user?.id) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 

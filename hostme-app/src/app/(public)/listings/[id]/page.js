@@ -199,10 +199,10 @@ export default function ListingDetailPage({ params }) {
                         )}
 
                         <Link
-                            href={`/listings/${params.id}/checkout`}
+                            href={listing.bookingType === "capacity" ? `/listings/${params.id}/checkout` : `/listings/${params.id}/exclusive-request`}
                             className="mt-4 block w-full rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center font-semibold text-white"
                         >
-                            Book Now
+                            {listing.bookingType === "capacity" ? "Book Now" : "Request to Book"}
                         </Link>
                     </div>
                 </div>

@@ -39,9 +39,9 @@ export default function Home() {
             <Link href="/signin" className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center font-semibold text-white">
               Continue to sign in
             </Link>
-            <a href="https://github.com" className="rounded-xl border border-[var(--color-border)] px-4 py-3 text-center font-semibold text-[var(--color-ink)]">
-              Review roadmap
-            </a>
+            <Link href="/listings" className="rounded-xl border border-[var(--color-border)] px-4 py-3 text-center font-semibold text-[var(--color-ink)]">
+              Explore listings
+            </Link>
           </div>
         </div>
 

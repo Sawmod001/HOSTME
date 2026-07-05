@@ -78,12 +78,23 @@ export default function DiscoveryPage() {
             <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                 <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-8">
                     <p className="text-sm text-[var(--color-ink-muted)]">Error: {error}</p>
-                    <button
-                        onClick={() => fetchListings(true)}
-                        className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-white font-semibold"
-                    >
-                        Try Again
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => fetchListings(true)}
+                            className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-white font-semibold"
+                        >
+                            Try Again
+                        </button>
+                        <button
+                            onClick={async () => {
+                                await fetch("/api/listings/seed", { method: "POST" });
+                                fetchListings(true);
+                            }}
+                            className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+                        >
+                            Seed Demo Listings
+                        </button>
+                    </div>
                 </div>
             </main>
         );
@@ -143,7 +154,16 @@ export default function DiscoveryPage() {
                 {listings.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
                         <p className="text-sm font-semibold text-[var(--color-ink)]">No listings found</p>
-                        <p className="text-xs text-[var(--color-ink-muted)]">Try adjusting your filters or check back soon</p>
+                        <p className="text-xs text-[var(--color-ink-muted)]">Try adjusting your filters or seed demo content to continue testing</p>
+                        <button
+                            onClick={async () => {
+                                await fetch("/api/listings/seed", { method: "POST" });
+                                fetchListings(true);
+                            }}
+                            className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+                        >
+                            Seed Demo Listings
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-4">

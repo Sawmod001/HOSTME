@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { Booking } from "@/models/Booking";
 import { SoftHold } from "@/models/SoftHold";
@@ -5,8 +6,37 @@ import { Listing } from "@/models/Listing";
 import { Slot } from "@/models/Slot";
 import mongoose from "mongoose";
 
+export async function GET(request) {
+    try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        await connectToDatabase();
+
+        if (session.user.roles?.includes("host")) {
+            const listings = await Listing.find({ hostId: session.user.id }).select("_id").lean();
+            const listingIds = listings.map((listing) => listing._id);
+            const bookings = await Booking.find({ listingId: { $in: listingIds } }).sort({ createdAt: -1 }).lean();
+            return Response.json({ data: bookings });
+        }
+
+        const bookings = await Booking.find({ guestId: session.user.id }).sort({ createdAt: -1 }).lean();
+        return Response.json({ data: bookings });
+    } catch (error) {
+        console.error("GET /api/bookings error:", error);
+        return Response.json({ error: "Failed to fetch bookings" }, { status: 500 });
+    }
+}
+
 export async function POST(request) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const payload = await request.json();
         const { softHoldId, guestId, guestName, guestEmail, guestPhone, addOns = [] } = payload;
 
@@ -41,7 +71,7 @@ export async function POST(request) {
 
         const booking = await Booking.create({
             listingId: listing._id,
-            guestId: guestId || null,
+            guestId: session.user.id,
             bookingType: "capacity",
             eventStart: slot.eventStart,
             eventEnd: slot.eventEnd,
