@@ -12,6 +12,7 @@ RUN npm ci --only=production
 # ---- Stage 2: Build ----
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NEXT_OUTPUT=standalone
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .

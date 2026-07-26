@@ -85,4 +85,4 @@ docker compose up --build
 
 - **No ClerkProvider**: Auth is handled server-side via cookie-based JWT parsing and Clerk API verification. No Clerk React SDK in the client bundle.
 - **Custom PgQuery class**: Replaces Supabase JS SDK with a lightweight query builder over raw `pg` pool. Mimics Supabase's `from().select().eq()` API.
-- **Standalone output**: `next.config.mjs` sets `output: "standalone"` for Docker deployments.
+- **Docker builds**: Use `NEXT_OUTPUT=standalone` (set in Dockerfile) for minimal container images. Vercel ignores this and uses its own pipeline.
