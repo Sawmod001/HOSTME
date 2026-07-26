@@ -1,54 +1,52 @@
+import { pool as defaultPool } from "./db.js";
+import { createSoftHold as defaultCreateSoftHold } from "./supabase-queries.js";
+
 export async function reserveCapacitySlot({
-    slotId,
-    listingId,
-    headcount,
-    SlotModel,
-    SoftHoldModel,
-    BookingModel,
-    expiresInMinutes = 10,
+  slotId,
+  listingId,
+  headcount,
+  expiresInMinutes = 10,
+  poolClient,
+  createSoftHoldFn,
 }) {
-    if (!slotId || !listingId || !headcount) {
-        return { ok: false, status: 400, error: "Missing reservation parameters" };
-    }
+  if (!slotId || !listingId || !headcount) {
+    return { ok: false, status: 400, error: "Missing reservation parameters" };
+  }
+  if (headcount < 1) {
+    return { ok: false, status: 400, error: "Headcount must be at least 1" };
+  }
 
-    if (headcount < 1) {
-        return { ok: false, status: 400, error: "Headcount must be at least 1" };
-    }
+  const db = poolClient || defaultPool;
 
-    const updatedSlot = await SlotModel.findOneAndUpdate(
-        {
-            _id: slotId,
-            listingId,
-            $expr: {
-                $lte: [{ $add: ["$booked", headcount] }, "$capacity"],
-            },
-        },
-        { $inc: { booked: headcount } },
-        { new: true }
-    );
+  const result = await db.query(
+    `SELECT * FROM reserve_capacity_slot($1, $2, $3)`,
+    [slotId, listingId, headcount]
+  );
 
-    if (!updatedSlot) {
-        return { ok: false, status: 409, error: "Slot is full or unavailable" };
-    }
+  const updatedSlot = result.rows[0];
+  if (!updatedSlot) {
+    return { ok: false, status: 409, error: "Slot is full or unavailable" };
+  }
 
-    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
-    const softHold = await SoftHoldModel.create({
-        slotId,
-        headcount,
-        expiresAt,
-        bookingId: null,
-    });
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+  const createHold = createSoftHoldFn || defaultCreateSoftHold;
+  const softHold = await createHold({
+    slot_id: slotId,
+    headcount,
+    expires_at: expiresAt.toISOString(),
+    booking_id: null,
+  });
 
-    return {
-        ok: true,
-        status: 201,
-        data: {
-            slotId,
-            softHoldId: softHold._id,
-            expiresAt,
-            headcount,
-            booked: updatedSlot.booked,
-            capacity: updatedSlot.capacity,
-        },
-    };
+  return {
+    ok: true,
+    status: 201,
+    data: {
+      slotId,
+      softHoldId: softHold.id,
+      expiresAt: expiresAt.toISOString(),
+      headcount,
+      booked: updatedSlot.booked,
+      capacity: updatedSlot.capacity,
+    },
+  };
 }

@@ -1,55 +1,56 @@
+import { pool } from "./db.js";
+import { supabase } from "./supabase.js";
+
 export async function resolveExclusiveLock({
-    lockId,
-    bookingId,
-    listingId,
-    eventStart,
-    ExclusiveLock,
-    Booking,
+  lockId,
+  bookingId,
+  listingId,
+  eventStart,
+  poolClient,
+  supabaseClient,
 }) {
-    if (!lockId || !bookingId || !listingId || !eventStart || !ExclusiveLock || !Booking) {
-        return { ok: false, error: "Missing exclusive lock parameters" };
-    }
+  if (!lockId || !bookingId || !listingId || !eventStart) {
+    return { ok: false, error: "Missing exclusive lock parameters" };
+  }
 
-    const lock = await ExclusiveLock.findOneAndUpdate(
-        { _id: lockId, status: "open" },
-        { $set: { status: "locked", lockedByBookingId: bookingId } },
-        { new: true }
+  const dbClient = poolClient || pool;
+  const dbSupabase = supabaseClient || supabase;
+
+  try {
+    const startStr = eventStart instanceof Date ? eventStart.toISOString() : eventStart;
+    const result = await dbClient.query(
+      `SELECT * FROM resolve_exclusive_lock($1, $2, $3, $4)`,
+      [lockId, bookingId, listingId, startStr]
     );
 
-    if (!lock) {
-        await Booking.updateOne({ _id: bookingId }, { status: "lost_race" });
-        return { won: false, bookingId };
+    if (!result.rows.length) {
+      await dbSupabase.from("bookings").update({ status: "lost_race" }).eq("id", bookingId);
+      return { won: false, bookingId };
     }
 
-    await Booking.updateOne({ _id: bookingId }, { status: "confirmed" });
-    await Booking.updateMany(
-        {
-            listingId,
-            eventStart,
-            _id: { $ne: bookingId },
-            status: { $in: ["pending", "awaiting_payment"] },
-        },
-        { status: "rejected" }
-    );
-
-    return { won: true, bookingId, lock };
+    return { won: true, bookingId, lock: result.rows[0] };
+  } catch (error) {
+    await dbSupabase.from("bookings").update({ status: "lost_race" }).eq("id", bookingId);
+    return { won: false, bookingId };
+  }
 }
 
-export async function markWebhookProcessing({ BookingModel, bookingId, gatewayTransactionRef }) {
-    if (!BookingModel || !bookingId || !gatewayTransactionRef) {
-        return { ok: false, error: "Missing webhook processing parameters" };
-    }
+export async function markWebhookProcessing({ bookingId, gatewayTransactionRef, supabaseClient }) {
+  if (!bookingId || !gatewayTransactionRef) {
+    return { ok: false, error: "Missing webhook processing parameters" };
+  }
 
-    try {
-        await BookingModel.updateOne(
-            { _id: bookingId, gatewayTransactionRef: { $exists: false } },
-            { gatewayTransactionRef }
-        );
-        return { ok: true, duplicate: false };
-    } catch (error) {
-        if (error?.code === 11000) {
-            return { ok: false, duplicate: true };
-        }
-        throw error;
+  try {
+    const db = supabaseClient || supabase;
+    await db.from("processed_webhooks").insert({
+      gateway_transaction_ref: gatewayTransactionRef,
+      booking_id: bookingId,
+    });
+    return { ok: true, duplicate: false };
+  } catch (err) {
+    if (err?.code === "23505") {
+      return { ok: false, duplicate: true };
     }
+    throw err;
+  }
 }

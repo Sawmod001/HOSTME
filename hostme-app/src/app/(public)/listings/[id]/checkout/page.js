@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
     const params = useParams();
+    const router = useRouter();
     const listingId = params?.id;
 
     const [listing, setListing] = useState(null);
@@ -76,7 +77,7 @@ export default function CheckoutPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     listingId,
-                    slotId: slot._id,
+                    slotId: slot.id,
                     headcount,
                     guestName,
                     guestEmail,
@@ -106,7 +107,7 @@ export default function CheckoutPage() {
             const bookingData = await bookingRes.json();
             if (!bookingRes.ok) throw new Error(bookingData.error || "Could not create booking");
 
-            alert(`Booking reserved. Payment step coming next. Booking ID: ${bookingData.data.bookingId}`);
+            router.push(`/bookings/${bookingData.data.bookingId}/pay`);
         } catch (err) {
             setError(err.message || "Checkout failed");
         } finally {

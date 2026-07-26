@@ -1,28 +1,32 @@
-import { auth } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { supabase } from "@/lib/supabase";
+import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const p = await params;
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
 
-        await connectToDatabase();
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
+        if (!parseId(p.id)) return fail("Invalid booking ID", 400);
 
-        const booking = await Booking.findById(params.id).lean();
-        if (!booking) {
-            return Response.json({ error: "Booking not found" }, { status: 404 });
-        }
+        const { data: booking } = await supabase.from("bookings").select().eq("id", p.id).maybeSingle();
+        if (!booking) return notFound("Booking not found");
 
-        if (booking.guestId?.toString() !== session.user.id) {
-            return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { data: listing } = await supabase.from("listings").select("host_id").eq("id", booking.listing_id).maybeSingle();
+        const isHost = listing && listing.host_id === user.id;
+        const isGuest = booking.guest_id === user.id;
 
-        return Response.json(booking);
+        if (!isHost && !isGuest) return forbidden();
+
+        return ok(toCamelCase(booking));
     } catch (error) {
         console.error("GET /api/bookings/[id] error:", error);
-        return Response.json({ error: "Failed to fetch booking" }, { status: 500 });
+        return fail("Failed to fetch booking", 500);
     }
 }

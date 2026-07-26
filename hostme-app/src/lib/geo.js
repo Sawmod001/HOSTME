@@ -27,10 +27,20 @@ export function buildGeoQuery(lat, lng, radiusKm = 50) {
 }
 
 export function buildListingQuery(filters = {}) {
-    const query = { status: "active" };
+    const query = {};
+
+    if (filters.status) {
+        query.status = filters.status;
+    } else {
+        query.status = "active";
+    }
 
     if (filters.vertical) {
         query.vertical = filters.vertical;
+    }
+
+    if (filters.subVertical) {
+        query.subVertical = filters.subVertical;
     }
 
     if (filters.cityArea) {

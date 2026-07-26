@@ -1,44 +1,39 @@
-import { auth } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
-import { Listing } from "@/models/Listing";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { supabase } from "@/lib/supabase";
+import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function POST(request, { params }) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const p = await params;
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
 
-        await connectToDatabase();
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
+        if (!parseId(p.id)) return fail("Invalid booking ID", 400);
 
-        const booking = await Booking.findById(params.id).lean();
-        if (!booking) {
-            return Response.json({ error: "Booking not found" }, { status: 404 });
-        }
+        const { data: booking } = await supabase.from("bookings").select().eq("id", p.id).maybeSingle();
+        if (!booking) return notFound("Booking not found");
 
-        const listing = await Listing.findById(booking.listingId).lean();
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
+        const { data: listing } = await supabase.from("listings").select().eq("id", booking.listing_id).maybeSingle();
+        if (!listing) return notFound("Listing not found");
 
-        if (!session.user.roles?.includes("host") || listing.hostId.toString() !== session.user.id) {
-            return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
+        if (listing.host_id !== user.id) return forbidden();
+        if (booking.status !== "pending") return fail("Booking is not pending approval", 400);
 
-        if (booking.status !== "pending") {
-            return Response.json({ error: "Booking is not pending approval" }, { status: 400 });
-        }
+        const { data: updated } = await supabase
+            .from("bookings")
+            .update({ status: "awaiting_payment" })
+            .eq("id", p.id)
+            .select()
+            .maybeSingle();
 
-        const updated = await Booking.findByIdAndUpdate(
-            params.id,
-            { status: "awaiting_payment" },
-            { new: true }
-        );
-
-        return Response.json({ ok: true, data: updated });
+        return ok({ ok: true, data: toCamelCase(updated) });
     } catch (error) {
         console.error("POST /api/bookings/[id]/approve error:", error);
-        return Response.json({ error: "Failed to approve booking" }, { status: 500 });
+        return fail("Failed to approve booking", 500);
     }
 }

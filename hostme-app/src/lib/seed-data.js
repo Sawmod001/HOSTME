@@ -19,8 +19,8 @@ export function buildSeedListingPayloads() {
             pricing: { baseRatePerHour: 2500000 },
             operationalRules: {
                 maxCapacity: 40,
-                setupBufferMinutes: 30,
-                teardownBufferMinutes: 30,
+                setupTimeMinutes: 30,
+                cleanupTimeMinutes: 30,
                 isByobAllowed: true,
                 cancellationPolicy: "moderate",
             },
@@ -45,8 +45,8 @@ export function buildSeedListingPayloads() {
             pricing: { baseRatePerHour: 3500000 },
             operationalRules: {
                 maxCapacity: 20,
-                setupBufferMinutes: 30,
-                teardownBufferMinutes: 30,
+                setupTimeMinutes: 30,
+                cleanupTimeMinutes: 30,
                 isByobAllowed: false,
                 cancellationPolicy: "strict",
             },

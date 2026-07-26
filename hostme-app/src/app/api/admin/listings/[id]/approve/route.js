@@ -1,39 +1,30 @@
-import { connectToDatabase } from "@/lib/db";
-import { Listing } from "@/models/Listing";
-import mongoose from "mongoose";
-
-async function checkAdminRole(session) {
-    return session && Array.isArray(session.user?.roles) && session.user.roles.includes("admin");
-}
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser";
+import { findListingById, updateListing } from "@/lib/supabase-queries";
+import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function POST(request, { params }) {
-    try {
-        const session = await import("next-auth/react").then((m) => m.getServerSession);
-        if (!session || !(await checkAdminRole(session))) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+  try {
+    const p = await params;
+    const sessionInfo = parseSessionToken(request);
+    if (!sessionInfo?.userId) return unauthorised("No session");
+    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    if (!isValid) return unauthorised("Invalid session");
 
-        if (!mongoose.Types.ObjectId.isValid(params.id)) {
-            return Response.json({ error: "Invalid listing ID" }, { status: 400 });
-        }
+    const mongoUser = await getClerkUser(sessionInfo.userId);
+    if (!mongoUser) return unauthorised("Clerk user not found");
+    if (!mongoUser.roles?.includes("admin")) return forbidden("Admin role required");
 
-        await connectToDatabase();
+    if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
-        const listing = await Listing.findById(params.id);
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
+    const listing = await findListingById(p.id);
+    if (!listing) return notFound("Listing not found");
+    if (listing.status !== "pending_review") return fail("Listing is not pending review", 400);
 
-        if (listing.status !== "pending_review") {
-            return Response.json({ error: "Listing is not pending review" }, { status: 400 });
-        }
-
-        listing.status = "active";
-        await listing.save();
-
-        return Response.json(listing.toObject());
-    } catch (error) {
-        console.error(`POST /api/admin/listings/${params.id}/approve error:`, error);
-        return Response.json({ error: "Failed to approve listing" }, { status: 500 });
-    }
+    const updated = await updateListing(p.id, { status: "active" });
+    if (!updated) return fail("Failed to approve listing — update returned empty", 500);
+    return ok(toCamelCase(updated));
+  } catch (error) {
+    console.error("POST /api/admin/listings/[id]/approve error:", error);
+    return fail("Failed to approve listing", 500);
+  }
 }

@@ -1,52 +1,35 @@
-import { connectToDatabase } from "@/lib/db";
-import { Listing } from "@/models/Listing";
-import { ExclusiveLock } from "@/models/ExclusiveLock";
-import mongoose from "mongoose";
+import { findListingById } from "@/lib/supabase-queries";
+import { supabase } from "@/lib/supabase";
+import { toCamelCase, ok, fail, notFound, parseId } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
     try {
+        const p = await params;
         const { searchParams } = new URL(request.url);
         const dateStr = searchParams.get("date");
+        if (!dateStr) return fail("Missing date query parameter", 400);
+        if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
-        if (!dateStr) {
-            return Response.json({ error: "Missing date query parameter" }, { status: 400 });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(params.id)) {
-            return Response.json({ error: "Invalid listing ID" }, { status: 400 });
-        }
-
-        await connectToDatabase();
-
-        const listing = await Listing.findById(params.id).lean();
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
-
-        if (listing.bookingType !== "exclusive") {
-            return Response.json({ error: "Listing is not exclusive-space" }, { status: 400 });
+        const listing = await findListingById(p.id);
+        if (!listing) return notFound("Listing not found");
+        if (listing.booking_type !== "exclusive") {
+            return fail("Listing is not exclusive-space", 400);
         }
 
         const date = new Date(dateStr);
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const dayEnd = new Date(dayStart.getTime() + 86400000);
 
-        const locks = await ExclusiveLock.find({
-            listingId: params.id,
-            eventStart: { $gte: dayStart, $lt: dayEnd },
-        }).lean();
+        const { data: locks } = await supabase
+            .from("exclusive_locks")
+            .select()
+            .eq("listing_id", p.id)
+            .gte("event_start", dayStart.toISOString())
+            .lt("event_start", dayEnd.toISOString());
 
-        const availability = locks.map((lock) => ({
-            _id: lock._id,
-            eventStart: lock.eventStart,
-            eventEnd: lock.eventEnd,
-            status: lock.status,
-            lockedByBookingId: lock.lockedByBookingId,
-        }));
-
-        return Response.json({ data: availability });
+        return ok({ data: (locks || []).map(toCamelCase) });
     } catch (error) {
-        console.error(`GET /api/listings/${params.id}/availability error:`, error);
-        return Response.json({ error: "Failed to fetch availability" }, { status: 500 });
+        console.error("GET /api/listings/availability error:", error);
+        return fail("Failed to fetch availability", 500);
     }
 }

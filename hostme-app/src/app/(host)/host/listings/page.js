@@ -8,11 +8,24 @@ export default function HostListingsPage() {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [userId, setUserId] = useState(null);
 
     useEffect(() => {
+        const fetchUserId = async () => {
+            const res = await fetch("/api/users/me");
+            if (!res.ok) { setLoading(false); return; }
+            const data = await res.json();
+            const uid = data.data?.id || data.id;
+            setUserId(uid);
+        };
+        fetchUserId();
+    }, []);
+
+    useEffect(() => {
+        if (!userId) return;
         const fetchListings = async () => {
             try {
-                const response = await fetch("/api/listings");
+                const response = await fetch(`/api/listings?hostId=${userId}`);
                 if (!response.ok) throw new Error("Failed to fetch listings");
                 const data = await response.json();
                 setListings(data.data);
@@ -25,7 +38,7 @@ export default function HostListingsPage() {
         };
 
         fetchListings();
-    }, []);
+    }, [userId]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -101,9 +114,10 @@ export default function HostListingsPage() {
                 ) : (
                     <div className="space-y-3">
                         {listings.map((listing) => (
-                            <div
-                                key={listing._id}
-                                className="rounded-2xl border border-[var(--color-border)] bg-white p-4 hover:border-[var(--color-primary)] transition-colors sm:p-6"
+                            <Link
+                                key={listing.id}
+                                href={`/host/listings/${listing.id}`}
+                                className="block rounded-2xl border border-[var(--color-border)] bg-white p-4 hover:border-[var(--color-primary)] transition-colors sm:p-6"
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1 space-y-2">
@@ -127,11 +141,11 @@ export default function HostListingsPage() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
-                                        <p className="font-semibold text-[var(--color-ink)]">₦{(listing.pricing.baseRatePerHour / 100).toLocaleString()}</p>
+                                        <p className="font-semibold text-[var(--color-ink)]">₦{((listing.pricing?.baseRatePerHour || 0) / 100).toLocaleString()}</p>
                                         <p className="text-xs text-[var(--color-ink-muted)]">per hour</p>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}

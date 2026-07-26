@@ -1,107 +1,108 @@
-import { auth } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
-import { SoftHold } from "@/models/SoftHold";
-import { Listing } from "@/models/Listing";
-import { Slot } from "@/models/Slot";
-import mongoose from "mongoose";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { supabase } from "@/lib/supabase";
+import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
 
 export async function GET(request) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
+
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
+        const roles = user.roles || [];
+
+        const { searchParams } = new URL(request.url);
+        const statusFilter = searchParams.get("status");
+
+        let query = supabase.from("bookings").select();
+
+        if (roles.includes("host")) {
+            const { data: listings } = await supabase
+                .from("listings")
+                .select("id")
+                .eq("host_id", user.id);
+            const listingIds = (listings || []).map((l) => l.id);
+            if (listingIds.length === 0) return ok({ data: [] });
+            query = query.in("listing_id", listingIds);
+        } else {
+            query = query.eq("guest_id", user.id);
         }
 
-        await connectToDatabase();
-
-        if (session.user.roles?.includes("host")) {
-            const listings = await Listing.find({ hostId: session.user.id }).select("_id").lean();
-            const listingIds = listings.map((listing) => listing._id);
-            const bookings = await Booking.find({ listingId: { $in: listingIds } }).sort({ createdAt: -1 }).lean();
-            return Response.json({ data: bookings });
+        if (statusFilter && ["pending", "awaiting_payment", "confirmed", "rejected", "completed", "cancelled"].includes(statusFilter)) {
+            query = query.eq("status", statusFilter);
         }
 
-        const bookings = await Booking.find({ guestId: session.user.id }).sort({ createdAt: -1 }).lean();
-        return Response.json({ data: bookings });
+        const { data: bookings } = await query.order("created_at", { ascending: false });
+
+        return ok({ data: (bookings || []).map(toCamelCase) });
     } catch (error) {
         console.error("GET /api/bookings error:", error);
-        return Response.json({ error: "Failed to fetch bookings" }, { status: 500 });
+        return fail("Failed to fetch bookings", 500);
     }
 }
 
 export async function POST(request) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
+
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
 
         const payload = await request.json();
-        const { softHoldId, guestId, guestName, guestEmail, guestPhone, addOns = [] } = payload;
+        const { softHoldId, guestName, guestEmail, guestPhone, addOns = [] } = payload;
+        if (!softHoldId) return fail("Missing soft hold ID", 400);
 
-        if (!softHoldId) {
-            return Response.json({ error: "Missing soft hold ID" }, { status: 400 });
-        }
+        const { data: softHold } = await supabase.from("soft_holds").select().eq("id", softHoldId).maybeSingle();
+        if (!softHold) return notFound("Soft hold not found");
+        if (new Date(softHold.expires_at) < new Date()) return fail("Soft hold expired", 409);
+        if (softHold.guest_id !== user.id) return fail("Soft hold does not belong to you", 403);
 
-        await connectToDatabase();
+        const { data: listing } = await supabase.from("listings").select().eq("id", payload.listingId).maybeSingle();
+        if (!listing) return notFound("Listing not found");
 
-        const softHold = await SoftHold.findById(softHoldId).lean();
-        if (!softHold) {
-            return Response.json({ error: "Soft hold not found" }, { status: 404 });
-        }
+        const { data: slot } = await supabase.from("slots").select().eq("id", softHold.slot_id).maybeSingle();
+        if (!slot) return notFound("Slot not found");
 
-        if (new Date(softHold.expiresAt) < new Date()) {
-            return Response.json({ error: "Soft hold expired" }, { status: 409 });
-        }
-
-        const listing = await Listing.findById(payload.listingId).lean();
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
-
-        const slot = await Slot.findById(softHold.slotId).lean();
-        if (!slot) {
-            return Response.json({ error: "Slot not found" }, { status: 404 });
-        }
-
-        const addOnsTotal = (addOns || []).reduce((sum, item) => sum + Number(item.priceInKobo || 0), 0);
+        const addOnsTotal = addOns.reduce((sum, item) => sum + Number(item.priceInKobo || 0), 0);
         const totalAmountKobo = Number(listing.pricing?.baseRatePerHour || 0) * Number(softHold.headcount || 0) + addOnsTotal;
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
-        const booking = await Booking.create({
-            listingId: listing._id,
-            guestId: session.user.id,
-            bookingType: "capacity",
-            eventStart: slot.eventStart,
-            eventEnd: slot.eventEnd,
-            headcount: softHold.headcount,
-            status: "awaiting_payment",
-            totalAmountKobo,
-            commissionKobo,
-        });
+        const { data: booking } = await supabase
+            .from("bookings")
+            .insert({
+                listing_id: listing.id,
+                guest_id: user.id,
+                booking_type: "capacity",
+                event_start: slot.event_start,
+                event_end: slot.event_end,
+                headcount: softHold.headcount,
+                status: "awaiting_payment",
+                total_amount_kobo: totalAmountKobo,
+                commission_kobo: commissionKobo,
+            })
+            .select()
+            .single();
 
-        await SoftHold.updateOne({ _id: softHold._id }, { bookingId: booking._id });
+        await supabase.from("soft_holds").update({ booking_id: booking.id }).eq("id", softHold.id);
 
-        return Response.json(
-            {
-                ok: true,
-                data: {
-                    bookingId: booking._id,
-                    status: booking.status,
-                    totalAmountKobo,
-                    commissionKobo,
-                    guest: {
-                        name: guestName || "Guest",
-                        email: guestEmail || null,
-                        phone: guestPhone || null,
-                    },
-                },
+        return ok({
+            ok: true,
+            data: {
+                bookingId: booking.id,
+                status: booking.status,
+                totalAmountKobo,
+                commissionKobo,
+                guest: { name: guestName || "Guest", email: guestEmail || null, phone: guestPhone || null },
             },
-            { status: 201 }
-        );
+        }, 201);
     } catch (error) {
         console.error("POST /api/bookings error:", error);
-        return Response.json({ error: "Failed to create booking" }, { status: 500 });
+        return fail("Failed to create booking", 500);
     }
 }

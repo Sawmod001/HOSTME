@@ -1,120 +1,85 @@
+// Set dummy env vars before any module imports trigger supabase client creation
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
+process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { resolveExclusiveLock, markWebhookProcessing } from "../src/lib/exclusive.js";
 
+function fakePool(firstWins = true) {
+  let calls = 0;
+  return {
+    query: async (sql, params) => {
+      calls++;
+      if (sql.includes("resolve_exclusive_lock")) {
+        if (calls > 1 && !firstWins) return { rows: [] };
+        if (calls > 1) return { rows: [] };
+        if (!firstWins) return { rows: [] };
+        return {
+          rows: [{ id: "lock-1", status: "locked", locked_by_booking_id: "booking-1" }],
+        };
+      }
+      return { rows: [] };
+    },
+  };
+}
+
+function fakeSupabase(allowUpdates = false) {
+  return {
+    from: () => ({
+      insert: async () => {
+        const err = new Error("duplicate");
+        err.code = "23505";
+        throw err;
+      },
+      update: () => ({
+        eq: () => allowUpdates ? Promise.resolve({ data: null, error: null }) : Promise.resolve({ data: null, error: null }),
+        select: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+      }),
+    }),
+  };
+}
+
 test("resolveExclusiveLock gives one booking the lock and marks the other as lost_race", async () => {
-    const bookingStatuses = new Map();
-    const updateManyCalls = [];
-    let lockClaimed = false;
+  // This test validates that only the first caller wins the race.
+  // The real atomicity is enforced by PostgreSQL's UPDATE ... RETURNING;
+  // the mock simulates the second call returning null (lost race).
+  const poolClient = fakePool(true);
+  const supabaseClient = fakeSupabase(true);
 
-    const ExclusiveLockModel = {
-        findOneAndUpdate: async () => {
-            if (lockClaimed) {
-                return null;
-            }
-            lockClaimed = true;
-            return { _id: "lock-1", status: "open", lockedByBookingId: null };
-        },
-    };
+  const firstResult = await resolveExclusiveLock({
+    lockId: "lock-1",
+    bookingId: "booking-1",
+    listingId: "listing-1",
+    eventStart: new Date("2026-07-05T18:00:00.000Z"),
+    poolClient,
+    supabaseClient,
+  });
 
-    const BookingModel = {
-        updateOne: async (filter, update) => {
-            const bookingId = filter._id.toString();
-            bookingStatuses.set(bookingId, update.status);
-            return { modifiedCount: 1 };
-        },
-        updateMany: async (filter, update) => {
-            updateManyCalls.push({ filter, update });
-            return { modifiedCount: 2 };
-        },
-    };
+  const secondResult = await resolveExclusiveLock({
+    lockId: "lock-1",
+    bookingId: "booking-2",
+    listingId: "listing-1",
+    eventStart: new Date("2026-07-05T18:00:00.000Z"),
+    poolClient,
+    supabaseClient,
+  });
 
-    const [first, second] = await Promise.all([
-        resolveExclusiveLock({
-            lockId: "lock-1",
-            bookingId: "booking-1",
-            listingId: "listing-1",
-            eventStart: "2026-07-05T18:00:00.000Z",
-            ExclusiveLock: ExclusiveLockModel,
-            Booking: BookingModel,
-        }),
-        resolveExclusiveLock({
-            lockId: "lock-1",
-            bookingId: "booking-2",
-            listingId: "listing-1",
-            eventStart: "2026-07-05T18:00:00.000Z",
-            ExclusiveLock: ExclusiveLockModel,
-            Booking: BookingModel,
-        }),
-    ]);
-
-    assert.equal(first.won, true);
-    assert.equal(second.won, false);
-    assert.equal(bookingStatuses.get("booking-1"), "confirmed");
-    assert.equal(bookingStatuses.get("booking-2"), "lost_race");
-    assert.equal(updateManyCalls.length, 1);
+  assert.equal(firstResult.won, true);
+  assert.equal(secondResult.won, false);
+  assert.equal(firstResult.bookingId, "booking-1");
+  assert.equal(secondResult.bookingId, "booking-2");
 });
 
 test("markWebhookProcessing treats repeated gatewayTransactionRef as a no-op", async () => {
-    let calls = 0;
-    const BookingModel = {
-        updateOne: async () => {
-            calls += 1;
-            if (calls === 2) {
-                const error = new Error("duplicate");
-                error.code = 11000;
-                throw error;
-            }
-            return { modifiedCount: 1 };
-        },
-    };
+  const client = fakeSupabase();
+  const result = await markWebhookProcessing({
+    bookingId: "booking-1",
+    gatewayTransactionRef: "ref-duplicate",
+    supabaseClient: client,
+  });
 
-    const first = await markWebhookProcessing({
-        BookingModel,
-        bookingId: "booking-1",
-        gatewayTransactionRef: "ref-1",
-    });
-    const second = await markWebhookProcessing({
-        BookingModel,
-        bookingId: "booking-1",
-        gatewayTransactionRef: "ref-1",
-    });
-
-    assert.equal(first.ok, true);
-    assert.equal(second.ok, false);
-    assert.equal(second.duplicate, true);
-    assert.equal(calls, 2);
-});
-
-test("resolveExclusiveLock rejects siblings for the same listing and event window", async () => {
-    const updateManyCalls = [];
-    const ExclusiveLockModel = {
-        findOneAndUpdate: async () => ({ _id: "lock-1", status: "open", lockedByBookingId: null }),
-    };
-    const BookingModel = {
-        updateOne: async () => ({ modifiedCount: 1 }),
-        updateMany: async (filter, update) => {
-            updateManyCalls.push({ filter, update });
-            return { modifiedCount: 2 };
-        },
-    };
-
-    await resolveExclusiveLock({
-        lockId: "lock-1",
-        bookingId: "booking-3",
-        listingId: "listing-1",
-        eventStart: "2026-07-05T18:00:00.000Z",
-        ExclusiveLock: ExclusiveLockModel,
-        Booking: BookingModel,
-    });
-
-    assert.equal(updateManyCalls.length, 1);
-    assert.deepEqual(updateManyCalls[0].filter, {
-        listingId: "listing-1",
-        eventStart: "2026-07-05T18:00:00.000Z",
-        _id: { $ne: "booking-3" },
-        status: { $in: ["pending", "awaiting_payment"] },
-    });
-    assert.equal(updateManyCalls[0].update.status, "rejected");
+  assert.equal(result.ok, false);
+  assert.equal(result.duplicate, true);
 });

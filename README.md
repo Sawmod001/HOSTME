@@ -3,52 +3,40 @@
 Multi-vertical transactional marketplace for Nigerian commercial hospitality & mid-tier real estate — venue bookings, regulated short-let viewings, and on-site pre-ordering, built on instant split-payment settlement (no escrow).
 
 ## Status
-🚧 Pre-Stage-0 — repo scaffolded, full spec set complete, coding not yet started.
+Database migrated from MongoDB to Supabase PostgreSQL. All 23 API routes rewritten. Auth via Clerk. See [`HANDOFF.md`](./HANDOFF.md) for current build state.
 
-## Full specification
-Everything the AI coding tool (or a new contributor) needs is in [`/docs`](./docs). Start with `HostMe_Build_Roadmap.md` — it defines the reading order, repo structure, environment variables, and build stages.
+## Tech Stack
+Next.js 16 (App Router) · JavaScript · **Supabase PostgreSQL** (replaces MongoDB) · **Clerk Auth** (replaces NextAuth) · Tailwind v4 · Paystack/Monnify · Cloudinary · Upstash Redis · Vercel
 
-If you're using an AI coding assistant, it should already be reading:
-- [`AGENTS.md`](./AGENTS.md) — portable instructions (Copilot, Claude Code, Cursor, Gemini all support this)
-- [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) — Copilot-specific repo instructions
-
-## Tech stack
-Next.js 15 (App Router) · JavaScript · MongoDB Atlas + Mongoose · NextAuth v5 · Tailwind + shadcn/ui · Paystack/Monnify · Cloudinary · Upstash Redis · Pusher/Socket.io · Vercel
-
-## Getting started
+## Getting Started
 
 ```bash
+cd hostme-app
 npm install
 cp .env.example .env.local   # fill in real credentials — never commit .env.local
 npm run dev
 ```
 
-## Repo structure
+## Repo Structure
 
 ```
 /docs                  -- full specification set (read before writing code)
-/.github
-  copilot-instructions.md
-  /instructions         -- path-specific rules, added as needed
-/src
-  /app                  -- Next.js App Router routes, grouped by (public)/(guest)/(host)/(admin)
-  /models               -- Mongoose schemas, one file per model
-  /lib                  -- gateway wrappers, chat scrubber, JWT pass encode/decode, rate limiter
-  /components
-    /ui                 -- shadcn primitives, themed to Design System tokens
-    /booking            -- shared booking UI (capacity + exclusive variants)
-AGENTS.md
-README.md
+/hostme-app            -- Next.js application (see hostme-app/README.md)
+  /src
+    /app/api           -- all 23 API routes (Supabase + Clerk)
+    /lib               -- supabase client, query helpers, Clerk helpers, validation
+  /supabase
+    migration.sql      -- full PostgreSQL schema (run in Supabase SQL editor)
+HANDOFF.md             -- current build state, next steps
+AGENTS.md              -- AI coding tool instructions
 ```
 
-## Build stages
-See `docs/HostMe_Build_Roadmap.md` §3 for the full breakdown. Short version:
+## Build Stages
+0. Foundation → 1. Listings & Discovery → 2. Capacity Booking Engine → 3. Exclusive-Space Booking Engine → 4. Payments & Cancellation/Refunds → 5. Identity & Trust → 6. Chat & Digital Pass → 7. Reviews/Disputes/Notifications → 8. Admin CMS & Polish.
 
-0. Foundation (scaffold, models, auth) → 1. Listings & Discovery → 2. Capacity Booking Engine → 3. Exclusive-Space Booking Engine → 4. Payments & Cancellation/Refunds → 5. Identity & Trust → 6. Chat & Digital Pass → 7. Reviews/Disputes/Notifications → 8. Admin CMS & Polish.
-
-## Locked decisions (do not relitigate without explicit discussion)
+## Locked Decisions
 - 95% host / 5% platform split, instant settlement, no escrow
 - No KYC — lite identity + bank account-name-resolution instead
 - Two booking engines: capacity-based (shared) vs exclusive-space (first-to-pay locks slot)
-- Tiered cancellation policy (flexible/moderate/strict) with gateway split-refunds
+- Tiered cancellation policy with gateway split-refunds
 - Dual-role accounts supported (`roles` array, `activeRole` is UI-only)

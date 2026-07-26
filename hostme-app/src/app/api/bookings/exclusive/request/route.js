@@ -1,83 +1,78 @@
-import { auth } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
-import { ExclusiveLock } from "@/models/ExclusiveLock";
-import { Listing } from "@/models/Listing";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { supabase } from "@/lib/supabase";
+import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
 
 export async function POST(request) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
+
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
 
         const payload = await request.json();
         const { listingId, lockId, headcount, eventStart, eventEnd } = payload;
-
         if (!listingId || !lockId || !headcount || !eventStart || !eventEnd) {
-            return Response.json({ error: "Missing required booking details" }, { status: 400 });
+            return fail("Missing required booking details", 400);
         }
 
         const parsedHeadcount = Number(headcount);
         if (!Number.isFinite(parsedHeadcount) || parsedHeadcount < 1) {
-            return Response.json({ error: "Headcount must be at least 1" }, { status: 400 });
+            return fail("Headcount must be at least 1", 400);
         }
 
-        await connectToDatabase();
+        const { data: listing } = await supabase.from("listings").select().eq("id", listingId).maybeSingle();
+        if (!listing) return notFound("Listing not found");
+        if (listing.booking_type !== "exclusive") return fail("Listing is not exclusive-space", 400);
+        if (listing.status !== "active") return fail("Listing is not active", 400);
 
-        const listing = await Listing.findById(listingId).lean();
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
+        const { data: exclusiveLock } = await supabase
+            .from("exclusive_locks")
+            .select()
+            .eq("id", lockId)
+            .eq("listing_id", listingId)
+            .eq("event_start", new Date(eventStart).toISOString())
+            .eq("status", "open")
+            .maybeSingle();
 
-        if (listing.bookingType !== "exclusive") {
-            return Response.json({ error: "Listing is not exclusive-space" }, { status: 400 });
-        }
+        if (!exclusiveLock) return fail("Exclusive lock is not available", 409);
 
-        if (listing.status !== "active") {
-            return Response.json({ error: "Listing is not active" }, { status: 400 });
-        }
-
-        const exclusiveLock = await ExclusiveLock.findOne({
-            _id: lockId,
-            listingId,
-            eventStart: new Date(eventStart),
-            status: "open",
-        }).lean();
-
-        if (!exclusiveLock) {
-            return Response.json({ error: "Exclusive lock is not available" }, { status: 409 });
-        }
-
-        const totalAmountKobo = Number(listing.pricing?.baseRatePerHour || 0) * parsedHeadcount;
+        const startMs = new Date(eventStart).getTime();
+        const endMs = new Date(eventEnd).getTime();
+        const hours = Math.max(1, (endMs - startMs) / (1000 * 60 * 60));
+        const totalAmountKobo = Math.round(Number(listing.pricing?.baseRatePerHour || 0) * hours);
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
-        const booking = await Booking.create({
-            listingId,
-            guestId: session.user.id,
-            bookingType: "exclusive",
-            eventStart: new Date(eventStart),
-            eventEnd: new Date(eventEnd),
-            headcount: parsedHeadcount,
-            status: "pending",
-            totalAmountKobo,
-            commissionKobo,
-        });
+        const { data: booking } = await supabase
+            .from("bookings")
+            .insert({
+                listing_id: listingId,
+                guest_id: user.id,
+                booking_type: "exclusive",
+                event_start: new Date(eventStart).toISOString(),
+                event_end: new Date(eventEnd).toISOString(),
+                headcount: parsedHeadcount,
+                status: "pending",
+                total_amount_kobo: totalAmountKobo,
+                commission_kobo: commissionKobo,
+            })
+            .select()
+            .single();
 
-        return Response.json(
-            {
-                ok: true,
-                data: {
-                    bookingId: booking._id,
-                    status: booking.status,
-                    totalAmountKobo,
-                    commissionKobo,
-                },
+        return ok({
+            ok: true,
+            data: {
+                bookingId: booking.id,
+                status: booking.status,
+                totalAmountKobo,
+                commissionKobo,
             },
-            { status: 201 }
-        );
+        }, 201);
     } catch (error) {
         console.error("POST /api/bookings/exclusive/request error:", error);
-        return Response.json({ error: "Failed to request exclusive booking" }, { status: 500 });
+        return fail("Failed to request exclusive booking", 500);
     }
 }

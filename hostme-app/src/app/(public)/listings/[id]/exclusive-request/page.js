@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function ExclusiveRequestPage({ params }) {
+    const { id } = use(params);
     const [listing, setListing] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,7 +21,7 @@ export default function ExclusiveRequestPage({ params }) {
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                const response = await fetch(`/api/listings/${params.id}`);
+                const response = await fetch(`/api/listings/${id}`);
                 if (!response.ok) throw new Error("Listing not found");
                 const data = await response.json();
                 setListing(data);
@@ -33,7 +34,7 @@ export default function ExclusiveRequestPage({ params }) {
         };
 
         fetchListing();
-    }, [params.id]);
+    }, [id]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -46,7 +47,7 @@ export default function ExclusiveRequestPage({ params }) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    listingId: params.id,
+                    listingId: id,
                     lockId: form.lockId,
                     headcount: form.headcount,
                     eventStart: form.eventStart,
@@ -95,7 +96,7 @@ export default function ExclusiveRequestPage({ params }) {
     return (
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
             <div className="mx-auto max-w-2xl space-y-6">
-                <Link href={`/listings/${params.id}`} className="flex items-center gap-2 text-[var(--color-primary)]">
+                <Link href={`/listings/${id}`} className="flex items-center gap-2 text-[var(--color-primary)]">
                     <ArrowLeft size={18} />
                     Back to listing
                 </Link>

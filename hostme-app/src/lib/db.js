@@ -1,33 +1,45 @@
-import mongoose from "mongoose";
+import { Pool } from "pg";
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
 
-const uri = process.env.MONGODB_URI;
+function getDatabaseUrl() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 
-const globalForMongoose = globalThis;
-
-if (!globalForMongoose.__hostmeMongooseCache) {
-    globalForMongoose.__hostmeMongooseCache = { conn: null, promise: null };
+  // Next.js loads .env automatically, but if this module is loaded before
+  // that happens, read .env directly as a fallback.
+  const candidates = [
+    resolve(process.cwd(), ".env"),
+    resolve(process.cwd(), ".env.local"),
+  ];
+  for (const file of candidates) {
+    if (existsSync(file)) {
+      try {
+        const text = readFileSync(file, "utf-8");
+        const match = text.match(/^DATABASE_URL=(.+)$/m);
+        if (match) return match[1].trim();
+      } catch {}
+    }
+  }
+  return undefined;
 }
 
-const cached = globalForMongoose.__hostmeMongooseCache;
+const url = getDatabaseUrl();
 
-export async function connectToDatabase() {
-    if (!uri) {
-        return { connected: false, reason: "MONGODB_URI is not configured" };
-    }
-
-    if (cached.conn) {
-        return { connected: true, connection: cached.conn };
-    }
-
-    if (!cached.promise) {
-        cached.promise = mongoose.connect(uri).then((connection) => connection);
-    }
-
-    try {
-        cached.conn = await cached.promise;
-        return { connected: true, connection: cached.conn };
-    } catch (error) {
-        cached.promise = null;
-        throw error;
-    }
+if (!url) {
+  console.error("[db.js] DATABASE_URL is not set and could not be loaded from .env/.env.local");
 }
+
+const pool = new Pool({
+  connectionString: url,
+  max: 5,
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 15000,
+  ssl: url ? { rejectUnauthorized: false } : undefined,
+});
+
+pool.on("error", (err) => {
+  console.error("pg pool error:", err.message);
+});
+
+export { pool };
+export default pool;

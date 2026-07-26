@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function BookingStatusPage({ params }) {
+    const { id } = use(params);
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -12,7 +13,7 @@ export default function BookingStatusPage({ params }) {
     useEffect(() => {
         const load = async () => {
             try {
-                const response = await fetch(`/api/bookings/${params.id}`);
+                const response = await fetch(`/api/bookings/${id}`);
                 if (!response.ok) throw new Error("Booking not found");
                 const data = await response.json();
                 setBooking(data);
@@ -24,8 +25,8 @@ export default function BookingStatusPage({ params }) {
             }
         };
 
-        load();
-    }, [params.id]);
+        if (id) load();
+    }, [id]);
 
     if (loading) {
         return (
@@ -71,7 +72,12 @@ export default function BookingStatusPage({ params }) {
                         {booking.status === "lost_race" ? (
                             <p>Your booking lost the race and a refund is being processed.</p>
                         ) : booking.status === "awaiting_payment" ? (
-                            <p>This request is awaiting payment. Continue to checkout to secure your slot.</p>
+                            <div className="space-y-3">
+                              <p>This booking is awaiting payment. Complete payment to secure your slot.</p>
+                              <Link href={`/bookings/${booking.id}/pay`} className="inline-block rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white">
+                                Pay Now
+                              </Link>
+                            </div>
                         ) : booking.status === "confirmed" ? (
                             <p>This booking is confirmed and the slot is now locked.</p>
                         ) : booking.status === "rejected" ? (

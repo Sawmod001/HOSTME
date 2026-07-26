@@ -1,21 +1,20 @@
 @import "tailwindcss";
 
-:root {
-  --color-primary: #d97706;
-  --color-primary-dark: #b45309;
-  --color-primary-light: #fde9cc;
-  --color-ink: #1c1917;
-  --color-ink-muted: #57534e;
-  --color-surface: #ffffff;
-  --color-surface-alt: #faf9f7;
-  --color-border: #e7e5e4;
-  --background: var(--color-surface);
-  --foreground: var(--color-ink);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
+  --color-primary: #C94428;
+  --color-primary-dark: #A83520;
+  --color-primary-light: #FDE8E0;
+  --color-primary-subtle: #FFF5F2;
+  --color-ink: #1A1A2E;
+  --color-ink-muted: #6B7280;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #FAFAFA;
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
+  --color-danger: #DC2626;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-info: #2563EB;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -26,12 +25,60 @@
 
 html {
   background: var(--color-surface-alt);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   background: var(--color-surface-alt);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
 }

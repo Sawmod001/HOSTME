@@ -1,5 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# env
+.env
+.env.local
+.env.production
+
 # dependencies
 /node_modules
 /.pnp
@@ -39,3 +44,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local server logs
+server.log
+
+# user uploads (not committed)
+public/uploads/
+
+# docker
+.dockerignore
+
+# local dev scripts with hardcoded credentials/paths
+test-mongo.mjs
+start-server.bat

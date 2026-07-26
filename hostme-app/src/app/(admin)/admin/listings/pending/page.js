@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
 
 export default function AdminPendingListingsPage() {
     const [listings, setListings] = useState([]);
@@ -10,17 +10,15 @@ export default function AdminPendingListingsPage() {
     const [actionLoading, setActionLoading] = useState(null);
     const [rejectingId, setRejectingId] = useState(null);
     const [rejectReason, setRejectReason] = useState("");
-
-    useEffect(() => {
-        fetchListings();
-    }, []);
+    const [contactingId, setContactingId] = useState(null);
+    const [contactHost, setContactHost] = useState(null);
 
     const fetchListings = async () => {
         try {
             const response = await fetch("/api/listings?status=pending_review");
             if (!response.ok) throw new Error("Failed to fetch listings");
             const data = await response.json();
-            setListings(data.data);
+            setListings(data.data || []);
             setError(null);
         } catch (err) {
             setError(err.message);
@@ -29,18 +27,37 @@ export default function AdminPendingListingsPage() {
         }
     };
 
+    useEffect(() => {
+        fetchListings();
+    }, []);
+
     const handleApprove = async (listingId) => {
         setActionLoading(listingId);
         try {
             const response = await fetch(`/api/admin/listings/${listingId}/approve`, {
                 method: "POST",
             });
-            if (!response.ok) throw new Error("Failed to approve listing");
-            setListings((prev) => prev.filter((l) => l._id !== listingId));
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || "Failed to approve listing");
+            setListings((prev) => prev.filter((l) => l.id !== listingId));
         } catch (err) {
             alert("Error: " + err.message);
         } finally {
             setActionLoading(null);
+        }
+    };
+
+    const handleContactHost = async (listing) => {
+        setContactingId(listing.id);
+        try {
+            const response = await fetch(`/api/users/${listing.hostId}`);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || "Failed to fetch host info");
+            setContactHost({ ...data.data, listingId: listing.id });
+        } catch (err) {
+            alert("Could not load host contact info: " + err.message);
+        } finally {
+            setContactingId(null);
         }
     };
 
@@ -57,8 +74,9 @@ export default function AdminPendingListingsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ reason: rejectReason }),
             });
-            if (!response.ok) throw new Error("Failed to reject listing");
-            setListings((prev) => prev.filter((l) => l._id !== listingId));
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || "Failed to reject listing");
+            setListings((prev) => prev.filter((l) => l.id !== listingId));
             setRejectingId(null);
             setRejectReason("");
         } catch (err) {
@@ -113,7 +131,7 @@ export default function AdminPendingListingsPage() {
                     <div className="space-y-3">
                         {listings.map((listing) => (
                             <div
-                                key={listing._id}
+                                key={listing.id}
                                 className="rounded-2xl border border-[var(--color-border)] bg-white p-6 space-y-4"
                             >
                                 <div className="space-y-2">
@@ -127,12 +145,12 @@ export default function AdminPendingListingsPage() {
                                             {listing.bookingType === "capacity" ? "Capacity" : "Exclusive"}
                                         </span>
                                         <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
-                                            ₦{(listing.pricing.baseRatePerHour / 100).toLocaleString()}/hr
+                                            ₦{(listing.pricing?.baseRatePerHour / 100 || 0).toLocaleString()}/hr
                                         </span>
                                     </div>
                                 </div>
 
-                                {rejectingId === listing._id ? (
+                                {rejectingId === listing.id ? (
                                     <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
                                         <label className="text-sm font-semibold text-[var(--color-ink)] block">Rejection Reason</label>
                                         <textarea
@@ -144,11 +162,11 @@ export default function AdminPendingListingsPage() {
                                         />
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => handleRejectSubmit(listing._id)}
-                                                disabled={actionLoading === listing._id}
+                                                onClick={() => handleRejectSubmit(listing.id)}
+                                                disabled={actionLoading === listing.id}
                                                 className="flex-1 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50"
                                             >
-                                                {actionLoading === listing._id ? "Submitting..." : "Confirm Rejection"}
+                                                {actionLoading === listing.id ? "Submitting..." : "Confirm Rejection"}
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -162,27 +180,59 @@ export default function AdminPendingListingsPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex gap-2 border-t border-[var(--color-border)] pt-4">
-                                        <button
-                                            onClick={() => handleApprove(listing._id)}
-                                            disabled={actionLoading === listing._id}
-                                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#15803D] px-4 py-2 text-white font-semibold disabled:opacity-50"
-                                        >
-                                            {actionLoading === listing._id ? (
-                                                <Loader2 size={16} className="animate-spin" />
-                                            ) : (
-                                                <CheckCircle2 size={16} />
-                                            )}
-                                            {actionLoading === listing._id ? "Approving..." : "Approve"}
-                                        </button>
-                                        <button
-                                            onClick={() => setRejectingId(listing._id)}
-                                            disabled={actionLoading === listing._id}
-                                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50"
-                                        >
-                                            <XCircle size={16} />
-                                            Reject
-                                        </button>
+                                    <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
+                                        {contactHost && contactHost.listingId === listing.id && (
+                                            <div className="rounded-xl bg-[var(--color-surface-alt)] p-3 text-sm">
+                                                <p className="font-semibold text-[var(--color-ink)]">{contactHost.name}</p>
+                                                <p className="text-[var(--color-ink-muted)]">{contactHost.email}</p>
+                                                {contactHost.profile?.businessName && (
+                                                    <p className="text-[var(--color-ink-muted)]">{contactHost.profile.businessName}</p>
+                                                )}
+                                                <a
+                                                    href={`mailto:${contactHost.email}?subject=${encodeURIComponent("Your HostMe listing: " + listing.title)}`}
+                                                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)]"
+                                                >
+                                                    <Mail size={14} />
+                                                    Send email
+                                                </a>
+                                                <button
+                                                    onClick={() => setContactHost(null)}
+                                                    className="ml-3 text-xs text-[var(--color-ink-muted)] underline"
+                                                >
+                                                    Close
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleApprove(listing.id)}
+                                                disabled={actionLoading === listing.id}
+                                                className="flex items-center justify-center gap-2 rounded-xl bg-[#15803D] px-4 py-2 text-white font-semibold disabled:opacity-50 sm:flex-1"
+                                            >
+                                                {actionLoading === listing.id ? (
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                ) : (
+                                                    <CheckCircle2 size={16} />
+                                                )}
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleContactHost(listing)}
+                                                disabled={contactingId === listing.id}
+                                                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-[var(--color-ink)] font-semibold disabled:opacity-50"
+                                            >
+                                                <Mail size={16} />
+                                                {contactingId === listing.id ? "..." : "Contact"}
+                                            </button>
+                                            <button
+                                                onClick={() => setRejectingId(listing.id)}
+                                                disabled={actionLoading === listing.id}
+                                                className="flex items-center justify-center gap-2 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50 sm:flex-1"
+                                            >
+                                                <XCircle size={16} />
+                                                Reject
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

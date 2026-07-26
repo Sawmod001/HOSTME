@@ -1,47 +1,39 @@
-import { auth } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { supabase } from "@/lib/supabase";
+import { ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function POST(request) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
+
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
 
         const payload = await request.json();
         const bookingId = payload?.bookingId;
-        if (!bookingId) {
-            return Response.json({ error: "Booking ID is required" }, { status: 400 });
-        }
+        if (!bookingId) return fail("Booking ID is required", 400);
 
-        await connectToDatabase();
+        const { data: booking } = await supabase.from("bookings").select().eq("id", bookingId).maybeSingle();
+        if (!booking) return notFound("Booking not found");
+        if (booking.guest_id !== user.id) return forbidden();
+        if (booking.status !== "awaiting_payment") return fail("Booking is not awaiting payment", 400);
 
-        const booking = await Booking.findById(bookingId).lean();
-        if (!booking) {
-            return Response.json({ error: "Booking not found" }, { status: 404 });
-        }
-
-        if (booking.guestId?.toString() !== session.user.id) {
-            return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
-
-        if (booking.status !== "awaiting_payment") {
-            return Response.json({ error: "Booking is not awaiting payment" }, { status: 400 });
-        }
-
-        const reference = `hostme-${booking._id}-${Date.now()}`;
-        return Response.json({
+        const reference = `hostme-${booking.id}-${crypto.randomUUID().slice(0, 8)}`;
+        return ok({
             ok: true,
             data: {
-                bookingId: booking._id,
+                bookingId: booking.id,
                 reference,
                 authorization_url: `https://paystack.com/pay/${reference}`,
-                amountKobo: booking.totalAmountKobo,
+                amountKobo: booking.total_amount_kobo,
             },
         });
     } catch (error) {
         console.error("POST /api/payments/initiate error:", error);
-        return Response.json({ error: "Failed to initiate payment" }, { status: 500 });
+        return fail("Failed to initiate payment", 500);
     }
 }

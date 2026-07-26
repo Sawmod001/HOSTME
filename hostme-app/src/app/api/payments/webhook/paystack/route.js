@@ -1,56 +1,69 @@
-import { connectToDatabase } from "@/lib/db";
-import { Booking } from "@/models/Booking";
-import { resolveExclusiveLock, markWebhookProcessing } from "@/lib/exclusive";
-import { ExclusiveLock } from "@/models/ExclusiveLock";
-import { Listing } from "@/models/Listing";
+import { supabase } from "@/lib/supabase";
+import { resolveExclusiveLock } from "@/lib/exclusive";
+import { verifyPaystackSignature } from "@/lib/payments/verifyWebhookSignature";
+import { ok, fail } from "@/lib/supabase-utils";
 
 export async function POST(request) {
     try {
-        const payload = await request.json();
-        const { bookingId, gatewayTransactionRef, bookingType, listingId, eventStart, lockId } = payload;
+        const rawBody = await request.text();
+        const signature = request.headers.get("x-paystack-signature");
+        const secret = process.env.PAYSTACK_SECRET_KEY;
 
-        if (!bookingId || !gatewayTransactionRef) {
-            return Response.json({ received: false, error: "Missing webhook payload" }, { status: 400 });
+        if (secret && !verifyPaystackSignature(rawBody, signature, secret)) {
+            return fail("Invalid signature", 401);
         }
 
-        await connectToDatabase();
+        const payload = JSON.parse(rawBody);
+        const txRef = payload?.data?.reference;
+        if (!txRef) return fail("Missing transaction reference", 400);
 
-        const processed = await markWebhookProcessing({
-            BookingModel: Booking,
-            bookingId,
-            gatewayTransactionRef,
-        });
-
-        if (!processed.ok && processed.duplicate) {
-            return Response.json({ received: true, duplicate: true });
+        try {
+            await supabase.from("processed_webhooks").insert({
+                gateway_transaction_ref: txRef,
+                gateway: "paystack",
+            });
+        } catch (err) {
+            if (err?.code === "23505") return ok({ received: true, duplicate: true });
+            throw err;
         }
 
-        const booking = await Booking.findById(bookingId).lean();
-        if (!booking) {
-            return Response.json({ received: false, error: "Booking not found" }, { status: 404 });
-        }
+        const bookingId = txRef.split("-")[1];
+        if (!bookingId) return fail("Invalid reference format", 400);
 
-        if (booking.bookingType === "exclusive") {
-            const listing = await Listing.findById(listingId || booking.listingId).lean();
-            if (!listing) {
-                return Response.json({ received: false, error: "Listing not found" }, { status: 404 });
+        const { data: booking } = await supabase.from("bookings").select().eq("id", bookingId).maybeSingle();
+        if (!booking) return fail("Booking not found", 404);
+
+        if (booking.booking_type === "exclusive") {
+            const { data: lock } = await supabase
+                .from("exclusive_locks")
+                .select()
+                .eq("listing_id", booking.listing_id)
+                .eq("event_start", booking.event_start)
+                .maybeSingle();
+
+            if (lock) {
+                await resolveExclusiveLock({
+                    lockId: lock.id,
+                    bookingId: booking.id,
+                    listingId: booking.listing_id,
+                    eventStart: booking.event_start,
+                });
             }
 
-            await resolveExclusiveLock({
-                lockId: lockId || null,
-                bookingId,
-                listingId: listing._id,
-                eventStart: eventStart || booking.eventStart,
-                ExclusiveLock,
-                Booking,
-            });
+            await supabase.from("bookings").update({
+                status: "confirmed",
+                gateway_transaction_ref: txRef,
+            }).eq("id", booking.id);
         } else {
-            await Booking.updateOne({ _id: bookingId }, { status: "confirmed" });
+            await supabase.from("bookings").update({
+                status: "confirmed",
+                gateway_transaction_ref: txRef,
+            }).eq("id", booking.id);
         }
 
-        return Response.json({ received: true });
+        return ok({ received: true });
     } catch (error) {
         console.error("POST /api/payments/webhook/paystack error:", error);
-        return Response.json({ received: false, error: "Webhook processing failed" }, { status: 500 });
+        return ok({ received: true }, 200);
     }
 }

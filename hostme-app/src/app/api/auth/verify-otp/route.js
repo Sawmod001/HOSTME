@@ -1,41 +1,55 @@
-import { connectToDatabase } from "@/lib/db";
-import { User } from "@/models/User";
-import { isOtpExpired } from "@/lib/password";
+import { NextResponse } from "next/server";
+import { clerkFetch } from "@/lib/clerk";
 
 export async function POST(request) {
-    try {
-        const payload = await request.json();
-        const email = String(payload?.email || "").trim().toLowerCase();
-        const otpCode = String(payload?.otpCode || "").trim();
+  try {
+    const { emailAddressId, code } = await request.json();
 
-        if (!email || !otpCode) {
-            return Response.json({ error: "Email and OTP are required" }, { status: 400 });
-        }
-
-        await connectToDatabase();
-        const user = await User.findOne({ email });
-        if (!user) {
-            return Response.json({ error: "User not found" }, { status: 404 });
-        }
-
-        if (user.isEmailVerified) {
-            return Response.json({ ok: true, message: "Email already verified" });
-        }
-
-        if (user.otpCode !== otpCode || isOtpExpired(user.otpExpiresAt)) {
-            return Response.json({ error: "Invalid or expired OTP" }, { status: 400 });
-        }
-
-        user.isEmailVerified = true;
-        user.emailVerifiedAt = new Date();
-        user.status = "active";
-        user.otpCode = null;
-        user.otpExpiresAt = null;
-        await user.save();
-
-        return Response.json({ ok: true, message: "Email verified successfully" });
-    } catch (error) {
-        console.error("OTP verification error", error);
-        return Response.json({ error: "Failed to verify OTP" }, { status: 500 });
+    if (!emailAddressId || !code) {
+      return NextResponse.json({ error: "Verification ID and code are required." }, { status: 400 });
     }
+
+    const result = await clerkFetch(`/email_addresses/${emailAddressId}/attempt_verification`, {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+
+    if (!result.verified || result.verification?.status !== "verified") {
+      const attemptsRemaining = result.verification?.attempts || 0;
+      return NextResponse.json({
+        error: attemptsRemaining > 0
+          ? `Invalid code. ${attemptsRemaining} attempt(s) remaining.`
+          : "Invalid or expired code. Please request a new one.",
+      }, { status: 400 });
+    }
+
+    const session = await clerkFetch("/sessions", {
+      method: "POST",
+      body: JSON.stringify({ user_id: result.user_id }),
+    });
+
+    const token = await clerkFetch(`/sessions/${session.id}/tokens`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      redirectTo: "/complete-profile",
+    });
+
+    response.cookies.set("__session", token.jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
+  } catch (error) {
+    console.error("[verify-otp] Error:", error);
+    const message = error.message || "Verification failed.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }

@@ -1,39 +1,30 @@
-import { connectToDatabase } from "@/lib/db";
-import { Listing } from "@/models/Listing";
-import mongoose from "mongoose";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getMongoUser } from "@/lib/getMongoUser";
+import { findListingById, updateListing } from "@/lib/supabase-queries";
+import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function POST(request, { params }) {
     try {
-        const session = await import("next-auth/react").then((m) => m.getServerSession);
-        if (!session) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const p = await params;
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        if (!isValid) return fail("Unauthorized", 401);
 
-        if (!mongoose.Types.ObjectId.isValid(params.id)) {
-            return Response.json({ error: "Invalid listing ID" }, { status: 400 });
-        }
+        const user = await getMongoUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
 
-        await connectToDatabase();
+        if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
-        const listing = await Listing.findById(params.id);
-        if (!listing) {
-            return Response.json({ error: "Listing not found" }, { status: 404 });
-        }
+        const listing = await findListingById(p.id);
+        if (!listing) return notFound("Listing not found");
+        if (listing.host_id !== user.id) return forbidden();
+        if (listing.status !== "draft") return fail("Listing is not in draft status", 400);
 
-        if (listing.hostId.toString() !== session.user.id) {
-            return Response.json({ error: "Forbidden" }, { status: 403 });
-        }
-
-        if (listing.status !== "draft") {
-            return Response.json({ error: "Listing is not in draft status" }, { status: 400 });
-        }
-
-        listing.status = "pending_review";
-        await listing.save();
-
-        return Response.json(listing.toObject());
+        const updated = await updateListing(p.id, { status: "pending_review" });
+        return ok(toCamelCase(updated));
     } catch (error) {
-        console.error(`POST /api/listings/${params.id}/submit-review error:`, error);
-        return Response.json({ error: "Failed to submit for review" }, { status: 500 });
+        console.error("POST /api/listings/[id]/submit-review error:", error);
+        return fail("Failed to submit for review", 500);
     }
 }
