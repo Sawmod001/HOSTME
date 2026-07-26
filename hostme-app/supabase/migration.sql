@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- Mirrors Clerk user. All auth state lives in Clerk; this table stores
 -- platform-specific profile data and role assignments.
 -- =============================================================================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clerk_id TEXT UNIQUE,                                       -- Clerk user ID
   name TEXT NOT NULL,
@@ -41,7 +41,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 -- which engine handles its bookings. JSONB columns (pricing, location, etc.)
 -- keep the flexibility of the original document model.
 -- =============================================================================
-CREATE TABLE listings (
+CREATE TABLE IF NOT EXISTS listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   host_id UUID REFERENCES users(id) NOT NULL,
   vertical TEXT NOT NULL CHECK (vertical IN ('venue', 'housing', 'preorder')),
@@ -75,7 +75,7 @@ ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 -- Shared by both booking engines. The booking_type column is denormalized
 -- from the listing for fast filtered queries.
 -- =============================================================================
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) NOT NULL,
   guest_id UUID REFERENCES users(id) DEFAULT NULL,
@@ -108,7 +108,7 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 -- One document per bookable time window. The atomic unit that prevents
 -- overselling — never compute remaining capacity by summing bookings.
 -- =============================================================================
-CREATE TABLE slots (
+CREATE TABLE IF NOT EXISTS slots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) NOT NULL,
   event_start TIMESTAMPTZ NOT NULL,
@@ -129,7 +129,7 @@ ALTER TABLE slots ENABLE ROW LEVEL SECURITY;
 -- EXCLUSIVE LOCKS (Exclusive-Space Engine)
 -- "First-to-pay wins" mechanism. One row per date/time window.
 -- =============================================================================
-CREATE TABLE exclusive_locks (
+CREATE TABLE IF NOT EXISTS exclusive_locks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) NOT NULL,
   event_start TIMESTAMPTZ NOT NULL,
@@ -149,7 +149,7 @@ ALTER TABLE exclusive_locks ENABLE ROW LEVEL SECURITY;
 -- REVIEWS & RATINGS
 -- Users can leave a review for a listing after a completed booking.
 -- =============================================================================
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) NOT NULL,
   guest_id UUID REFERENCES users(id) NOT NULL,
@@ -174,7 +174,7 @@ CREATE POLICY "reviews_insert_own" ON reviews FOR INSERT WITH CHECK (guest_id::t
 -- Temporary headcount reservation. Expired holds are periodically swept
 -- by the release_expired_holds() function (see below).
 -- =============================================================================
-CREATE TABLE soft_holds (
+CREATE TABLE IF NOT EXISTS soft_holds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slot_id UUID REFERENCES slots(id) NOT NULL,
   headcount INTEGER NOT NULL CHECK (headcount >= 1),
@@ -194,7 +194,7 @@ ALTER TABLE soft_holds ENABLE ROW LEVEL SECURITY;
 -- Idempotency guard for gateway webhooks. Ensures a given transaction ref
 -- is only ever processed once.
 -- =============================================================================
-CREATE TABLE processed_webhooks (
+CREATE TABLE IF NOT EXISTS processed_webhooks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gateway_transaction_ref TEXT NOT NULL UNIQUE,
   booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
