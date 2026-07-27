@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS slots (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE UNIQUE INDEX idx_slots_listing_time ON slots(listing_id, event_start);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_slots_listing_time ON slots(listing_id, event_start);
 CREATE INDEX IF NOT EXISTS idx_slots_listing_id ON slots(listing_id);
 
 ALTER TABLE slots ENABLE ROW LEVEL SECURITY;
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS exclusive_locks (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE UNIQUE INDEX idx_exclusive_locks_listing_time ON exclusive_locks(listing_id, event_start);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_exclusive_locks_listing_time ON exclusive_locks(listing_id, event_start);
 CREATE INDEX IF NOT EXISTS idx_exclusive_locks_listing_id ON exclusive_locks(listing_id);
 
 ALTER TABLE exclusive_locks ENABLE ROW LEVEL SECURITY;
