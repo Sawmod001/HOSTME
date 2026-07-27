@@ -289,7 +289,7 @@ export default function CreateListingPage() {
           <p className="text-[var(--color-ink-muted)]">Your listing is pending admin approval. You will be notified once it&apos;s approved.</p>
           <div className="flex items-center justify-center gap-4 pt-4">
             <Link href={`/host/listings/${createdId}`} className="rounded-xl bg-[var(--color-primary)] px-6 py-3 font-semibold text-white">View listing</Link>
-            <Link href="/host/listings" className="rounded-xl border border-[var(--color-border)] px-6 py-3 font-semibold text-[var(--color-ink)]">My listings</Link>
+            <Link href="/host/listings" className="btn-outline px-6 py-3">My listings</Link>
           </div>
         </div>
       </main>

@@ -114,7 +114,7 @@ export default function DiscoveryPage() {
                                 await fetch("/api/listings/seed", { method: "POST" });
                                 fetchListings(true);
                             }}
-                            className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+                            className="btn-outline text-sm"
                         >
                             Seed Demo Listings
                         </button>
@@ -142,7 +142,7 @@ export default function DiscoveryPage() {
                         </div>
                         {activeFilterCount > 0 && (
                             <button onClick={handleClearFilters}
-                                className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink-muted)] hover:bg-[var(--color-surface-alt)]">
+                                className="btn-outline gap-1 px-3 py-2 text-sm">
                                 <X size={14} /> Clear
                             </button>
                         )}

@@ -126,10 +126,11 @@ export default function SignUpPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm" style={{ color: "var(--color-ink-muted)" }}>
-          Already have an account?{" "}
-          <Link href="/sign-in" className="font-semibold transition-colors hover:text-[var(--color-primary-dark)]" style={{ color: "var(--color-primary)" }}>Sign in</Link>
-        </p>
+        <div className="mt-6 text-center">
+          <Link href="/sign-in" className="btn-outline w-full justify-center px-4 py-3 text-sm">
+            Already have an account? Sign in
+          </Link>
+        </div>
       </div>
     </main>
   );

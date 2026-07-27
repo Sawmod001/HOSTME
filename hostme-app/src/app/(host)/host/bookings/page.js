@@ -151,7 +151,7 @@ export default function HostBookingsPage() {
                           <button onClick={() => handleReject(booking.id)} disabled={processingId === booking.id || !rejectReason.trim()} className="flex items-center gap-1 rounded-xl bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                             {processingId === booking.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Confirm Reject
                           </button>
-                          <button onClick={() => { setRejectingId(null); setRejectReason(""); }} className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]">Cancel</button>
+                          <button onClick={() => { setRejectingId(null); setRejectReason(""); }} className="btn-outline px-4 py-2 text-sm">Cancel</button>
                         </div>
                       </div>
                     ) : (
@@ -159,10 +159,10 @@ export default function HostBookingsPage() {
                         <button onClick={() => handleApprove(booking.id)} disabled={processingId === booking.id} className="flex items-center gap-1 rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                           {processingId === booking.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve
                         </button>
-                        <button onClick={() => setRejectingId(booking.id)} disabled={processingId === booking.id} className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] disabled:opacity-50">
+                        <button onClick={() => setRejectingId(booking.id)} disabled={processingId === booking.id} className="btn-outline gap-1 px-4 py-2 text-sm disabled:opacity-50">
                           <XCircle size={14} /> Reject
                         </button>
-                        <Link href={`/host/bookings/${booking.id}`} className="ml-auto rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]">Details</Link>
+                        <Link href={`/host/bookings/${booking.id}`} className="btn-outline ml-auto px-4 py-2 text-sm">Details</Link>
                       </div>
                     )}
                   </div>

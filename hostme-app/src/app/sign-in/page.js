@@ -121,10 +121,11 @@ function SignInForm() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm" style={{ color: "var(--color-ink-muted)" }}>
-          Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="font-semibold transition-colors hover:text-[var(--color-primary-dark)]" style={{ color: "var(--color-primary)" }}>Sign up</Link>
-        </p>
+        <div className="mt-6 text-center">
+          <Link href="/sign-up" className="btn-outline w-full justify-center px-4 py-3 text-sm">
+            Don&apos;t have an account? Sign up
+          </Link>
+        </div>
       </div>
     </main>
   );

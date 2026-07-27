@@ -173,7 +173,7 @@ export default function AdminPendingListingsPage() {
                                                     setRejectingId(null);
                                                     setRejectReason("");
                                                 }}
-                                                className="flex-1 rounded-xl border border-[var(--color-border)] px-4 py-2 text-[var(--color-ink)] font-semibold"
+                                                className="btn-outline flex-1 px-4 py-2"
                                             >
                                                 Cancel
                                             </button>
@@ -219,7 +219,7 @@ export default function AdminPendingListingsPage() {
                                             <button
                                                 onClick={() => handleContactHost(listing)}
                                                 disabled={contactingId === listing.id}
-                                                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-[var(--color-ink)] font-semibold disabled:opacity-50"
+                                                className="btn-outline gap-2 px-4 py-2 disabled:opacity-50"
                                             >
                                                 <Mail size={16} />
                                                 {contactingId === listing.id ? "..." : "Contact"}

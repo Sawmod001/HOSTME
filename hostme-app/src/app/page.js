@@ -68,7 +68,7 @@ export default function HomePage() {
               <Link href="/listings" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-3.5 font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)] sm:w-auto">
                 Browse spaces <ArrowRight size={18} />
               </Link>
-              <Link href="/sign-up" className="inline-flex w-full items-center justify-center rounded-xl border-2 border-[var(--color-border)] px-8 py-3.5 font-semibold transition-all hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:w-auto" style={{ color: "var(--color-ink)" }}>
+              <Link href="/sign-up" className="btn-outline w-full px-8 py-3.5 sm:w-auto">
                 List your space
               </Link>
             </div>
@@ -161,7 +161,7 @@ export default function HomePage() {
               })}
             </div>
             <div className="mt-10 text-center sm:hidden">
-              <Link href="/listings" className="inline-flex items-center gap-1 rounded-xl border border-[var(--color-border)] px-6 py-3 font-semibold transition-all hover:border-[var(--color-primary)]" style={{ color: "var(--color-ink)" }}>
+              <Link href="/listings" className="btn-outline gap-1 px-6 py-3">
                 View all spaces <ArrowRight size={16} />
               </Link>
             </div>

@@ -327,13 +327,13 @@ export default function HostListingDetailPage() {
 
         {listing.bookingType === "capacity" && (
           <Link href={`/host/listings/${id}/slots`}
-            className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] hover:border-[var(--color-primary)]">
+            className="btn-outline gap-2 px-4 py-2 text-sm">
             Manage Time Slots
           </Link>
         )}
         {listing.bookingType === "exclusive" && (
           <Link href={`/host/listings/${id}/exclusive-locks`}
-            className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] hover:border-[var(--color-primary)]">
+            className="btn-outline gap-2 px-4 py-2 text-sm">
             Manage Exclusive Locks
           </Link>
         )}
@@ -411,11 +411,11 @@ export default function HostListingDetailPage() {
 
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-2 text-white font-semibold disabled:opacity-50">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}{saving ? "Saving..." : "Save Changes"}</button>
-              {listing.status === "draft" && <button type="button" onClick={handleSubmitReview} disabled={submitting} className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-6 py-2 font-semibold text-[var(--color-ink)] disabled:opacity-50">{submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}{submitting ? "Submitting..." : "Submit for Review"}</button>}
+              {listing.status === "draft" && <button type="button" onClick={handleSubmitReview} disabled={submitting} className="btn-outline gap-2 px-6 py-2">{submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}{submitting ? "Submitting..." : "Submit for Review"}</button>}
             </div>
             {listing.status !== "active" && listing.status !== "pending_review" && (
               <button type="button" onClick={handleDelete} disabled={deleting}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#B91C1C] px-4 py-2 text-sm font-semibold text-[#B91C1C] disabled:opacity-50">
+                className="btn-outline-danger mt-4 w-full gap-2 px-4 py-2 text-sm">
                 {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 {deleting ? "Deleting..." : "Delete Listing"}
               </button>
