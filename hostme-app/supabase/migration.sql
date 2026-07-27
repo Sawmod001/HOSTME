@@ -406,10 +406,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS users_updated_at ON users;
 CREATE TRIGGER users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS listings_updated_at ON listings;
 CREATE TRIGGER listings_updated_at BEFORE UPDATE ON listings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS bookings_updated_at ON bookings;
 CREATE TRIGGER bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS slots_updated_at ON slots;
 CREATE TRIGGER slots_updated_at BEFORE UPDATE ON slots FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS exclusive_locks_updated_at ON exclusive_locks;
 CREATE TRIGGER exclusive_locks_updated_at BEFORE UPDATE ON exclusive_locks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS reviews_updated_at ON reviews;
 CREATE TRIGGER reviews_updated_at BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS processed_webhooks_updated_at ON processed_webhooks;
 CREATE TRIGGER processed_webhooks_updated_at BEFORE UPDATE ON processed_webhooks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
