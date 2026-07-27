@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_users_clerk_id ON users(clerk_id);
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
@@ -63,10 +63,10 @@ CREATE TABLE IF NOT EXISTS listings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_listings_host_id ON listings(host_id);
-CREATE INDEX idx_listings_status ON listings(status);
-CREATE INDEX idx_listings_vertical ON listings(vertical);
-CREATE INDEX idx_listings_coordinates ON listings USING GIST(coordinates);
+CREATE INDEX IF NOT EXISTS idx_listings_host_id ON listings(host_id);
+CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
+CREATE INDEX IF NOT EXISTS idx_listings_vertical ON listings(vertical);
+CREATE INDEX IF NOT EXISTS idx_listings_coordinates ON listings USING GIST(coordinates);
 
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 
@@ -95,10 +95,10 @@ CREATE TABLE IF NOT EXISTS bookings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_bookings_listing_id ON bookings(listing_id);
-CREATE INDEX idx_bookings_guest_id ON bookings(guest_id);
-CREATE INDEX idx_bookings_status ON bookings(status);
-CREATE UNIQUE INDEX idx_bookings_gateway_ref ON bookings(gateway_transaction_ref)
+CREATE INDEX IF NOT EXISTS idx_bookings_listing_id ON bookings(listing_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_guest_id ON bookings(guest_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_gateway_ref ON bookings(gateway_transaction_ref)
   WHERE gateway_transaction_ref IS NOT NULL;                   -- partial unique index
 
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS slots (
 );
 
 CREATE UNIQUE INDEX idx_slots_listing_time ON slots(listing_id, event_start);
-CREATE INDEX idx_slots_listing_id ON slots(listing_id);
+CREATE INDEX IF NOT EXISTS idx_slots_listing_id ON slots(listing_id);
 
 ALTER TABLE slots ENABLE ROW LEVEL SECURITY;
 
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS exclusive_locks (
 );
 
 CREATE UNIQUE INDEX idx_exclusive_locks_listing_time ON exclusive_locks(listing_id, event_start);
-CREATE INDEX idx_exclusive_locks_listing_id ON exclusive_locks(listing_id);
+CREATE INDEX IF NOT EXISTS idx_exclusive_locks_listing_id ON exclusive_locks(listing_id);
 
 ALTER TABLE exclusive_locks ENABLE ROW LEVEL SECURITY;
 
@@ -161,8 +161,8 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE(booking_id)
 );
 
-CREATE INDEX idx_reviews_listing_id ON reviews(listing_id);
-CREATE INDEX idx_reviews_guest_id ON reviews(guest_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_listing_id ON reviews(listing_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_guest_id ON reviews(guest_id);
 
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS soft_holds (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_soft_holds_slot_id ON soft_holds(slot_id);
-CREATE INDEX idx_soft_holds_expires ON soft_holds(expires_at);
+CREATE INDEX IF NOT EXISTS idx_soft_holds_slot_id ON soft_holds(slot_id);
+CREATE INDEX IF NOT EXISTS idx_soft_holds_expires ON soft_holds(expires_at);
 
 ALTER TABLE soft_holds ENABLE ROW LEVEL SECURITY;
 
