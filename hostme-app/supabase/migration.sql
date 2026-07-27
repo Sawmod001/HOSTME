@@ -166,7 +166,9 @@ CREATE INDEX IF NOT EXISTS idx_reviews_guest_id ON reviews(guest_id);
 
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "reviews_read" ON reviews;
 CREATE POLICY "reviews_read" ON reviews FOR SELECT USING (true);
+DROP POLICY IF EXISTS "reviews_insert_own" ON reviews;
 CREATE POLICY "reviews_insert_own" ON reviews FOR INSERT WITH CHECK (guest_id::text = current_setting('app.user_id', true));
 
 -- =============================================================================
@@ -214,33 +216,46 @@ ALTER TABLE processed_webhooks ENABLE ROW LEVEL SECURITY;
 -- =============================================================================
 
 -- Users: can only read/update own record
+DROP POLICY IF EXISTS "users_read_own" ON users;
 CREATE POLICY "users_read_own" ON users FOR SELECT USING (clerk_id = current_setting('app.clerk_id', true));
+DROP POLICY IF EXISTS "users_update_own" ON users;
 CREATE POLICY "users_update_own" ON users FOR UPDATE USING (clerk_id = current_setting('app.clerk_id', true));
 
 -- Listings: anyone can read active; hosts manage own; admins manage all
+DROP POLICY IF EXISTS "listings_read_active" ON listings;
 CREATE POLICY "listings_read_active" ON listings FOR SELECT USING (status = 'active');
+DROP POLICY IF EXISTS "listings_read_own" ON listings;
 CREATE POLICY "listings_read_own" ON listings FOR SELECT USING (host_id::text = current_setting('app.user_id', true));
+DROP POLICY IF EXISTS "listings_insert_own" ON listings;
 CREATE POLICY "listings_insert_own" ON listings FOR INSERT WITH CHECK (host_id::text = current_setting('app.user_id', true));
+DROP POLICY IF EXISTS "listings_update_own" ON listings;
 CREATE POLICY "listings_update_own" ON listings FOR UPDATE USING (host_id::text = current_setting('app.user_id', true));
 
 -- Bookings: guest host see own
+DROP POLICY IF EXISTS "bookings_read_own" ON bookings;
 CREATE POLICY "bookings_read_own" ON bookings FOR SELECT USING (
   guest_id::text = current_setting('app.user_id', true)
   OR listing_id IN (SELECT id FROM listings WHERE host_id::text = current_setting('app.user_id', true))
 );
+DROP POLICY IF EXISTS "bookings_insert" ON bookings;
 CREATE POLICY "bookings_insert" ON bookings FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "bookings_update_own" ON bookings;
 CREATE POLICY "bookings_update_own" ON bookings FOR UPDATE USING (guest_id::text = current_setting('app.user_id', true));
 
 -- Slots: readable by all authenticated
+DROP POLICY IF EXISTS "slots_read" ON slots;
 CREATE POLICY "slots_read" ON slots FOR SELECT USING (true);
 
 -- Exclusive locks: readable by all authenticated
+DROP POLICY IF EXISTS "exclusive_locks_read" ON exclusive_locks;
 CREATE POLICY "exclusive_locks_read" ON exclusive_locks FOR SELECT USING (true);
 
 -- Soft holds
+DROP POLICY IF EXISTS "soft_holds_read" ON soft_holds;
 CREATE POLICY "soft_holds_read" ON soft_holds FOR SELECT USING (true);
 
 -- Processed webhooks
+DROP POLICY IF EXISTS "webhooks_insert" ON processed_webhooks;
 CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (true);
 
 -- =============================================================================
