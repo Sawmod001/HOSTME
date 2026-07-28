@@ -58,23 +58,30 @@ export async function PATCH(request, { params }) {
         }
 
         const updates = { ...validation.data };
+
+        let coords;
         if (updates.location?.coordinates?.latitude != null && updates.location?.coordinates?.longitude != null) {
-            updates.location = {
-                ...updates.location,
-                coordinates: {
-                    type: "Point",
-                    coordinates: [updates.location.coordinates.longitude, updates.location.coordinates.latitude],
-                },
+            coords = {
+                type: "Point",
+                coordinates: [updates.location.coordinates.longitude, updates.location.coordinates.latitude],
             };
         }
 
-        const updated = await updateListing(p.id, {
-            ...updates,
-            sub_vertical: updates.subVertical,
-            booking_type: updates.bookingType,
-            operational_rules: updates.operationalRules,
-            add_ons: updates.addOns,
-        });
+        const dbFields = {
+            ...(updates.vertical != null && { vertical: updates.vertical }),
+            ...(updates.title != null && { title: updates.title }),
+            ...(updates.description != null && { description: updates.description }),
+            ...(updates.media != null && { media: updates.media }),
+            ...(updates.location != null && { location: { ...updates.location, ...(coords && { coordinates: coords }) } }),
+            ...(updates.pricing != null && { pricing: updates.pricing }),
+            ...(updates.features != null && { features: updates.features }),
+            ...(updates.subVertical != null && { sub_vertical: updates.subVertical }),
+            ...(updates.bookingType != null && { booking_type: updates.bookingType }),
+            ...(updates.operationalRules != null && { operational_rules: updates.operationalRules }),
+            ...(updates.addOns != null && { add_ons: updates.addOns }),
+        };
+
+        const updated = await updateListing(p.id, dbFields);
 
         return ok(toCamelCase(updated || listing));
     } catch (error) {
