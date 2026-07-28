@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 const FALLBACK_REPLIES = [
   "I can help you find venues, understand booking types, or navigate your dashboard. What would you like to know?",
   "HostMe lets you browse venues, check availability, and book spaces. Try the Discover page to get started.",
@@ -7,6 +5,18 @@ const FALLBACK_REPLIES = [
   "Capacity bookings let you reserve a slot in a shared space. Exclusive bookings give you the whole venue.",
   "Payments are processed in Nigerian Naira. Your booking is held temporarily while you complete payment.",
 ];
+
+const SYSTEM_PROMPT = `You are HostMe AI, a helpful assistant for the HostMe platform. HostMe is a Nigerian marketplace for booking event spaces, venues, and experiences.
+
+Key features:
+- Browse listings across verticals: venues, housing, pre-order
+- Two booking types: "capacity" (shared pay-per-slot) and "exclusive" (private booking)
+- Hosts create and manage listings; guests book spaces
+- Payments in Nigerian Naira (kobo — divide by 100 for Naira)
+- Built with Next.js, PostgreSQL (Supabase), Clerk authentication
+- Roles: guest, host, admin
+
+Answer questions clearly and concisely in 2-3 sentences. If you don't know, say so.`;
 
 export async function POST(request) {
   try {
@@ -23,59 +33,48 @@ export async function POST(request) {
       return Response.json({ error: "Message too long (max 2000 characters)" }, { status: 400 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction: `You are HostMe AI, a helpful assistant for the HostMe platform. HostMe is a Nigerian marketplace for booking event spaces, venues, and experiences.
+    const contents = [
+      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+      { role: "model", parts: [{ text: "Understood. I will follow these instructions." }] },
+      ...(history || []).slice(-20).flatMap((m) => [
+        { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] },
+      ]),
+      { role: "user", parts: [{ text: message }] },
+    ];
 
-Key features:
-- Browse listings across verticals: venues, housing, pre-order
-- Two booking types: "capacity" (shared pay-per-slot) and "exclusive" (private booking)
-- Hosts create and manage listings; guests book spaces
-- Payments in Nigerian Naira (kobo — divide by 100 for Naira)
-- Built with Next.js, PostgreSQL (Supabase), Clerk authentication
-- Roles: guest, host, admin
+    const body = JSON.stringify({ contents });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body }
+    );
 
-Answer questions clearly and concisely in 2-3 sentences. If you don't know, say so.`,
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-      ],
-      generationConfig: { temperature: 0.7, topP: 0.95, topK: 40, maxOutputTokens: 1024 },
-    });
+    const data = await res.json();
 
-    const chat = model.startChat({
-      history: (history || []).slice(-20).map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-    });
+    if (!res.ok) {
+      const errMsg = data?.error?.message || res.statusText;
+      console.error("Gemini API error:", res.status, errMsg);
 
-    const result = await chat.sendMessage(message);
-    const text = result.response.text();
-    return Response.json({ reply: text });
+      if (res.status === 429 || /quota|rate.?limit/i.test(errMsg)) {
+        const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+        return Response.json({ reply: fallback, note: "AI is rate-limited. Here's a helpful tip instead." });
+      }
+
+      if (res.status === 403 || /key|auth/i.test(errMsg)) {
+        return Response.json({ error: "AI service key is invalid. Check your GEMINI_API_KEY." }, { status: 500 });
+      }
+
+      if (/safety|blocked/i.test(errMsg)) {
+        return Response.json({ error: "Response blocked by safety filters. Please rephrase." }, { status: 400 });
+      }
+
+      const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
+      return Response.json({ reply: fallback, note: "I'm having trouble connecting. Here's a helpful tip instead." });
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return Response.json({ reply: text || "I couldn't generate a response. Please try again." });
   } catch (error) {
     console.error("Chat error:", error?.message);
-    const msg = error?.message || "";
-
-    if (msg.includes("429") || msg.includes("quota") || msg.includes("RATE_LIMIT") || msg.includes("Too Many Requests")) {
-      const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-      return Response.json({
-        reply: fallback,
-        note: "AI is rate-limited. Here's a helpful tip instead.",
-      });
-    }
-
-    if (msg.includes("API_KEY_INVALID") || msg.includes("API key not found")) {
-      return Response.json({ error: "AI service key is invalid. Check your GEMINI_API_KEY." }, { status: 500 });
-    }
-
-    if (msg.includes("SAFETY") || msg.includes("blocked")) {
-      return Response.json({ error: "Response blocked by safety filters. Please rephrase." }, { status: 400 });
-    }
-
     const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
     return Response.json({
       reply: fallback,
