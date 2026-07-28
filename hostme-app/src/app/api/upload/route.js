@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const BUCKET = "listings";
+const BUCKET = "HOSTME";
 const ALLOWED = ["jpg", "jpeg", "png", "webp", "gif"];
 
 export async function POST(request) {
