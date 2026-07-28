@@ -15,9 +15,15 @@ export default function ChatBot() {
   const [messages, setMessages] = useState([{ role: "assistant", content: WELCOME }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+
+  const msgRef = useRef(messages);
+  const inputValRef = useRef(input);
+  const loadingRef = useRef(loading);
+  useEffect(() => { msgRef.current = messages; }, [messages]);
+  useEffect(() => { inputValRef.current = input; }, [input]);
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
@@ -31,15 +37,15 @@ export default function ChatBot() {
   }, [open]);
 
   const handleSend = useCallback(async (overrideMsg) => {
-    const msg = (overrideMsg || input).trim();
-    if (!msg || loading) return;
+    const msg = (overrideMsg || inputValRef.current).trim();
+    if (!msg || loadingRef.current) return;
     setInput("");
-    setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: msg }]);
     setLoading(true);
+    const currentMessages = msgRef.current;
+    setMessages((prev) => [...prev, { role: "user", content: msg }]);
 
     try {
-      const history = messages.map((m) => ({ role: m.role, content: m.content }));
+      const history = currentMessages.map((m) => ({ role: m.role, content: m.content }));
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,22 +56,21 @@ export default function ChatBot() {
       const reply = data.note ? `${data.reply}\n\n_${data.note}_` : data.reply;
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (e) {
-      const errMsg = e.message;
-      setError(errMsg);
       setMessages((prev) => [...prev, {
         role: "assistant",
-        content: errMsg,
+        content: e.message,
         meta: { error: true },
       }]);
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages]);
+  }, []);
 
   const handleRetry = useCallback(() => {
-    const lastMsg = [...messages].reverse().find((m) => m.role === "user");
+    const msgs = msgRef.current;
+    const lastMsg = [...msgs].reverse().find((m) => m.role === "user");
     if (lastMsg) handleSend(lastMsg.content);
-  }, [messages, handleSend]);
+  }, [handleSend]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
