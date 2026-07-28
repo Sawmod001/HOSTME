@@ -176,7 +176,7 @@ export default function HomePage() {
           <div className="mb-12 text-center">
             <span className="inline-flex rounded-full bg-[var(--color-primary-light)] px-4 py-1.5 text-xs font-semibold text-[var(--color-primary)] mb-4">Support</span>
             <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Frequently asked questions</h2>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>Everything you need to know about using HostMe. Can&apos;t find what you&apos;re looking for? <Link href="/sign-in" className="font-semibold underline underline-offset-2" style={{ color: "var(--color-primary)" }}>Contact us</Link>.</p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>Everything you need to know about using HostMe.</p>
           </div>
           <div className="space-y-4">
             {[
@@ -187,7 +187,7 @@ export default function HomePage() {
               { q: "Can I list my own space?", a: "Yes! Sign up as a host, create a listing with photos, pricing, and availability rules, then submit for admin review. Once approved, your space goes live for thousands of potential guests to discover and book." },
               { q: "What is the difference between capacity and exclusive booking?", a: "Capacity booking works like event tickets — you reserve a spot in a shared experience (e.g., a karaoke session). Exclusive booking gives you full private access to a space for a specific time window (e.g., renting an entire event center)." },
               { q: "Is HostMe available outside Ilorin?", a: "We currently operate in Ilorin, Kwara State. Expansion to other Nigerian cities is on the roadmap. Follow us for announcements about new locations." },
-              { q: "What if I need to cancel a booking?", a: "Each listing clearly shows its cancellation policy (flexible, moderate, or strict) before you book. Refunds are processed according to that policy. Contact the host directly for特殊情况 or disputes." },
+              { q: "What if I need to cancel a booking?", a: "Each listing clearly shows its cancellation policy (flexible, moderate, or strict) before you book. Refunds are processed according to that policy. Contact the host directly for special circumstances or disputes." },
             ].map((faq, i) => (
               <div key={i} className="rounded-2xl border border-[var(--color-border)] bg-white shadow-sm shadow-black/[0.02] transition-all duration-200 hover:shadow-md hover:border-[var(--color-primary)]/20">
                 <button
@@ -200,11 +200,9 @@ export default function HomePage() {
                     <ChevronDown size={15} className={`transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} style={{ color: "var(--color-primary)" }} />
                   </span>
                 </button>
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${openFaq === i ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
-                >
+                {openFaq === i && (
                   <p className="border-t border-[var(--color-border-light)] px-6 pb-5 pt-4 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>{faq.a}</p>
-                </div>
+                )}
               </div>
             ))}
           </div>
