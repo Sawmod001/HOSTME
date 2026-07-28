@@ -267,20 +267,11 @@ CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (tru
 -- The API will auto-create it if missing, but it's better to do it now.
 -- =============================================================================
 
--- Ensure RLS is enabled on storage.objects (should be by default)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 -- Allow public read access to the listings bucket
 DROP POLICY IF EXISTS "listings_storage_select" ON storage.objects;
 CREATE POLICY "listings_storage_select" ON storage.objects
   FOR SELECT TO public
   USING (bucket_id = 'listings');
-
--- Allow authenticated uploads to the listings bucket
-DROP POLICY IF EXISTS "listings_storage_insert" ON storage.objects;
-CREATE POLICY "listings_storage_insert" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'listings');
 
 -- =============================================================================
 -- FUNCTION: search_listings_nearby()
