@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight } from "lucide-react";
+import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const VERTICAL_ICONS = { venue: Building2, housing: Home, preorder: Package };
@@ -16,6 +16,7 @@ const CATEGORIES = [
 export default function HomePage() {
   const [listings, setListings] = useState([]);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
     fetch("/api/listings?limit=6")
@@ -168,6 +169,37 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      <section className="border-t border-[var(--color-border)] bg-white">
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:py-20">
+          <div className="mb-10 text-center">
+            <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Frequently asked questions</h2>
+            <p className="mt-2 text-sm" style={{ color: "var(--color-ink-muted)" }}>Everything you need to know about HostMe</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { q: "What is HostMe?", a: "HostMe is Nigeria's premier space marketplace. We connect people looking for unique venues, event spaces, and shortlet apartments with hosts who have amazing spaces to offer — all in one platform." },
+              { q: "How do I book a space?", a: "Simply browse listings, find a space you like, select your preferred date and time, and complete your booking. For capacity bookings you can book instantly; for exclusive spaces you send a request and the host confirms availability." },
+              { q: "What types of spaces are available?", a: "We offer three main categories: Venues (karaoke bars, event centers, party spaces, exclusive halls), Housing (shortlets and apartments), and Food Pre-Order. Each space shows its booking type, pricing, and available add-ons." },
+              { q: "How do payments work?", a: "All payments are processed securely through Paystack, a PCI-compliant Nigerian payment gateway. You can pay with debit cards, USSD, bank transfer, or QR code. Your payment is only processed once the booking is confirmed." },
+              { q: "Can I list my own space?", a: "Absolutely! Sign up as a host, create a listing with photos, pricing, and availability, then submit for review. Once approved, your space will be live for guests to discover and book." },
+              { q: "What is the difference between capacity and exclusive booking?", a: "Capacity booking works like event tickets — you book a slot in a shared space (e.g., a karaoke session). Exclusive booking gives you full privacy for a specific time window (e.g., renting an entire event center)." },
+              { q: "Is HostMe available outside Ilorin?", a: "Currently HostMe operates in Ilorin, Kwara State. We are expanding to other Nigerian cities soon. Follow us for updates on new locations." },
+              { q: "What if I need to cancel a booking?", a: "Cancellation depends on the host's policy — each listing shows its cancellation policy (flexible, moderate, or strict) before you book. Refunds are processed according to the selected policy." },
+            ].map((faq, i) => (
+              <div key={i} className="rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary)]/30">
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="flex w-full items-center justify-between px-5 py-4 text-left">
+                  <span className="text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{faq.q}</span>
+                  <ChevronDown size={18} className={`shrink-0 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} style={{ color: "var(--color-primary)" }} />
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${openFaq === i ? "max-h-96" : "max-h-0"}`}>
+                  <p className="border-t border-[var(--color-border)] px-5 py-4 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>{faq.a}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <footer className="border-t border-[var(--color-border)] bg-white">
         <div className="mx-auto max-w-6xl px-4 py-10">

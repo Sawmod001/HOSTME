@@ -69,10 +69,10 @@ textarea:focus-visible {
   border-radius: 0.75rem;
   border-style: solid;
   border-color: var(--color-primary-light);
-  border-width: 1px;
+  border-width: 2px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-ink);
   transition: all 0.2s;
   cursor: pointer;
