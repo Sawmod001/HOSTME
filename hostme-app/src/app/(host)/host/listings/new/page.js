@@ -99,6 +99,7 @@ function getDefaultFeatures(vertical, subVerticals) {
 export default function CreateListingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     vertical: "venue",
     subVertical: [],
@@ -112,7 +113,28 @@ export default function CreateListingPage() {
     media: [],
     features: {},
   });
-  const [uploading, setUploading] = useState(false);
+
+  async function handleUploadFiles(files) {
+    if (!files.length) return;
+    setUploading(true);
+    setError(null);
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (res.ok) {
+          setFormData((prev) => ({ ...prev, media: [...(prev.media || []), data.url] }));
+        } else {
+          setError("Upload error: " + (data.error || "Unknown"));
+        }
+      } catch (err) {
+        setError("Upload error: " + err.message);
+      }
+    }
+    setUploading(false);
+  }
   const [newAddOn, setNewAddOn] = useState({ name: "", priceInKobo: 0, isRequired: false });
   const [createdId, setCreatedId] = useState(null);
   const fileInputRef = useRef(null);
@@ -407,10 +429,10 @@ export default function CreateListingPage() {
 
           <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
             <h3 className="font-semibold text-[var(--color-ink)]">Photos</h3>
-            <div onDrop={(e) => { e.preventDefault(); const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/")); if (files.length) { setUploading(true); Promise.all(files.map(f => { const fd = new FormData(); fd.append("file", f); return fetch("/api/upload", { method: "POST", body: fd }).then(r => r.ok ? r.json() : null).then(d => d && setFormData(p => ({ ...p, media: [...p.media, d.url] }))); })).finally(() => setUploading(false)); } }} onDragOver={(e) => e.preventDefault()} onClick={() => fileInputRef.current?.click()} className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-ink-muted)] hover:border-[var(--color-primary)] transition-colors">
+            <div onDrop={(e) => { e.preventDefault(); handleUploadFiles([...e.dataTransfer.files].filter(f => f.type.startsWith("image/"))); }} onDragOver={(e) => e.preventDefault()} onClick={() => fileInputRef.current?.click()} className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-ink-muted)] hover:border-[var(--color-primary)] transition-colors">
               <ImagePlus size={32} />
               {uploading ? <div className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />Uploading...</div> : <><p className="font-semibold text-[var(--color-ink)]">Drop photos here or click to browse</p><p>Supports JPG, PNG, WebP, GIF</p></>}
-              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { const files = [...e.target.files].filter(f => f.type.startsWith("image/")); if (files.length) { setUploading(true); Promise.all(files.map(f => { const fd = new FormData(); fd.append("file", f); return fetch("/api/upload", { method: "POST", body: fd }).then(r => r.ok ? r.json() : null).then(d => d && setFormData(p => ({ ...p, media: [...p.media, d.url] }))); })).finally(() => setUploading(false)); } e.target.value = ""; }} className="hidden" />
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { handleUploadFiles([...e.target.files].filter(f => f.type.startsWith("image/"))); e.target.value = ""; }} className="hidden" />
             </div>
             {formData.media.length > 0 && (
               <div className="flex flex-wrap gap-3">

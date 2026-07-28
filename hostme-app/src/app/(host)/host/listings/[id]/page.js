@@ -161,13 +161,21 @@ export default function HostListingDetailPage() {
 
   async function handleFileUpload(files) {
     setUploading(true);
+    setMessage(null);
     for (const file of files) {
       const fd = new FormData();
       fd.append("file", file);
       try {
         const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (res.ok) { const data = await res.json(); setEditData((prev) => ({ ...prev, media: [...(prev.media || []), data.url] })); }
-      } catch {}
+        const data = await res.json();
+        if (res.ok) {
+          setEditData((prev) => ({ ...prev, media: [...(prev.media || []), data.url] }));
+        } else {
+          setMessage("Upload error: " + (data.error || "Unknown"));
+        }
+      } catch (err) {
+        setMessage("Upload error: " + err.message);
+      }
     }
     setUploading(false);
   }

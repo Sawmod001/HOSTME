@@ -260,9 +260,15 @@ CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (tru
 
 -- =============================================================================
 -- STORAGE BUCKET & RLS
--- The "listings" bucket is created on demand by the upload API. These policies
+-- The "listings" bucket must exist for image uploads. These policies
 -- allow public reads (for <img> tags in the browser) and authenticated uploads.
+-- AFTER running this SQL, also create the bucket via Dashboard or API:
+--   Supabase Dashboard → Storage → New bucket → name: "listings", Public: ON
+-- The API will auto-create it if missing, but it's better to do it now.
 -- =============================================================================
+
+-- Ensure RLS is enabled on storage.objects (should be by default)
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read access to the listings bucket
 DROP POLICY IF EXISTS "listings_storage_select" ON storage.objects;

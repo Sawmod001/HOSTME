@@ -27,6 +27,8 @@ export async function POST(request) {
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const bytes = await file.arrayBuffer();
 
+    let bucketExists = true;
+
     const { data, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(uniqueName, Buffer.from(bytes), {
@@ -35,25 +37,35 @@ export async function POST(request) {
       });
 
     if (error) {
-      if (error.message?.includes("bucket")) {
+      const errMsg = (error.message || error.error || "").toLowerCase();
+      const isBucketProblem = errMsg.includes("bucket") || errMsg.includes("not found") || errMsg.includes("does not exist");
+
+      if (isBucketProblem) {
+        bucketExists = false;
         const { error: createErr } = await supabaseAdmin.storage.createBucket(BUCKET, {
           public: true,
         });
         if (createErr) {
-          return Response.json({ error: "Failed to create storage bucket" }, { status: 500 });
+          return Response.json({
+            error: `Failed to create storage bucket. Create one manually: Supabase Dashboard → Storage → New bucket → name: "${BUCKET}", Public: ON`,
+          }, { status: 500 });
         }
-        const { data: retryData, error: retryErr } = await supabaseAdmin.storage
-          .from(BUCKET)
-          .upload(uniqueName, Buffer.from(bytes), {
-            contentType: file.type || `image/${ext}`,
-          });
-        if (retryErr) {
-          return Response.json({ error: "Upload failed" }, { status: 500 });
-        }
-        const url = supabaseAdmin.storage.from(BUCKET).getPublicUrl(retryData.path).data.publicUrl;
-        return Response.json({ url });
+      } else {
+        return Response.json({ error: `Upload error: ${error.message || "Unknown"}` }, { status: 500 });
       }
-      return Response.json({ error: "Upload failed" }, { status: 500 });
+    }
+
+    if (!bucketExists) {
+      const { data: retryData, error: retryErr } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .upload(uniqueName, Buffer.from(bytes), {
+          contentType: file.type || `image/${ext}`,
+        });
+      if (retryErr) {
+        return Response.json({ error: "Upload failed after creating bucket" }, { status: 500 });
+      }
+      const url = supabaseAdmin.storage.from(BUCKET).getPublicUrl(retryData.path).data.publicUrl;
+      return Response.json({ url });
     }
 
     const url = supabaseAdmin.storage.from(BUCKET).getPublicUrl(data.path).data.publicUrl;
