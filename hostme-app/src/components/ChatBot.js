@@ -161,7 +161,7 @@ export default function ChatBot() {
                     <span className="absolute bottom-2.5 right-3 text-[10px] text-[var(--color-ink-muted)]">{input.length}/2000</span>
                   )}
                 </div>
-                <button onClick={handleSend} disabled={loading || !input.trim()}
+                <button onClick={() => handleSend()} disabled={loading || !input.trim()}
                   className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white transition-opacity hover:opacity-90 disabled:opacity-40">
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>
