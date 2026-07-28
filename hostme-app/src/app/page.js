@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -170,30 +171,39 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="border-t border-[var(--color-border)] bg-white">
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:py-20">
-          <div className="mb-10 text-center">
+      <section className="bg-[var(--color-surface-alt)]">
+        <div className="mx-auto max-w-2xl px-4 py-16 sm:py-24">
+          <div className="mb-12 text-center">
+            <span className="inline-flex rounded-full bg-[var(--color-primary-light)] px-4 py-1.5 text-xs font-semibold text-[var(--color-primary)] mb-4">Support</span>
             <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Frequently asked questions</h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--color-ink-muted)" }}>Everything you need to know about HostMe</p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>Everything you need to know about using HostMe. Can&apos;t find what you&apos;re looking for? <Link href="/sign-in" className="font-semibold underline underline-offset-2" style={{ color: "var(--color-primary)" }}>Contact us</Link>.</p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
-              { q: "What is HostMe?", a: "HostMe is Nigeria's premier space marketplace. We connect people looking for unique venues, event spaces, and shortlet apartments with hosts who have amazing spaces to offer — all in one platform." },
-              { q: "How do I book a space?", a: "Simply browse listings, find a space you like, select your preferred date and time, and complete your booking. For capacity bookings you can book instantly; for exclusive spaces you send a request and the host confirms availability." },
-              { q: "What types of spaces are available?", a: "We offer three main categories: Venues (karaoke bars, event centers, party spaces, exclusive halls), Housing (shortlets and apartments), and Food Pre-Order. Each space shows its booking type, pricing, and available add-ons." },
-              { q: "How do payments work?", a: "All payments are processed securely through Paystack, a PCI-compliant Nigerian payment gateway. You can pay with debit cards, USSD, bank transfer, or QR code. Your payment is only processed once the booking is confirmed." },
-              { q: "Can I list my own space?", a: "Absolutely! Sign up as a host, create a listing with photos, pricing, and availability, then submit for review. Once approved, your space will be live for guests to discover and book." },
-              { q: "What is the difference between capacity and exclusive booking?", a: "Capacity booking works like event tickets — you book a slot in a shared space (e.g., a karaoke session). Exclusive booking gives you full privacy for a specific time window (e.g., renting an entire event center)." },
-              { q: "Is HostMe available outside Ilorin?", a: "Currently HostMe operates in Ilorin, Kwara State. We are expanding to other Nigerian cities soon. Follow us for updates on new locations." },
-              { q: "What if I need to cancel a booking?", a: "Cancellation depends on the host's policy — each listing shows its cancellation policy (flexible, moderate, or strict) before you book. Refunds are processed according to the selected policy." },
+              { q: "What is HostMe?", a: "HostMe is Nigeria's premier marketplace for discovering and booking unique spaces. From lively karaoke bars and elegant event centers to shortlet apartments and food pre-orders — we connect you with the perfect space for every occasion." },
+              { q: "How do I book a space?", a: "Browse listings, find a space you like, select your date and time, then complete your booking. Capacity bookings let you reserve a slot instantly. Exclusive spaces require a request — the host confirms availability, then you pay to secure it." },
+              { q: "What types of spaces are available?", a: "We offer three verticals: Venues (karaoke bars, event centers, party halls, exclusive spaces), Housing (shortlets and apartments), and Food Pre-Order. Each listing clearly shows its category, pricing, and available add-ons." },
+              { q: "How do payments work?", a: "All payments are processed securely through Paystack — Nigeria's leading PCI-compliant payment gateway. You can pay via debit card, USSD, bank transfer, or QR code. Funds are only charged once the booking is confirmed." },
+              { q: "Can I list my own space?", a: "Yes! Sign up as a host, create a listing with photos, pricing, and availability rules, then submit for admin review. Once approved, your space goes live for thousands of potential guests to discover and book." },
+              { q: "What is the difference between capacity and exclusive booking?", a: "Capacity booking works like event tickets — you reserve a spot in a shared experience (e.g., a karaoke session). Exclusive booking gives you full private access to a space for a specific time window (e.g., renting an entire event center)." },
+              { q: "Is HostMe available outside Ilorin?", a: "We currently operate in Ilorin, Kwara State. Expansion to other Nigerian cities is on the roadmap. Follow us for announcements about new locations." },
+              { q: "What if I need to cancel a booking?", a: "Each listing clearly shows its cancellation policy (flexible, moderate, or strict) before you book. Refunds are processed according to that policy. Contact the host directly for特殊情况 or disputes." },
             ].map((faq, i) => (
-              <div key={i} className="rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary)]/30">
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="flex w-full items-center justify-between px-5 py-4 text-left">
-                  <span className="text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{faq.q}</span>
-                  <ChevronDown size={18} className={`shrink-0 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} style={{ color: "var(--color-primary)" }} />
+              <div key={i} className="rounded-2xl border border-[var(--color-border)] bg-white shadow-sm shadow-black/[0.02] transition-all duration-200 hover:shadow-md hover:border-[var(--color-primary)]/20">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                  aria-expanded={openFaq === i}
+                >
+                  <span className="text-[15px] font-semibold leading-snug" style={{ color: "var(--color-ink)" }}>{faq.q}</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors" style={{ backgroundColor: openFaq === i ? "var(--color-primary-light)" : "var(--color-surface-alt)" }}>
+                    <ChevronDown size={15} className={`transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} style={{ color: "var(--color-primary)" }} />
+                  </span>
                 </button>
-                <div className={`overflow-hidden transition-all duration-300 ${openFaq === i ? "max-h-96" : "max-h-0"}`}>
-                  <p className="border-t border-[var(--color-border)] px-5 py-4 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>{faq.a}</p>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${openFaq === i ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+                >
+                  <p className="border-t border-[var(--color-border-light)] px-6 pb-5 pt-4 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>{faq.a}</p>
                 </div>
               </div>
             ))}
@@ -216,6 +226,23 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      <Script id="faq-schema" type="application/ld+json" strategy="lazyOnload">{`
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {"@type":"Question","name":"What is HostMe?","acceptedAnswer":{"@type":"Answer","text":"HostMe is Nigeria's premier marketplace for discovering and booking unique spaces — from karaoke bars and event centers to shortlet apartments."}},
+            {"@type":"Question","name":"How do I book a space?","acceptedAnswer":{"@type":"Answer","text":"Browse listings, find a space, select your date and time, then complete your booking. Capacity bookings are instant; exclusive spaces require host confirmation."}},
+            {"@type":"Question","name":"What types of spaces are available?","acceptedAnswer":{"@type":"Answer","text":"Venues (karaoke, event centers, party halls), Housing (shortlets, apartments), and Food Pre-Order."}},
+            {"@type":"Question","name":"How do payments work?","acceptedAnswer":{"@type":"Answer","text":"All payments are processed securely through Paystack. You can pay via debit card, USSD, bank transfer, or QR code."}},
+            {"@type":"Question","name":"Can I list my own space?","acceptedAnswer":{"@type":"Answer","text":"Yes! Sign up as a host, create a listing with photos and pricing, submit for review, and go live once approved."}},
+            {"@type":"Question","name":"What is the difference between capacity and exclusive booking?","acceptedAnswer":{"@type":"Answer","text":"Capacity booking reserves a spot in a shared experience. Exclusive booking gives you full private access to a space for a specific time."}},
+            {"@type":"Question","name":"Is HostMe available outside Ilorin?","acceptedAnswer":{"@type":"Answer","text":"We currently operate in Ilorin, Kwara State. Expansion to other Nigerian cities is on the roadmap."}},
+            {"@type":"Question","name":"What if I need to cancel a booking?","acceptedAnswer":{"@type":"Answer","text":"Each listing shows its cancellation policy. Refunds are processed according to that policy."}}
+          ]
+        }
+      `}</Script>
     </div>
   );
 }
