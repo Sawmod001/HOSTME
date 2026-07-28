@@ -34,51 +34,42 @@ export async function POST(request) {
     }
 
     const contents = [
-      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      { role: "model", parts: [{ text: "Understood. I will follow these instructions." }] },
       ...(history || []).slice(-20).flatMap((m) => [
         { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] },
       ]),
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const body = JSON.stringify({ contents });
+    const body = JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } });
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body }
     );
 
-    const data = await res.json();
+    const rawText = await res.text();
 
     if (!res.ok) {
-      const errMsg = data?.error?.message || res.statusText;
-      console.error("Gemini API error:", res.status, errMsg);
-
-      if (res.status === 429 || /quota|rate.?limit/i.test(errMsg)) {
+      console.error("Gemini API error:", res.status, rawText.slice(0, 500));
+      if (/quota|rate.?limit/i.test(rawText)) {
         const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-        return Response.json({ reply: fallback, note: "AI is rate-limited. Here's a helpful tip instead." });
+        return Response.json({ reply: fallback, note: "AI is rate-limited." });
       }
-
-      if (res.status === 403 || /key|auth/i.test(errMsg)) {
-        return Response.json({ error: "AI service key is invalid. Check your GEMINI_API_KEY." }, { status: 500 });
+      if (res.status === 403 || /key|auth|API_KEY/i.test(rawText)) {
+        return Response.json({ error: "AI service key is invalid." }, { status: 500 });
       }
-
-      if (/safety|blocked/i.test(errMsg)) {
-        return Response.json({ error: "Response blocked by safety filters. Please rephrase." }, { status: 400 });
+      if (/safety|blocked/i.test(rawText)) {
+        return Response.json({ error: "Response blocked by safety filters." }, { status: 400 });
       }
-
       const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-      return Response.json({ reply: fallback, note: "I'm having trouble connecting. Here's a helpful tip instead." });
+      return Response.json({ reply: fallback, note: "I'm having trouble connecting." });
     }
 
+    const data = JSON.parse(rawText);
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return Response.json({ reply: text || "I couldn't generate a response. Please try again." });
+    return Response.json({ reply: text || "I couldn't generate a response." });
   } catch (error) {
     console.error("Chat error:", error?.message);
     const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-    return Response.json({
-      reply: fallback,
-      note: "I'm having trouble connecting. Here's a helpful tip instead.",
-    });
+    return Response.json({ reply: fallback, note: "I'm having trouble connecting." });
   }
 }
