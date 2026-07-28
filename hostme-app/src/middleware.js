@@ -30,7 +30,7 @@ const PUBLIC_API_EXACT = new Set([
 
 const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug"];
 
-export default function proxy(request) {
+export default function middleware(request) {
   try {
     const { pathname } = request.nextUrl;
     const method = request.method;

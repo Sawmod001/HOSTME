@@ -259,6 +259,24 @@ DROP POLICY IF EXISTS "webhooks_insert" ON processed_webhooks;
 CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (true);
 
 -- =============================================================================
+-- STORAGE BUCKET & RLS
+-- The "listings" bucket is created on demand by the upload API. These policies
+-- allow public reads (for <img> tags in the browser) and authenticated uploads.
+-- =============================================================================
+
+-- Allow public read access to the listings bucket
+DROP POLICY IF EXISTS "listings_storage_select" ON storage.objects;
+CREATE POLICY "listings_storage_select" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'listings');
+
+-- Allow authenticated uploads to the listings bucket
+DROP POLICY IF EXISTS "listings_storage_insert" ON storage.objects;
+CREATE POLICY "listings_storage_insert" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'listings');
+
+-- =============================================================================
 -- FUNCTION: search_listings_nearby()
 -- Returns active listings within a given radius of a point, ordered by distance.
 -- Uses PostGIS ST_DWithin for efficient spatial filtering.
