@@ -20,17 +20,17 @@ Answer questions clearly and concisely in 2-3 sentences. If you don't know, say 
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return Response.json({ error: "AI assistant is not configured" }, { status: 500 });
-    }
-
     const { message, history = [] } = await request.json();
     if (!message?.trim()) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
     if (message.length > 2000) {
       return Response.json({ error: "Message too long (max 2000 characters)" }, { status: 400 });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return Response.json({ error: "AI assistant is not configured" }, { status: 500 });
     }
 
     const contents = [
@@ -40,36 +40,37 @@ export async function POST(request) {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const body = JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } });
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body }
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } }),
+      }
     );
 
-    const rawText = await res.text();
-
     if (!res.ok) {
-      console.error("Gemini API error:", res.status, rawText.slice(0, 500));
-      if (/quota|rate.?limit/i.test(rawText)) {
-        const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-        return Response.json({ reply: fallback, note: "AI is rate-limited." });
+      const errBody = await res.text();
+      console.error("Gemini API error:", res.status, errBody.slice(0, 500));
+
+      if (res.status === 429) {
+        return Response.json({ error: "AI service is temporarily unavailable (rate limit). Please try again later." }, { status: 429 });
       }
-      if (res.status === 403 || /key|auth|API_KEY/i.test(rawText)) {
-        return Response.json({ error: "AI service key is invalid." }, { status: 500 });
+      if (res.status === 403 || /key|auth|API_KEY/i.test(errBody)) {
+        return Response.json({ error: "AI service key is invalid. Check your GEMINI_API_KEY." }, { status: 500 });
       }
-      if (/safety|blocked/i.test(rawText)) {
-        return Response.json({ error: "Response blocked by safety filters." }, { status: 400 });
-      }
-      const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-      return Response.json({ reply: fallback, note: "I'm having trouble connecting." });
+      return Response.json({ error: "AI service error. Please try again later." }, { status: 502 });
     }
 
-    const data = JSON.parse(rawText);
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return Response.json({ reply: text || "I couldn't generate a response." });
+    const data = await res.json();
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return Response.json({ reply: reply || "I couldn't generate a response. Please try again." });
   } catch (error) {
     console.error("Chat error:", error?.message);
     const fallback = FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-    return Response.json({ reply: fallback, note: "I'm having trouble connecting." });
+    return Response.json({
+      reply: fallback,
+      note: "I'm having trouble connecting. Here's a helpful tip instead.",
+    });
   }
 }
