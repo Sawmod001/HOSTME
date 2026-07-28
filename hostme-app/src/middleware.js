@@ -25,7 +25,7 @@ const PUBLIC_EXACT = new Set([
 
 const PUBLIC_API_EXACT = new Set([
   "/api/auth/sign-in", "/api/auth/sign-up", "/api/auth/logout",
-  "/api/payments/webhook", "/api/seed",
+  "/api/payments/webhook", "/api/seed", "/api/chat",
 ]);
 
 const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug"];
