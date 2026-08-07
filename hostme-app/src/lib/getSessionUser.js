@@ -60,24 +60,3 @@ export async function getClerkUser(clerkUserId) {
     return null;
   }
 }
-
-export async function getSessionUser(request) {
-  const sessionInfo = parseSessionToken(request);
-  if (!sessionInfo?.userId) return null;
-  const isValid = await verifyClerkSession(sessionInfo.sessionId);
-  if (!isValid) return null;
-  const user = await getClerkUser(sessionInfo.userId);
-  if (!user) return null;
-  return { ...user, sessionId: sessionInfo.sessionId };
-}
-
-export function getCookie(request, name) {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").filter(Boolean).map((c) => {
-      const [k, ...v] = c.trim().split("=");
-      return [k.trim(), v.join("=")];
-    })
-  );
-  return cookies[name] || null;
-}

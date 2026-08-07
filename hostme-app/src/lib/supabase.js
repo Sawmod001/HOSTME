@@ -1,9 +1,5 @@
 import { pool } from "./db.js";
 
-export function isValidUUID(str) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-}
-
 class PgQuery {
   constructor(table) {
     this._table = table;
@@ -246,10 +242,6 @@ class PgQuery {
       return { data: null, error: { message: err.message } };
     }
   }
-}
-
-export function safeFrom(table) {
-  return new PgQuery(table);
 }
 
 export const supabase = { from: (table) => new PgQuery(table) };
