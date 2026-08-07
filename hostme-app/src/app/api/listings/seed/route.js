@@ -1,5 +1,5 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { createListing, createSlot, createExclusiveLock, countListings } from "@/lib/supabase-queries";
 import { supabase } from "@/lib/supabase";
 import { ok, fail } from "@/lib/supabase-utils";
@@ -58,7 +58,7 @@ export async function POST(request) {
       return ok({ message: "Active listings already exist", count: existingCount });
     }
 
-    const user = await getMongoUser(sessionInfo.userId);
+    const user = await getUser(sessionInfo.userId);
     if (!user) return fail("User not found", 404);
 
     const created = [];

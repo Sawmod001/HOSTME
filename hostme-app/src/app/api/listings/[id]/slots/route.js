@@ -1,8 +1,8 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { findListingById, createSlot } from "@/lib/supabase-queries";
 import { supabase } from "@/lib/supabase";
-import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
+import { toCamelCase, ok, cachedOk, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
     try {
@@ -42,7 +42,7 @@ export async function GET(request, { params }) {
             percentFilled: Math.round(((slot.booked / slot.capacity) * 100) || 0),
         }));
 
-        return ok({ data: slotsWithAvailability.map(toCamelCase) });
+        return cachedOk({ data: slotsWithAvailability.map(toCamelCase) });
     } catch (error) {
         console.error("GET /api/listings/slots error:", error);
         return fail("Failed to fetch slots", 500);
@@ -57,7 +57,7 @@ export async function POST(request, { params }) {
         const isValid = await verifyClerkSession(sessionInfo.sessionId);
         if (!isValid) return unauthorised("Invalid session");
 
-        const user = await getMongoUser(sessionInfo.userId);
+        const user = await getUser(sessionInfo.userId);
         if (!user) return unauthorised("User not found");
         const roles = user.roles || [];
 

@@ -1,8 +1,8 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { createListing, listListings, countListings } from "@/lib/supabase-queries";
 import { validateListingCreate, validateListingFilter } from "@/lib/validation";
-import { toCamelCase, ok, fail } from "@/lib/supabase-utils";
+import { toCamelCase, cachedOk, fail } from "@/lib/supabase-utils";
 
 export async function GET(request) {
     try {
@@ -42,7 +42,7 @@ export async function GET(request) {
             const page = items.slice(0, validation.data.limit);
             const nextCursor = hasMore && page.length > 0 ? page[page.length - 1].created_at : null;
 
-            return ok({
+            return cachedOk({
                 data: page.map(toCamelCase),
                 pagination: { nextCursor, hasMore },
             });
@@ -63,7 +63,7 @@ export async function POST(request) {
         const isValid = await verifyClerkSession(sessionInfo.sessionId);
         if (!isValid) return fail("Unauthorized", 401);
 
-        const user = await getMongoUser(sessionInfo.userId);
+        const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
 
         const payload = await request.json();

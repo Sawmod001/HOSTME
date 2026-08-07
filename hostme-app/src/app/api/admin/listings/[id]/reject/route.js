@@ -15,9 +15,9 @@ export async function POST(request, { params }) {
     const isValid = await verifyClerkSession(sessionInfo.sessionId);
     if (!isValid) return unauthorised("Invalid session");
 
-    const mongoUser = await getClerkUser(sessionInfo.userId);
-    if (!mongoUser) return unauthorised("Clerk user not found");
-    if (!mongoUser.roles?.includes("admin")) return forbidden("Admin role required");
+    const clerkUser = await getClerkUser(sessionInfo.userId);
+    if (!clerkUser) return unauthorised("Clerk user not found");
+    if (!clerkUser.roles?.includes("admin")) return forbidden("Admin role required");
 
     if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 

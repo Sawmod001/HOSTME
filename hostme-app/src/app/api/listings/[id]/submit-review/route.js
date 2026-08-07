@@ -1,5 +1,5 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { findListingById, updateListing } from "@/lib/supabase-queries";
 import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
@@ -11,7 +11,7 @@ export async function POST(request, { params }) {
         const isValid = await verifyClerkSession(sessionInfo.sessionId);
         if (!isValid) return fail("Unauthorized", 401);
 
-        const user = await getMongoUser(sessionInfo.userId);
+        const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);

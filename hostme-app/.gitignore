@@ -57,6 +57,5 @@ public/uploads/
 # docker
 .dockerignore
 
-# local dev scripts with hardcoded credentials/paths
-test-mongo.mjs
-start-server.bat
+# academy (local engineering course, not committed)
+.academy/

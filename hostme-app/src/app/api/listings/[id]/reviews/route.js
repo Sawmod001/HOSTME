@@ -1,13 +1,13 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { listReviews, createReview, findBookingById } from "@/lib/supabase-queries";
-import { toCamelCase, ok, fail, unauthorised, notFound } from "@/lib/supabase-utils";
+import { toCamelCase, ok, cachedOk, fail, unauthorised, notFound } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
   try {
     const p = await params;
     const reviews = await listReviews(p.id);
-    return ok({ data: reviews.map(toCamelCase) });
+    return cachedOk({ data: reviews.map(toCamelCase) });
   } catch (error) {
     console.error("GET /api/listings/[id]/reviews error:", error);
     return fail("Failed to fetch reviews", 500);
@@ -22,7 +22,7 @@ export async function POST(request, { params }) {
     const isValid = await verifyClerkSession(sessionInfo.sessionId);
     if (!isValid) return unauthorised("Invalid session");
 
-    const user = await getMongoUser(sessionInfo.userId);
+    const user = await getUser(sessionInfo.userId);
     if (!user) return unauthorised("User not found");
 
     const body = await request.json();

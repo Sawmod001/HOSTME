@@ -1,6 +1,6 @@
 import { findListingById } from "@/lib/supabase-queries";
 import { supabase } from "@/lib/supabase";
-import { toCamelCase, ok, fail, notFound, parseId } from "@/lib/supabase-utils";
+import { toCamelCase, ok, cachedOk, fail, notFound, parseId } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
     try {
@@ -27,7 +27,7 @@ export async function GET(request, { params }) {
             .gte("event_start", dayStart.toISOString())
             .lt("event_start", dayEnd.toISOString());
 
-        return ok({ data: (locks || []).map(toCamelCase) });
+        return cachedOk({ data: (locks || []).map(toCamelCase) });
     } catch (error) {
         console.error("GET /api/listings/availability error:", error);
         return fail("Failed to fetch availability", 500);

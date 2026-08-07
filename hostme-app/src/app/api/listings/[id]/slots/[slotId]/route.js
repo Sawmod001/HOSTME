@@ -1,5 +1,5 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { findSlotById, findListingById } from "@/lib/supabase-queries";
 import { supabase } from "@/lib/supabase";
 import { ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
@@ -12,7 +12,7 @@ export async function DELETE(request, { params }) {
     const isValid = await verifyClerkSession(sessionInfo.sessionId);
     if (!isValid) return unauthorised("Invalid session");
 
-    const user = await getMongoUser(sessionInfo.userId);
+    const user = await getUser(sessionInfo.userId);
     if (!user) return unauthorised("User not found");
     const roles = user.roles || [];
 

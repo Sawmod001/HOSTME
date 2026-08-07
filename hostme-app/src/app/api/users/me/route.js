@@ -1,5 +1,5 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { updateUserByClerkId } from "@/lib/supabase-queries";
 import { ok, fail, unauthorised } from "@/lib/supabase-utils";
 
@@ -10,7 +10,7 @@ export async function GET(request) {
     const isValid = await verifyClerkSession(sessionInfo.sessionId);
     if (!isValid) return unauthorised("Invalid session");
 
-    const user = await getMongoUser(sessionInfo.userId);
+    const user = await getUser(sessionInfo.userId);
     if (!user) return unauthorised("User not found");
 
     return ok({
@@ -36,7 +36,7 @@ export async function PATCH(request) {
     const isValid = await verifyClerkSession(sessionInfo.sessionId);
     if (!isValid) return unauthorised("Invalid session");
 
-    const user = await getMongoUser(sessionInfo.userId);
+    const user = await getUser(sessionInfo.userId);
     if (!user) return unauthorised("User not found");
 
     const body = await request.json();

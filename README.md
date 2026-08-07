@@ -3,10 +3,10 @@
 Multi-vertical transactional marketplace for Nigerian commercial hospitality & mid-tier real estate — venue bookings, regulated short-let viewings, and on-site pre-ordering, built on instant split-payment settlement (no escrow).
 
 ## Status
-Database migrated from MongoDB to Supabase PostgreSQL. All 23 API routes rewritten. Auth via Clerk. See [`HANDOFF.md`](./HANDOFF.md) for current build state.
+Production app live on Vercel. Backend runs on Supabase PostgreSQL with Clerk authentication. See `hostme-app/README.md` for setup.
 
 ## Tech Stack
-Next.js 16 (App Router) · JavaScript · **Supabase PostgreSQL** (replaces MongoDB) · **Clerk Auth** (replaces NextAuth) · Tailwind v4 · Paystack/Monnify · Cloudinary · Upstash Redis · Vercel
+Next.js 16 (App Router) · JavaScript · Supabase PostgreSQL · Clerk Auth · Tailwind v4 · Paystack · Google Gemini (ChatBot) · Vercel
 
 ## Getting Started
 
@@ -20,15 +20,12 @@ npm run dev
 ## Repo Structure
 
 ```
-/docs                  -- full specification set (read before writing code)
 /hostme-app            -- Next.js application (see hostme-app/README.md)
   /src
-    /app/api           -- all 23 API routes (Supabase + Clerk)
+    /app/api           -- API routes (Supabase + Clerk)
     /lib               -- supabase client, query helpers, Clerk helpers, validation
   /supabase
     migration.sql      -- full PostgreSQL schema (run in Supabase SQL editor)
-HANDOFF.md             -- current build state, next steps
-AGENTS.md              -- AI coding tool instructions
 ```
 
 ## Build Stages

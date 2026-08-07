@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS processed_webhooks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gateway_transaction_ref TEXT NOT NULL UNIQUE,
   booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
-  gateway TEXT DEFAULT NULL CHECK (gateway IN ('paystack', 'monnify', 'mock')),
+  gateway TEXT DEFAULT NULL CHECK (gateway IN ('paystack', 'mock')),
   status TEXT DEFAULT 'processed',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -260,18 +260,18 @@ CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (tru
 
 -- =============================================================================
 -- STORAGE BUCKET & RLS
--- The "listings" bucket must exist for image uploads. These policies
+-- The "HOSTME" bucket must exist for image uploads. These policies
 -- allow public reads (for <img> tags in the browser) and authenticated uploads.
 -- AFTER running this SQL, also create the bucket via Dashboard or API:
---   Supabase Dashboard → Storage → New bucket → name: "listings", Public: ON
+--   Supabase Dashboard → Storage → New bucket → name: "HOSTME", Public: ON
 -- The API will auto-create it if missing, but it's better to do it now.
 -- =============================================================================
 
--- Allow public read access to the listings bucket
+-- Allow public read access to the HOSTME bucket
 DROP POLICY IF EXISTS "listings_storage_select" ON storage.objects;
 CREATE POLICY "listings_storage_select" ON storage.objects
   FOR SELECT TO public
-  USING (bucket_id = 'listings');
+  USING (bucket_id = 'HOSTME');
 
 -- =============================================================================
 -- FUNCTION: search_listings_nearby()
@@ -380,7 +380,7 @@ $$;
 -- =============================================================================
 -- FUNCTION: release_expired_holds()
 -- Sweeps all expired soft holds and releases their headcount back to the slot.
--- Called by a cron job (Vercel Cron / pg_cron) every ~2 minutes.
+-- Called by a cron job (Vercel Cron / pg_cron) — see vercel.json.
 -- Returns the number of holds released.
 -- =============================================================================
 CREATE OR REPLACE FUNCTION release_expired_holds()

@@ -20,6 +20,19 @@ export function ok(data, status = 200) {
   return Response.json(data, { status });
 }
 
+// Public GET responses can be cached at Vercel's edge CDN (s-maxage).
+// stale-while-revalidate keeps serving stale data for 5 min while a single
+// background invocation refreshes it — drastically cutting serverless
+// invocations so the Hobby-plan request queue does not overflow.
+export function cachedOk(data, status = 200) {
+  return Response.json(data, {
+    status,
+    headers: {
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+    },
+  });
+}
+
 export function fail(error, status = 400) {
   const msg = typeof error === "object" && error !== null ? (error.message || JSON.stringify(error)) : String(error || "Something went wrong");
   return Response.json({ error: msg }, { status });

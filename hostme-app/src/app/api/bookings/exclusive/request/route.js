@@ -1,5 +1,5 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getMongoUser } from "@/lib/getMongoUser";
+import { getUser } from "@/lib/getUser";
 import { supabase } from "@/lib/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
 
@@ -10,7 +10,7 @@ export async function POST(request) {
         const isValid = await verifyClerkSession(sessionInfo.sessionId);
         if (!isValid) return fail("Unauthorized", 401);
 
-        const user = await getMongoUser(sessionInfo.userId);
+        const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
 
         const payload = await request.json();

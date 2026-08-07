@@ -8,7 +8,7 @@ async function findUserByEmail(email) {
   return data;
 }
 
-export async function getMongoUser(clerkUserId) {
+export async function getUser(clerkUserId) {
   if (!clerkUserId) return null;
 
   const clerkUser = await getClerkUser(clerkUserId);
