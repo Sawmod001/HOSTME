@@ -24,7 +24,7 @@ export function parseSessionToken(request) {
   }
 }
 
-export async function verifyClerkSession(sessionId) {
+export async function verifyClerkSession(sessionId, expectedUserId = null) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
@@ -35,7 +35,12 @@ export async function verifyClerkSession(sessionId) {
     clearTimeout(timeout);
     if (!res.ok) return false;
     const data = await res.json();
-    return data.status === "active" || data.status === "running";
+    const active = data.status === "active" || data.status === "running";
+    if (!active) return false;
+    // Bind the session to the user: the token's sub must match the session's
+    // real user_id so a forged sub (edited cookie) can't impersonate accounts.
+    if (expectedUserId && data.user_id && data.user_id !== expectedUserId) return false;
+    return true;
   } catch {
     clearTimeout(timeout);
     return false;

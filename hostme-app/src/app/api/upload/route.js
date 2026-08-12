@@ -1,10 +1,32 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
 
 const BUCKET = "HOSTME";
 const ALLOWED = ["jpg", "jpeg", "png", "webp", "gif"];
+const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+
+// Minimal magic-byte sniffing so a .png that is actually HTML/SVG/JS is rejected.
+function sniffImageType(bytes) {
+  if (bytes.length < 12) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "gif";
+  if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "webp";
+  return null;
+}
 
 export async function POST(request) {
   try {
+    // Require a real, verified session — presence-only checks aren't enough.
+    const sessionInfo = parseSessionToken(request);
+    if (!sessionInfo?.userId) {
+      return Response.json({ error: "Authentication required" }, { status: 401 });
+    }
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+    if (!isValid) {
+      return Response.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     if (!supabaseAdmin) {
       return Response.json(
         { error: "Storage not configured — add SUPABASE_SERVICE_ROLE_KEY to env" },
@@ -19,20 +41,25 @@ export async function POST(request) {
       return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const ext = file.name?.split(".").pop()?.toLowerCase() || "jpg";
-    if (!ALLOWED.includes(ext)) {
-      return Response.json({ error: "Only jpg, png, webp, gif allowed" }, { status: 400 });
+    if (file.size > MAX_BYTES) {
+      return Response.json({ error: "File is too large. Max size is 5MB." }, { status: 400 });
     }
 
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const bytes = await file.arrayBuffer();
+    const detected = sniffImageType(new Uint8Array(bytes));
+    if (!detected) {
+      return Response.json({ error: "File is not a valid image" }, { status: 400 });
+    }
+
+    const ext = detected;
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     let bucketExists = true;
 
     const { data, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(uniqueName, Buffer.from(bytes), {
-        contentType: file.type || `image/${ext}`,
+        contentType: `image/${ext}`,
         upsert: false,
       });
 
@@ -59,7 +86,7 @@ export async function POST(request) {
       const { data: retryData, error: retryErr } = await supabaseAdmin.storage
         .from(BUCKET)
         .upload(uniqueName, Buffer.from(bytes), {
-          contentType: file.type || `image/${ext}`,
+          contentType: `image/${ext}`,
         });
       if (retryErr) {
         return Response.json({ error: "Upload failed after creating bucket" }, { status: 500 });

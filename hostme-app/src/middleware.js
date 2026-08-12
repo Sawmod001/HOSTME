@@ -25,10 +25,15 @@ const PUBLIC_EXACT = new Set([
 
 const PUBLIC_API_EXACT = new Set([
   "/api/auth/sign-in", "/api/auth/sign-up", "/api/auth/logout",
-  "/api/payments/webhook", "/api/chat",
+  "/api/payments/webhook", "/api/payments/webhook/paystack", "/api/chat",
+  "/api/whatsapp/webhook", "/api/cron/release-expired-holds",
 ]);
 
-const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug"];
+const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug", "/api/group-plans"];
+
+// Group-plan POSTs carry their own identity (Clerk session or signed guest
+// token) and are rate-limited at the route; gate at the route, not here.
+const PUBLIC_API_ANY_METHOD = ["/api/group-plans"];
 
 export default function middleware(request) {
   try {
@@ -44,6 +49,9 @@ export default function middleware(request) {
     // Public API prefixes — GET only, POST/PATCH/DELETE require auth
     for (const prefix of PUBLIC_API_PREFIXES) {
       if (pathname.startsWith(prefix)) {
+        for (const anyMethod of PUBLIC_API_ANY_METHOD) {
+          if (pathname.startsWith(anyMethod) && method === "POST") return NextResponse.next();
+        }
         if (method === "GET" || method === "HEAD") return NextResponse.next();
         if (hasSession(request)) return NextResponse.next();
         return unauthorized(request);
@@ -52,6 +60,7 @@ export default function middleware(request) {
 
     // Public page prefixes
     if (pathname.startsWith("/listings")) return NextResponse.next();
+    if (pathname.startsWith("/group-plans")) return NextResponse.next();
 
     // Everything else requires a session
     if (!hasSession(request)) return unauthorized(request);

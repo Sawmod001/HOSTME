@@ -7,7 +7,7 @@ export async function POST(request) {
     try {
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);

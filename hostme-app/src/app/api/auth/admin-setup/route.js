@@ -4,6 +4,28 @@ import { clerkFetch } from "@/lib/clerk";
 
 export async function POST(request) {
   try {
+    // Bootstrap gate: the caller must present the one-time setup secret.
+    // This prevents any registered user from self-promoting to admin.
+    const expected = process.env.ADMIN_SETUP_SECRET;
+    const provided = request.headers.get("x-admin-setup-token");
+    if (!expected || !provided || provided !== expected) {
+      return NextResponse.json({ error: "Setup is locked. This action is not permitted." }, { status: 403 });
+    }
+
+    // Disable self-service bootstrap once an admin already exists.
+    try {
+      const allResp = await clerkFetch("/users?limit=100");
+      const allUsers = Array.isArray(allResp) ? allResp : (allResp.data || []);
+      const existingAdmin = allUsers.some((u) => (u.public_metadata?.roles || []).includes("admin"));
+      if (existingAdmin) {
+        return NextResponse.json({ error: "An admin already exists. Use /sign-in to access the portal." }, { status: 409 });
+      }
+    } catch (lookupErr) {
+      // If Clerk lookup fails, fail closed rather than risk a second admin.
+      console.error("[admin-setup] Admin lookup failed, refusing to proceed", lookupErr);
+      return NextResponse.json({ error: "Could not verify admin status. Please retry later." }, { status: 503 });
+    }
+
     const { email, password, name } = await request.json();
     if (!email?.trim() || !password || !name?.trim()) {
       return NextResponse.json({ error: "Email, password, and name are required." }, { status: 400 });

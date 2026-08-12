@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
 import { getUser } from "@/lib/getUser";
 import { supabase } from "@/lib/supabase";
@@ -7,7 +8,7 @@ export async function POST(request) {
     try {
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);

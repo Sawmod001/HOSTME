@@ -7,7 +7,7 @@ export async function GET(request, { params }) {
     const p = await params;
     const sessionInfo = parseSessionToken(request);
     if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) return unauthorised("Invalid session");
 
     const adminUser = await getClerkUser(sessionInfo.userId);

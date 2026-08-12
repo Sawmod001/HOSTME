@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkFetch } from "@/lib/clerk";
 import { createUser } from "@/lib/supabase-queries";
+import { getRedirectPath } from "@/lib/redirect";
 
 export async function POST(request) {
   try {
@@ -83,14 +84,11 @@ export async function POST(request) {
     }
 
     const meta = clerkUser.public_metadata || {};
-    const roles = meta.roles || ["guest"];
-    const activeRole = meta.activeRole || "guest";
-    let redirectTo = "/complete-profile";
-    if (roles.includes("admin")) redirectTo = "/admin";
-    else if (meta.profileCompleted) {
-      if (activeRole === "host" || roles.includes("host")) redirectTo = "/host/dashboard";
-      else redirectTo = "/dashboard";
-    }
+    const redirectTo = getRedirectPath({
+      roles: meta.roles || ["guest"],
+      activeRole: meta.activeRole || "guest",
+      profileCompleted: meta.profileCompleted || false,
+    });
 
     const response = NextResponse.json({ success: true, redirectTo });
 

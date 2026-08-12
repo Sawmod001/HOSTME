@@ -14,6 +14,21 @@ export async function GET(request, { params }) {
             if (!isUuid) return notFound("Listing not found");
             const listing = await findListingById(p.id);
             if (!listing) return notFound("Listing not found");
+
+            // Only active listings are public. Owner/host and admins may view
+            // their own non-active (draft/pending/rejected/suspended) listings.
+            if (listing.status !== "active") {
+                const sessionInfo = parseSessionToken(request);
+                let caller = null;
+                if (sessionInfo?.userId) {
+                    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+                    if (isValid) caller = await getUser(sessionInfo.userId);
+                }
+                const isAdmin = caller ? (caller.roles || []).includes("admin") : false;
+                const isOwner = caller && listing.host_id === caller.id;
+                if (!isAdmin && !isOwner) return notFound("Listing not found");
+            }
+
             return cachedOk(toCamelCase(listing));
         } catch (databaseError) {
             console.error("DB fetch error:", databaseError);
@@ -30,7 +45,7 @@ export async function PATCH(request, { params }) {
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);
@@ -95,7 +110,7 @@ export async function DELETE(request, { params }) {
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);

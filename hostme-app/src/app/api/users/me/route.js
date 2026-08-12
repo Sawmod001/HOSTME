@@ -7,7 +7,7 @@ export async function GET(request) {
   try {
     const sessionInfo = parseSessionToken(request);
     if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) return unauthorised("Invalid session");
 
     const user = await getUser(sessionInfo.userId);
@@ -33,7 +33,7 @@ export async function PATCH(request) {
   try {
     const sessionInfo = parseSessionToken(request);
     if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) return unauthorised("Invalid session");
 
     const user = await getUser(sessionInfo.userId);

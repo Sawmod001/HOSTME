@@ -65,7 +65,7 @@ export default function GuestDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tab, setTab] = useState("upcoming");
 
-  const roles = profile?.redirectTo?.includes("host") ? ["guest", "host"] : ["guest"];
+  const roles = profile?.roles?.length ? profile.roles : ["guest"];
 
   useEffect(() => {
     fetch("/api/auth/profile-status")

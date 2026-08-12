@@ -1,30 +1,17 @@
 import { supabase } from "@/lib/supabase";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getUser } from "@/lib/getUser";
 import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
-
-function getUserIdFromCookie(request) {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").filter(Boolean).map((c) => {
-      const [k, ...v] = c.trim().split("=");
-      return [k.trim(), v.join("=")];
-    })
-  );
-  return cookies["__session"] || null;
-}
 
 export async function POST(request) {
     try {
-        const sessionToken = getUserIdFromCookie(request);
-        if (!sessionToken) return fail("Authentication required", 401);
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return fail("Authentication required", 401);
 
-        const clerkRes = await fetch("https://api.clerk.com/v1/sessions/" + sessionToken, {
-          headers: { Authorization: "Bearer " + process.env.CLERK_SECRET_KEY },
-        });
-        if (!clerkRes.ok) return fail("Authentication required", 401);
-        const sessionData = await clerkRes.json();
-        const clerkId = sessionData.user_id;
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+        if (!isValid) return fail("Authentication required", 401);
 
-        const { data: user } = await supabase.from("users").select("id").eq("clerk_id", clerkId).maybeSingle();
+        const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
 
         const payload = await request.json();

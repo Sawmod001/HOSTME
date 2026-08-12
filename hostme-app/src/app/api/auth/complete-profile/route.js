@@ -9,7 +9,7 @@ export async function POST(request) {
     if (!sessionInfo?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) {
       return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }

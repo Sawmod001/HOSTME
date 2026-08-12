@@ -185,7 +185,14 @@ export default function ListingDetailPage({ params }) {
   const dateStr = useMemo(() => selectedDate.toISOString().split("T")[0], [selectedDate]);
 
   useEffect(() => {
-    setIsAuthenticated(document.cookie.includes("__session="));
+    let active = true;
+    fetch("/api/auth/profile-status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && data.authenticated) setIsAuthenticated(true);
+      })
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -408,6 +415,12 @@ export default function ListingDetailPage({ params }) {
             </div>
           )}
 
+          {isCapacity && (
+            <Link href={`/group-plans/new?listingId=${encodeURIComponent(id)}`}
+              className="block w-full rounded-xl border-2 border-[var(--color-primary)] px-4 py-3 text-center font-semibold text-[var(--color-primary)]">
+              <Users size={16} className="mr-1 inline-block" /> Book Together (Group)
+            </Link>
+          )}
           {isAuthenticated ? (
             <Link href={isCapacity ? `/listings/${id}/checkout` : `/listings/${id}/exclusive-request`}
               className="block w-full rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center font-semibold text-white">
@@ -415,8 +428,8 @@ export default function ListingDetailPage({ params }) {
             </Link>
           ) : (
             <Link href="/sign-up"
-              className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-[var(--color-primary)] px-4 py-3 text-center font-semibold text-[var(--color-primary)]">
-              <LogIn size={18} /> Sign in to Book
+              className="flex items-center justify-center gap-2 w-full rounded-xl border border-[var(--color-border)] px-4 py-3 text-center font-semibold text-[var(--color-ink-muted)]">
+              <LogIn size={18} /> Sign in to Book a slot
             </Link>
           )}
 

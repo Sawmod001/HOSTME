@@ -7,13 +7,15 @@ import { toCamelCase, cachedOk, fail } from "@/lib/supabase-utils";
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
+        const requestedStatus = searchParams.get("status") || undefined;
+        const hostId = searchParams.get("hostId") || undefined;
         const filters = {
             vertical: searchParams.get("vertical") || undefined,
             subVertical: searchParams.get("subVertical") || undefined,
             cityArea: searchParams.get("cityArea") || undefined,
             bookingType: searchParams.get("bookingType") || undefined,
-            status: searchParams.get("status") || undefined,
-            hostId: searchParams.get("hostId") || undefined,
+            status: requestedStatus,
+            hostId,
             lat: searchParams.get("lat") ? parseFloat(searchParams.get("lat")) : undefined,
             lng: searchParams.get("lng") ? parseFloat(searchParams.get("lng")) : undefined,
             radiusKm: searchParams.get("radiusKm") ? parseFloat(searchParams.get("radiusKm")) : 50,
@@ -26,10 +28,35 @@ export async function GET(request) {
             return fail("Invalid filters", 400);
         }
 
+        // Resolve the caller (optional) to enforce status/host access.
+        const sessionInfo = parseSessionToken(request);
+        let caller = null;
+        if (sessionInfo?.userId) {
+            const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+            if (isValid) caller = await getUser(sessionInfo.userId);
+        }
+
+        const isAdmin = caller ? (caller.roles || []).includes("admin") : false;
+        const isSelf = caller?.id && hostId === caller.id;
+
+        // Non-public statuses are admin-only, or the host viewing their own
+        // inventory (hostId must scope that access to themselves).
+        const requested = validation.data.status;
+        if (requested && requested !== "active" && !isAdmin && !(requested === "pending_review" && isSelf)) {
+            return fail("Forbidden", 403);
+        }
+
+        // hostId filter only reveals the requested host's own inventory to the
+        // host themselves, an admin, or an anonymous browser (which is
+        // restricted to active listings below).
+        if (hostId && caller?.id && hostId !== caller.id && !isAdmin) {
+            return fail("Forbidden", 403);
+        }
+
         try {
             const items = await listListings({
-                status: validation.data.status || (validation.data.hostId ? undefined : "active"),
-                hostId: validation.data.hostId,
+                status: requested || (hostId && caller?.id && caller.id === hostId ? undefined : "active"),
+                hostId,
                 vertical: validation.data.vertical,
                 subVertical: validation.data.subVertical,
                 bookingType: validation.data.bookingType,
@@ -60,11 +87,16 @@ export async function POST(request) {
     try {
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId);
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
+
+        // Only host-capable accounts may create listings.
+        if (!(user.roles || []).includes("host")) {
+            return fail("Only hosts can create listings", 403);
+        }
 
         const payload = await request.json();
         const validation = validateListingCreate(payload);

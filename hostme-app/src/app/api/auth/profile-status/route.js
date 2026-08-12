@@ -8,7 +8,7 @@ export async function GET(request) {
     if (!sessionInfo?.userId) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId);
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
@@ -29,6 +29,8 @@ export async function GET(request) {
         authenticated: true,
         completed: true,
         redirectTo: redirects[clerkUser.activeRole] || "/dashboard",
+        roles: clerkUser.roles || ["guest"],
+        activeRole: clerkUser.activeRole || "guest",
       });
     }
 
@@ -45,6 +47,8 @@ export async function GET(request) {
           authenticated: true,
           completed: true,
           redirectTo: redirects[dbUser.active_role] || "/dashboard",
+          roles: dbUser.roles || ["guest"],
+          activeRole: dbUser.active_role || "guest",
         });
       }
     } catch {

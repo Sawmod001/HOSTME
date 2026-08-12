@@ -1,37 +1,21 @@
 import { NextResponse } from "next/server";
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser.js";
 import { listUsers } from "@/lib/supabase-queries.js";
 
 export async function GET(request) {
   try {
-    const cookieHeader = request.headers.get("cookie") || "";
-    const cookies = Object.fromEntries(
-      cookieHeader.split(";").filter(Boolean).map((c) => {
-        const [k, ...v] = c.trim().split("=");
-        return [k.trim(), v.join("=")];
-      })
-    );
-
-    const sessionToken = cookies["__session"];
-    if (!sessionToken) {
+    const sessionInfo = parseSessionToken(request);
+    if (!sessionInfo?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const clerkRes = await fetch("https://api.clerk.com/v1/sessions/" + sessionToken, {
-      headers: { Authorization: "Bearer " + process.env.CLERK_SECRET_KEY },
-    });
-    if (!clerkRes.ok) {
+    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+    if (!isValid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sessionData = await clerkRes.json();
-    const userId = sessionData.user_id;
-
-    const userRes = await fetch("https://api.clerk.com/v1/users/" + userId, {
-      headers: { Authorization: "Bearer " + process.env.CLERK_SECRET_KEY },
-    });
-    const userData = await userRes.json();
-    const roles = userData.public_metadata?.roles || [];
-
+    const userInfo = await getClerkUser(sessionInfo.userId);
+    const roles = userInfo?.roles || [];
     if (!roles.includes("admin")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

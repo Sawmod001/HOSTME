@@ -72,7 +72,7 @@ export default function HostDashboardPage() {
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const roles = profile?.redirectTo?.includes("host") ? [] : ["host"];
+  const roles = profile?.roles && profile.roles.length > 0 ? profile.roles : (profile?.activeRole === "host" ? ["host"] : ["guest"]);
 
   useEffect(() => {
     fetch("/api/auth/profile-status")
@@ -90,10 +90,18 @@ export default function HostDashboardPage() {
 
   async function fetchData() {
     try {
+      const meRes = await fetch("/api/users/me");
+      let meId = null;
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        meId = meData.data?.id || meData.id || null;
+      }
+
+      const query = meId ? `&hostId=${meId}` : "";
       const [bookingsRes, pendingRes, activeRes] = await Promise.all([
         fetch("/api/bookings"),
-        fetch("/api/listings?status=pending_review"),
-        fetch("/api/listings?status=active"),
+        fetch(`/api/listings?status=pending_review${query}`),
+        fetch(`/api/listings?status=active${query}`),
       ]);
       if (!bookingsRes.ok) throw new Error("Failed to load data");
       const bookingsData = await bookingsRes.json();

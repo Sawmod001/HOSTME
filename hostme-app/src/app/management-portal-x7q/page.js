@@ -19,7 +19,7 @@ async function getAdminUser() {
     return null;
   }
 
-  const isValid = await verifyClerkSession(sessionId);
+  const isValid = await verifyClerkSession(sessionId, userId);
   if (!isValid) return null;
 
   const user = await getClerkUser(userId);

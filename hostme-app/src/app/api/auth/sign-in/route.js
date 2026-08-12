@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server";
 import { clerkFetch } from "@/lib/clerk";
-
-function getRedirectPath(meta) {
-  const roles = meta.roles || ["guest"];
-  const activeRole = meta.activeRole || "guest";
-  if (roles.includes("admin")) return "/admin";
-  if (meta.profileCompleted) {
-    if (activeRole === "host" || roles.includes("host")) return "/host/dashboard";
-    return "/dashboard";
-  }
-  return "/complete-profile";
-}
+import { getRedirectPath } from "@/lib/redirect";
 
 export async function POST(request) {
   try {
