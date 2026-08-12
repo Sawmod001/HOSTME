@@ -77,7 +77,7 @@ export function groupBookingText({ venue, link }) {
     "HostMe lets a group split one venue booking: one person starts the plan, shares a link, and each friend pays their own share in Naira.",
     "",
     `Create the plan here and share the link: ${link}`,
-    "No account needed — anyone can join as a guest and pay their share.",
+    "Each friend signs in with their HostMe account to join and pay their share.",
     "",
     "The plan auto-finalizes when the group fills up. If it doesn't fill by the close date, it cancels and everyone is refunded.",
     "",

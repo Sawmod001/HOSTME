@@ -2,12 +2,14 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Lock } from "lucide-react";
 
 export default function ExclusiveRequestPage({ params }) {
     const { id } = use(params);
     const [listing, setListing] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [authChecked, setAuthChecked] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(null);
@@ -17,6 +19,21 @@ export default function ExclusiveRequestPage({ params }) {
         eventStart: "",
         eventEnd: "",
     });
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch("/api/auth/profile-status")
+            .then((res) => res.json())
+            .then((data) => {
+                if (cancelled) return;
+                setIsAuthenticated(!!data.authenticated);
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (!cancelled) setAuthChecked(true);
+            });
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         const fetchListing = async () => {
@@ -65,13 +82,38 @@ export default function ExclusiveRequestPage({ params }) {
         }
     };
 
-    if (loading) {
+    if (loading || !authChecked) {
         return (
             <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                 <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-[var(--color-border)] bg-white p-6">
                     <div className="h-8 w-24 animate-pulse rounded-xl bg-[var(--color-surface-alt)]" />
                     <div className="h-10 animate-pulse rounded-xl bg-[var(--color-surface-alt)]" />
                     <div className="h-24 animate-pulse rounded-xl bg-[var(--color-surface-alt)]" />
+                </div>
+            </main>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+                <div className="mx-auto max-w-2xl space-y-6">
+                    <Link href={`/listings/${id}`} className="flex items-center gap-2 text-[var(--color-primary)]">
+                        <ArrowLeft size={18} />
+                        Back to listing
+                    </Link>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                            <Lock size={22} />
+                        </span>
+                        <h1 className="text-xl font-semibold text-[var(--color-ink)]">Sign in to book</h1>
+                        <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--color-ink-muted)]">
+                            Create a free HostMe account to submit your request for this space.
+                        </p>
+                        <Link href="/sign-up" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
+                            <Lock size={16} /> Sign in / Create account
+                        </Link>
+                    </div>
                 </div>
             </main>
         );
@@ -120,12 +162,13 @@ export default function ExclusiveRequestPage({ params }) {
                         </label>
 
                         <label className="block text-sm font-semibold text-[var(--color-ink)]">
-                            Headcount
+                            How many people?
                             <input
                                 type="number"
                                 min="1"
                                 value={form.headcount}
                                 onChange={(event) => setForm({ ...form, headcount: Number(event.target.value) })}
+                                onFocus={(e) => e.target.select()}
                                 className="mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                                 required
                             />

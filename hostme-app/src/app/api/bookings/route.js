@@ -2,6 +2,7 @@ import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
 import { getUser } from "@/lib/getUser";
 import { supabase } from "@/lib/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
+import { computeCapacityPriceKobo } from "@/lib/pricing";
 
 export async function GET(request) {
     try {
@@ -74,17 +75,14 @@ export async function POST(request) {
 
         // Server-side add-on pricing: match requested add-ons against the
         // listing's real add-ons so clients can't manipulate prices.
-        const listingAddOns = listing.add_ons || [];
-        const addOnsTotal = listingAddOns
-            .filter((addon) => addOns.some((a) => String(a.id) === String(addon.id)))
-            .reduce((sum, addon) => sum + Number(addon.priceInKobo || addon.price_in_kobo || 0), 0);
-        const requiredAddOnsTotal = listingAddOns
-            .filter((addon) => addon.isRequired)
-            .reduce((sum, addon) => sum + Number(addon.priceInKobo || addon.price_in_kobo || 0), 0);
-
-        const hours = Math.max(1, (new Date(slot.event_end) - new Date(slot.event_start)) / (60 * 60 * 1000));
-        const baseTotal = Number(listing.pricing?.baseRatePerHour || 0) * Number(softHold.headcount || 0) * hours;
-        const totalAmountKobo = Math.round(baseTotal + addOnsTotal + requiredAddOnsTotal);
+        const totalAmountKobo = computeCapacityPriceKobo({
+            listing,
+            eventStart: slot.event_start,
+            eventEnd: slot.event_end,
+            headcount: softHold.headcount,
+            addOnIds: addOns.map((a) => a.id),
+            includeRequired: true,
+        });
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
         const { data: booking } = await supabase

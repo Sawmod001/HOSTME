@@ -402,7 +402,10 @@ export default function CreateListingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Base Rate (₦/hour)</label>
-                <input type="number" value={formData.pricing.baseRatePerHour > 0 ? formData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => handleInputChange("pricing.baseRatePerHour", (parseInt(e.target.value) || 0) * 100)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                  <input type="number" min="0" step="0.01" value={formData.pricing.baseRatePerHour > 0 ? formData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => handleInputChange("pricing.baseRatePerHour", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Capacity</label>
@@ -450,7 +453,10 @@ export default function CreateListingPage() {
             <h3 className="font-semibold text-[var(--color-ink)]">Add-Ons</h3>
             <div className="grid grid-cols-3 gap-2">
               <input type="text" value={newAddOn.name} onChange={(e) => setNewAddOn((p) => ({ ...p, name: e.target.value }))} placeholder="Name (e.g. DJ)" className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
-              <input type="number" value={newAddOn.priceInKobo / 100} onChange={(e) => setNewAddOn((p) => ({ ...p, priceInKobo: (parseInt(e.target.value) || 0) * 100 }))} placeholder="Price (₦)" className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                <input type="number" min="0" step="0.01" value={newAddOn.priceInKobo > 0 ? newAddOn.priceInKobo / 100 : ""} onChange={(e) => setNewAddOn((p) => ({ ...p, priceInKobo: (parseInt(e.target.value) || 0) * 100 }))} onFocus={(e) => e.target.select()} placeholder="Price" className="rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm w-full" />
+              </div>
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={newAddOn.isRequired} onChange={(e) => setNewAddOn((p) => ({ ...p, isRequired: e.target.checked }))} className="rounded border" />Required</label>
                 <button type="button" onClick={() => { if (newAddOn.name.trim()) { setFormData((p) => ({ ...p, addOns: [...p.addOns, { ...newAddOn, id: crypto.randomUUID?.() || Math.random().toString() }] })); setNewAddOn({ name: "", priceInKobo: 0, isRequired: false }); } }} className="rounded-xl bg-[var(--color-primary)] px-3 py-2 text-white text-sm font-semibold">+</button>

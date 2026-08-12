@@ -1,5 +1,6 @@
 import { getPlan } from "@/lib/group-booking";
-import { resolveActor } from "@/lib/guest-identity";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getUser } from "@/lib/getUser";
 import { ok, fail, notFound, parseId } from "@/lib/supabase-utils";
 
 export async function GET(request, { params }) {
@@ -7,10 +8,18 @@ export async function GET(request, { params }) {
         const p = await params;
         if (!parseId(p.id)) return fail("Invalid plan ID", 400);
 
-        // Public view for invite links. Resolves Clerk or guest identity so the
-        // viewer can see and manage their own membership without signing in.
-        const actor = await resolveActor(request);
-        const userId = actor?.user?.id || null;
+        // Public view for invite links. Resolves the caller's account so they
+        // can see their own membership; unauthenticated viewers get the plan
+        // without a membership.
+        let userId = null;
+        const sessionInfo = parseSessionToken(request);
+        if (sessionInfo?.userId) {
+            const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+            if (isValid) {
+                const user = await getUser(sessionInfo.userId);
+                if (user) userId = user.id;
+            }
+        }
 
         const plan = await getPlan({ planId: p.id, userId });
         if (!plan) return notFound("Plan not found");

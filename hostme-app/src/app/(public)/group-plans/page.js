@@ -69,7 +69,7 @@ export default function MyGroupPlansPage() {
             </div>
             <h2 className="text-lg font-semibold text-[var(--color-ink)]">No group bookings yet</h2>
             <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--color-ink-muted)]">
-              Book a venue together and split the cost — no account needed. Start a plan on any group-friendly venue.
+              Book a venue together and split the cost. Start a plan on any group-friendly venue.
             </p>
             <Link href="/listings?vertical=venue"
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white">

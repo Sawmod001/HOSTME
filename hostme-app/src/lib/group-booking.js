@@ -1,22 +1,27 @@
 import { pool } from "./db.js";
 import { supabase } from "./supabase.js";
 import { findListingById, findSlotById } from "./supabase-queries.js";
+import { computeCapacityPriceKobo } from "./pricing.js";
 
 const PLAN_STATUSES = ["active", "finalized", "cancelled"];
 const MEMBER_STATUSES = ["pending", "paid", "confirmed"];
 
-function hoursBetween(start, end) {
+export function hoursBetween(start, end) {
   const ms = new Date(end).getTime() - new Date(start).getTime();
   return Math.max(1, ms / (1000 * 60 * 60));
 }
 
-// Base rate (kobo/person/hour) × hours × headcount + chosen add-on prices.
-// Add-on prices come from the listing, never from the client.
+// A member's share of a group plan is the full capacity price for the hours
+// their headcount covers, plus the add-ons they picked. Split across all
+// members at finalize time — see finalizeGroupPlan.
 export function computeShareKobo({ listing, plan, headcount, addOns }) {
-  const base = (Number(listing.pricing?.baseRatePerHour) || 0) * Math.max(1, headcount) * hoursBetween(plan.event_start, plan.event_end);
-  const menu = new Map((listing.add_ons || []).map((a) => [a.id, Number(a.priceInKobo) || 0]));
-  const addOnsKobo = [...new Set(addOns || [])].reduce((sum, addonId) => sum + (menu.get(addonId) || 0), 0);
-  return Math.round(base + addOnsKobo);
+  return computeCapacityPriceKobo({
+    listing,
+    eventStart: plan.event_start,
+    eventEnd: plan.event_end,
+    headcount,
+    addOnIds: addOns,
+  });
 }
 
 async function withTransaction(fn) {

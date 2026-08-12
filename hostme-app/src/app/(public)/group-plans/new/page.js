@@ -3,20 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Users } from "lucide-react";
+
+const toLocalDateInput = (d) => {
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60000).toISOString().split("T")[0];
+};
 
 export default function NewGroupPlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listingId = searchParams.get("listingId");
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [listing, setListing] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => toLocalDateInput(new Date()));
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [targetHeadcount, setTargetHeadcount] = useState(1);
   const [myHeadcount, setMyHeadcount] = useState(1);
@@ -27,6 +34,21 @@ export default function NewGroupPlanPage() {
     return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 16);
   });
   const [selectedAddOns, setSelectedAddOns] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/profile-status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        setIsAuthenticated(!!data.authenticated);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAuthChecked(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -118,6 +140,31 @@ export default function NewGroupPlanPage() {
     );
   }
 
+  if (authChecked && !isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <Link href={listingId ? `/listings/${listingId}` : "/listings"} className="flex items-center gap-2 text-[var(--color-primary)]">
+            <ArrowLeft size={18} />
+            Back to listing
+          </Link>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+              <Lock size={22} />
+            </span>
+            <h1 className="text-xl font-semibold text-[var(--color-ink)]">Sign in to start a group booking</h1>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--color-ink-muted)]">
+              You need a free HostMe account to create a plan and share the invite link.
+            </p>
+            <Link href="/sign-up" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
+              <Lock size={16} /> Sign in / Create account
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6">
@@ -149,8 +196,8 @@ export default function NewGroupPlanPage() {
           <div className="space-y-2">
             <label className="text-sm font-semibold text-[var(--color-ink)]">Time Slot</label>
             {slots.length === 0 ? (
-              <p className="rounded-xl bg-[var(--color-surface-alt)] p-3 text-sm text-[var(--color-ink-muted)]">
-                No available slots on this date.
+              <p className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)] p-3 text-sm text-[var(--color-ink-muted)]">
+                No open slots on this date. Try another date — the Create button stays disabled until you pick an open slot.
               </p>
             ) : (
               <div className="space-y-2">
@@ -174,25 +221,27 @@ export default function NewGroupPlanPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[var(--color-ink)]">Target group size</label>
+              <label className="text-sm font-semibold text-[var(--color-ink)]">How many people in the group?</label>
               <input
                 type="number"
                 min="1"
                 max={Math.max(slotAvailable, 1)}
                 value={targetHeadcount}
                 onChange={(e) => setTargetHeadcount(Number(e.target.value))}
+                onFocus={(e) => e.target.select()}
                 className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
               />
               <p className="text-xs text-[var(--color-ink-muted)]">The plan finalizes when this many people are committed.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[var(--color-ink)]">Your headcount</label>
+              <label className="text-sm font-semibold text-[var(--color-ink)]">How many will you bring?</label>
               <input
                 type="number"
                 min="1"
                 max={Math.max(targetHeadcount || 1, 1)}
                 value={myHeadcount}
                 onChange={(e) => setMyHeadcount(Number(e.target.value))}
+                onFocus={(e) => e.target.select()}
                 className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
               />
             </div>

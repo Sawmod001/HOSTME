@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, Copy, Link2, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Check, Copy, Link2, Loader2, Lock, Users } from "lucide-react";
 
 const STATUS_STYLE = {
   pending: "bg-[#FEF3C7] text-[#B45309]",
@@ -23,6 +23,8 @@ export default function GroupPlanPage() {
 
   const [joinHeadcount, setJoinHeadcount] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -42,6 +44,21 @@ export default function GroupPlanPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/profile-status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        setIsAuthenticated(!!data.authenticated);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAuthChecked(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   if (loading) {
     return (
@@ -242,8 +259,17 @@ export default function GroupPlanPage() {
         {plan.status === "active" && !plan.isMember && (
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
             <h2 className="text-lg font-semibold text-[var(--color-ink)]">Join this plan</h2>
-            <p className="mt-1 text-sm text-[var(--color-ink-muted)]">No account needed — continue as a guest.</p>
-            {maxJoin <= 0 ? (
+            {authChecked && !isAuthenticated ? (
+              <>
+                <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Sign in with your HostMe account to join and pay your share.</p>
+                <Link
+                  href="/sign-up"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white"
+                >
+                  <Lock size={16} /> Sign in to join
+                </Link>
+              </>
+            ) : maxJoin <= 0 ? (
               <p className="mt-2 text-sm font-semibold text-[#B91C1C]">This plan is full.</p>
             ) : (
               <div className="mt-4 space-y-4">
@@ -255,6 +281,7 @@ export default function GroupPlanPage() {
                     max={maxJoin}
                     value={joinHeadcount}
                     onChange={(e) => setJoinHeadcount(Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                   />
                   <p className="text-xs text-[var(--color-ink-muted)]">Up to {maxJoin} spots left.</p>

@@ -179,7 +179,7 @@ export default function HomePage() {
             <span className="inline-flex rounded-full bg-[var(--color-primary-light)] px-4 py-1.5 text-xs font-semibold text-[var(--color-primary)] mb-4">Group booking</span>
             <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Book together, split the cost</h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>
-              Planning a hangout, birthday or group night? Start a plan, share one link, and everyone pays their own share. No account needed.
+              Planning a hangout, birthday or group night? Start a plan, share one link, and everyone pays their own share.
             </p>
           </div>
 
@@ -223,7 +223,7 @@ export default function HomePage() {
             {[
               { q: "What is HostMe?", a: "HostMe is Nigeria's premier marketplace for discovering and booking unique spaces. From lively karaoke bars and elegant event centers to shortlet apartments and food pre-orders — we connect you with the perfect space for every occasion." },
               { q: "How do I book a space?", a: "Browse listings, find a space you like, select your date and time, then complete your booking. Capacity bookings let you reserve a slot instantly. Exclusive spaces require a request — the host confirms availability, then you pay to secure it." },
-              { q: "What is group booking?", a: "Group booking lets you split the cost of a venue with friends. One person starts the plan and shares the link — each friend joins and pays their own share in Naira. The plan auto-confirms once the group fills up, or cancels with refunds if it doesn't by the close date. No account is needed to join." },
+              { q: "What is group booking?", a: "Group booking lets you split the cost of a venue with friends. One person starts the plan and shares the link — each friend joins with their HostMe account and pays their own share in Naira. The plan auto-confirms once the group fills up, or cancels with refunds if it doesn't by the close date. A free account is needed to start or join." },
               { q: "What types of spaces are available?", a: "We offer three verticals: Venues (karaoke bars, event centers, party halls, exclusive spaces), Housing (shortlets and apartments), and Food Pre-Order. Each listing clearly shows its category, pricing, and available add-ons." },
               { q: "How do payments work?", a: "All payments are processed securely through Paystack — Nigeria's leading PCI-compliant payment gateway. You can pay via debit card, USSD, bank transfer, or QR code. Funds are only charged once the booking is confirmed." },
               { q: "Can I list my own space?", a: "Yes! Sign up as a host, create a listing with photos, pricing, and availability rules, then submit for admin review. Once approved, your space goes live for thousands of potential guests to discover and book." },

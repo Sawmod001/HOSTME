@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
@@ -10,17 +10,35 @@ export default function CheckoutPage() {
     const router = useRouter();
     const listingId = params?.id;
 
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authChecked, setAuthChecked] = useState(false);
     const [listing, setListing] = useState(null);
     const [slot, setSlot] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
-    const [guestName, setGuestName] = useState("");
-    const [guestEmail, setGuestEmail] = useState("");
-    const [guestPhone, setGuestPhone] = useState("");
     const [headcount, setHeadcount] = useState(1);
     const [selectedAddOns, setSelectedAddOns] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset();
+        return new Date(now.getTime() - offset * 60000).toISOString().split("T")[0];
+    });
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch("/api/auth/profile-status")
+            .then((res) => res.json())
+            .then((data) => {
+                if (cancelled) return;
+                setIsAuthenticated(!!data.authenticated);
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (!cancelled) setAuthChecked(true);
+            });
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         const load = async () => {
@@ -49,14 +67,15 @@ export default function CheckoutPage() {
     }, [listingId, selectedDate]);
 
     const subtotal = useMemo(() => {
-        if (!listing) return 0;
-        const base = Number(listing.pricing?.baseRatePerHour || 0) * Number(headcount || 0);
-        const addOnsTotal = selectedAddOns.reduce((sum, addonId) => {
-            const addon = listing.addOns?.find((item) => item.id === addonId);
-            return sum + Number(addon?.priceInKobo || 0);
-        }, 0);
+        if (!listing || !slot) return 0;
+        const hours = Math.max(1, (new Date(slot.eventEnd) - new Date(slot.eventStart)) / (60 * 60 * 1000));
+        const base = Number(listing.pricing?.baseRatePerHour || 0) * Number(headcount || 0) * hours;
+        const addOnsTotal = listing.addOns?.reduce((sum, item) => {
+            if (!selectedAddOns.includes(item.id) && !item.isRequired) return sum;
+            return sum + Number(item.priceInKobo || 0);
+        }, 0) || 0;
         return base + addOnsTotal;
-    }, [headcount, listing, selectedAddOns]);
+    }, [headcount, listing, selectedAddOns, slot]);
 
     const toggleAddon = (addonId) => {
         setSelectedAddOns((current) =>
@@ -79,9 +98,6 @@ export default function CheckoutPage() {
                     listingId,
                     slotId: slot.id,
                     headcount,
-                    guestName,
-                    guestEmail,
-                    guestPhone,
                 }),
             });
 
@@ -94,9 +110,6 @@ export default function CheckoutPage() {
                 body: JSON.stringify({
                     softHoldId: softHoldData.data.softHoldId,
                     listingId,
-                    guestName,
-                    guestEmail,
-                    guestPhone,
                     addOns: selectedAddOns.map((addonId) => ({
                         id: addonId,
                         priceInKobo: listing.addOns?.find((item) => item.id === addonId)?.priceInKobo || 0,
@@ -115,13 +128,38 @@ export default function CheckoutPage() {
         }
     };
 
-    if (loading) {
+    if (loading || !authChecked) {
         return (
             <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                 <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8">
                     <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)]">
                         <Loader2 className="animate-spin" size={16} />
                         Preparing checkout...
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+                <div className="mx-auto max-w-2xl space-y-6">
+                    <Link href={`/listings/${listingId}`} className="flex items-center gap-2 text-[var(--color-primary)]">
+                        <ArrowLeft size={18} />
+                        Back to listing
+                    </Link>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                            <Lock size={22} />
+                        </span>
+                        <h1 className="text-xl font-semibold text-[var(--color-ink)]">Sign in to book</h1>
+                        <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--color-ink-muted)]">
+                            Create a free HostMe account to reserve your slot and continue to payment.
+                        </p>
+                        <Link href="/sign-up" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
+                            <Lock size={16} /> Sign in / Create account
+                        </Link>
                     </div>
                 </div>
             </main>
@@ -154,46 +192,14 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-ink)]">Guest name</label>
-                        <input
-                            required
-                            value={guestName}
-                            onChange={(e) => setGuestName(e.target.value)}
-                            className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                            disabled={submitting}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-ink)]">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={guestEmail}
-                            onChange={(e) => setGuestEmail(e.target.value)}
-                            className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                            disabled={submitting}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-ink)]">Phone</label>
-                        <input
-                            value={guestPhone}
-                            onChange={(e) => setGuestPhone(e.target.value)}
-                            className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                            disabled={submitting}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[var(--color-ink)]">Headcount</label>
+                        <label className="text-sm font-semibold text-[var(--color-ink)]">How many people?</label>
                         <input
                             type="number"
                             min="1"
                             max={(listing?.operationalRules?.maxCapacity || 1)}
                             value={headcount}
                             onChange={(e) => setHeadcount(Number(e.target.value))}
+                            onFocus={(e) => e.target.select()}
                             className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                             disabled={submitting}
                         />

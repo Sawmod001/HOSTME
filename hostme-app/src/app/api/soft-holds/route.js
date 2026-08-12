@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
 import { getUser } from "@/lib/getUser";
 import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
+import { computeCapacityPriceKobo } from "@/lib/pricing";
 
 export async function POST(request) {
     try {
@@ -23,6 +24,10 @@ export async function POST(request) {
         const { data: listing } = await supabase.from("listings").select().eq("id", listingId).maybeSingle();
         if (!listing) return notFound("Listing not found");
         if (listing.booking_type !== "capacity") return fail("Listing is not capacity-based", 400);
+
+        const { data: slot } = await supabase.from("slots").select().eq("id", slotId).maybeSingle();
+        if (!slot) return notFound("Slot not found");
+        if (slot.listing_id !== listingId) return fail("Slot does not belong to this listing", 400);
 
         const { data: updatedSlot, error } = await supabase
             .rpc("reserve_capacity_slot", {
@@ -49,6 +54,15 @@ export async function POST(request) {
             .select()
             .single();
 
+        const totalAmountKobo = computeCapacityPriceKobo({
+            listing,
+            eventStart: slot.event_start,
+            eventEnd: slot.event_end,
+            headcount,
+            addOnIds: [],
+            includeRequired: true,
+        });
+
         return ok({
             ok: true,
             data: {
@@ -57,7 +71,7 @@ export async function POST(request) {
                 listingId,
                 headcount,
                 expiresAt: softHold.expires_at,
-                totalAmountKobo: listing.pricing?.baseRatePerHour ? listing.pricing.baseRatePerHour * headcount : 0,
+                totalAmountKobo,
                 guest: { name: guestName || "Guest", email: guestEmail || null, phone: guestPhone || null },
             },
         }, 201);

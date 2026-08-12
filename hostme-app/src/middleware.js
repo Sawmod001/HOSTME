@@ -32,9 +32,8 @@ const PUBLIC_API_EXACT = new Set([
 
 const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug", "/api/group-plans"];
 
-// Group-plan POSTs carry their own identity (Clerk session or signed guest
-// token) and are rate-limited at the route; gate at the route, not here.
-const PUBLIC_API_ANY_METHOD = ["/api/group-plans"];
+// Group-plan GETs (list + invite view) stay public; POST/PATCH/DELETE
+// (create/join/pay/finalize) require a Clerk session, enforced in middleware.
 
 export default function middleware(request) {
   try {
@@ -50,9 +49,6 @@ export default function middleware(request) {
     // Public API prefixes — GET only, POST/PATCH/DELETE require auth
     for (const prefix of PUBLIC_API_PREFIXES) {
       if (pathname.startsWith(prefix)) {
-        for (const anyMethod of PUBLIC_API_ANY_METHOD) {
-          if (pathname.startsWith(anyMethod) && method === "POST") return NextResponse.next();
-        }
         if (method === "GET" || method === "HEAD") return NextResponse.next();
         if (hasSession(request)) return NextResponse.next();
         return unauthorized(request);
@@ -61,6 +57,12 @@ export default function middleware(request) {
 
     // Public page prefixes
     if (pathname.startsWith("/listings")) return NextResponse.next();
+    // Group plan invite/list pages stay public, but starting a new plan
+    // requires an account — that's the page that actually books.
+    if (pathname === "/group-plans/new") {
+      if (hasSession(request)) return NextResponse.next();
+      return unauthorized(request);
+    }
     if (pathname.startsWith("/group-plans")) return NextResponse.next();
 
     // Everything else requires a session

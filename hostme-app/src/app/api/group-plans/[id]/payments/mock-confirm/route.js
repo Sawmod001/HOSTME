@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase";
 import { finalizeGroupPlan } from "@/lib/group-booking";
-import { resolveActor } from "@/lib/guest-identity";
+import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { getUser } from "@/lib/getUser";
 import { rateLimitOk, clientIp } from "@/lib/rate-limit";
 import { ok, fail, unauthorised, notFound, forbidden, parseId } from "@/lib/supabase-utils";
 
@@ -15,9 +16,13 @@ export async function POST(request, { params }) {
             return fail("Too many attempts. Try again later.", 429);
         }
 
-        const actor = await resolveActor(request);
-        if (!actor) return unauthorised();
-        const user = actor.user;
+        const sessionInfo = parseSessionToken(request);
+        if (!sessionInfo?.userId) return unauthorised();
+        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
+        if (!isValid) return unauthorised();
+
+        const user = await getUser(sessionInfo.userId);
+        if (!user) return fail("User not found", 404);
 
         const p = await params;
         if (!parseId(p.id)) return fail("Invalid plan ID", 400);
