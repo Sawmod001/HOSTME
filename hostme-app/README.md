@@ -31,11 +31,7 @@ Required vars: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRE
 
 Run `supabase/migration.sql` once in the Supabase SQL editor. This creates all tables, indexes, RLS policies, and stored procedures.
 
-Key tables: `users`, `listings`, `bookings`, `slots`, `exclusive_locks`, `soft_holds`, `processed_webhooks`, `reviews`.
-
-## Seeding
-
-Sign in, then POST to `/api/listings/seed` (requires auth) to create 3 demo listings with time slots.
+Key tables: `users`, `listings`, `bookings`, `slots`, `exclusive_locks`, `soft_holds`, `processed_webhooks`, `reviews`, `group_plans`, `plan_members`.
 
 ## Tests
 

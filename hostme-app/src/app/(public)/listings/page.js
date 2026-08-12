@@ -109,15 +109,6 @@ export default function DiscoveryPage() {
                         >
                             Try Again
                         </button>
-                        <button
-                            onClick={async () => {
-                                await fetch("/api/listings/seed", { method: "POST" });
-                                fetchListings(true);
-                            }}
-                            className="btn-outline text-sm"
-                        >
-                            Seed Demo Listings
-                        </button>
                     </div>
                 </div>
             </main>
@@ -208,16 +199,7 @@ export default function DiscoveryPage() {
                 {listings.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
                         <p className="text-sm font-semibold text-[var(--color-ink)]">No listings found</p>
-                        <p className="text-xs text-[var(--color-ink-muted)]">Try adjusting your filters or seed demo content to continue testing</p>
-                        <button
-                            onClick={async () => {
-                                await fetch("/api/listings/seed", { method: "POST" });
-                                fetchListings(true);
-                            }}
-                            className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
-                        >
-                            Seed Demo Listings
-                        </button>
+                        <p className="text-xs text-[var(--color-ink-muted)]">Try adjusting your filters to find available spaces</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
