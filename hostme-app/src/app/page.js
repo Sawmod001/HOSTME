@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Script from "next/script";
-import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight, ChevronDown } from "lucide-react";
+import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight, ChevronDown, Users, Link2, Wallet } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const VERTICAL_ICONS = { venue: Building2, housing: Home, preorder: Package };
@@ -34,6 +34,7 @@ export default function HomePage() {
 
           <nav className="hidden items-center gap-1 sm:flex">
             <Link href="/listings" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Browse</Link>
+            <Link href="/group-plans" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Group booking</Link>
             <Link href="/sign-in" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Sign in</Link>
             <Link href="/sign-up" className="ml-2 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)]">Get started</Link>
           </nav>
@@ -47,6 +48,7 @@ export default function HomePage() {
           <div className="border-t border-[var(--color-border)] bg-white px-4 py-4 sm:hidden animate-fade-in">
             <nav className="flex flex-col gap-2">
               <Link href="/listings" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Browse spaces</Link>
+              <Link href="/group-plans" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Group booking</Link>
               <Link href="/sign-in" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink-muted)] hover:bg-[var(--color-surface-alt)]">Sign in</Link>
               <Link href="/sign-up" onClick={() => setMobileMenu(false)} className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center text-sm font-semibold text-white">Get started</Link>
             </nav>
@@ -171,6 +173,45 @@ export default function HomePage() {
         </section>
       )}
 
+      <section className="border-t border-[var(--color-border)] bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex rounded-full bg-[var(--color-primary-light)] px-4 py-1.5 text-xs font-semibold text-[var(--color-primary)] mb-4">Group booking</span>
+            <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Book together, split the cost</h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>
+              Planning a hangout, birthday or group night? Start a plan, share one link, and everyone pays their own share. No account needed.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+            {[
+              { icon: Users, title: "Pick a venue & slot", desc: "Choose a group-friendly venue, a date, and how many people you're bringing." },
+              { icon: Link2, title: "Share the invite link", desc: "Send the link on WhatsApp, Instagram or anywhere — friends join with a tap." },
+              { icon: Wallet, title: "Everyone pays their share", desc: "Each person pays only their part. The plan auto-confirms when the group fills up." },
+            ].map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <div key={i} className="rounded-2xl border border-[var(--color-border)] bg-white p-6 text-center shadow-sm shadow-black/[0.02]">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                    <Icon size={24} />
+                  </div>
+                  <p className="text-xs font-bold tracking-wide text-[var(--color-primary)]">STEP {i + 1}</p>
+                  <h3 className="mt-1 font-semibold" style={{ color: "var(--color-ink)" }}>{step.title}</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>{step.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/listings?vertical=venue"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-3.5 font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)]">
+              Find a group-friendly venue <ArrowRight size={18} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-[var(--color-surface-alt)]">
         <div className="mx-auto max-w-2xl px-4 py-16 sm:py-24">
           <div className="mb-12 text-center">
@@ -182,6 +223,7 @@ export default function HomePage() {
             {[
               { q: "What is HostMe?", a: "HostMe is Nigeria's premier marketplace for discovering and booking unique spaces. From lively karaoke bars and elegant event centers to shortlet apartments and food pre-orders — we connect you with the perfect space for every occasion." },
               { q: "How do I book a space?", a: "Browse listings, find a space you like, select your date and time, then complete your booking. Capacity bookings let you reserve a slot instantly. Exclusive spaces require a request — the host confirms availability, then you pay to secure it." },
+              { q: "What is group booking?", a: "Group booking lets you split the cost of a venue with friends. One person starts the plan and shares the link — each friend joins and pays their own share in Naira. The plan auto-confirms once the group fills up, or cancels with refunds if it doesn't by the close date. No account is needed to join." },
               { q: "What types of spaces are available?", a: "We offer three verticals: Venues (karaoke bars, event centers, party halls, exclusive spaces), Housing (shortlets and apartments), and Food Pre-Order. Each listing clearly shows its category, pricing, and available add-ons." },
               { q: "How do payments work?", a: "All payments are processed securely through Paystack — Nigeria's leading PCI-compliant payment gateway. You can pay via debit card, USSD, bank transfer, or QR code. Funds are only charged once the booking is confirmed." },
               { q: "Can I list my own space?", a: "Yes! Sign up as a host, create a listing with photos, pricing, and availability rules, then submit for admin review. Once approved, your space goes live for thousands of potential guests to discover and book." },
@@ -215,6 +257,7 @@ export default function HomePage() {
             <Logo size="sm" />
             <nav className="flex flex-wrap justify-center gap-4 text-sm" style={{ color: "var(--color-ink-muted)" }}>
               <Link href="/listings" className="hover:text-[var(--color-primary)]">Browse</Link>
+              <Link href="/group-plans" className="hover:text-[var(--color-primary)]">Group booking</Link>
               <Link href="/sign-up" className="hover:text-[var(--color-primary)]">List your space</Link>
               <Link href="/sign-in" className="hover:text-[var(--color-primary)]">Sign in</Link>
             </nav>

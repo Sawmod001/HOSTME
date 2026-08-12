@@ -435,3 +435,89 @@ DROP TRIGGER IF EXISTS reviews_updated_at ON reviews;
 CREATE TRIGGER reviews_updated_at BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS processed_webhooks_updated_at ON processed_webhooks;
 CREATE TRIGGER processed_webhooks_updated_at BEFORE UPDATE ON processed_webhooks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- =============================================================================
+-- GROUP PLANS & PLAN MEMBERS (Book Together)
+-- A plan lets a group coordinate booking a venue slot. Capacity is ONLY consumed
+-- when the plan is finalized (see finalize_group_plan), which reuses the atomic
+-- reserve_capacity_slot() engine. Plans start 'active' and move to 'finalized'
+-- (booking created) or 'cancelled'. No capacity is held while a plan is open.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS group_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id UUID REFERENCES listings(id) NOT NULL,
+  slot_id UUID REFERENCES slots(id) NOT NULL,
+  created_by UUID REFERENCES users(id) NOT NULL,
+  target_headcount INTEGER NOT NULL CHECK (target_headcount >= 1),
+  event_start TIMESTAMPTZ NOT NULL,
+  event_end TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'finalized', 'cancelled')),
+  expires_at TIMESTAMPTZ NOT NULL,
+  finalized_booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_plans_listing ON group_plans(listing_id);
+CREATE INDEX IF NOT EXISTS idx_group_plans_created_by ON group_plans(created_by);
+CREATE INDEX IF NOT EXISTS idx_group_plans_status ON group_plans(status);
+
+ALTER TABLE group_plans ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS plan_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id UUID REFERENCES group_plans(id) NOT NULL,
+  user_id UUID REFERENCES users(id) NOT NULL,
+  headcount INTEGER NOT NULL CHECK (headcount >= 1),
+  add_ons JSONB DEFAULT '[]'::jsonb,
+  share_amount_kobo INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'confirmed')),
+  gateway_transaction_ref TEXT UNIQUE DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(plan_id, user_id)                                -- each user joins a plan once
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_members_plan ON plan_members(plan_id);
+
+ALTER TABLE plan_members ENABLE ROW LEVEL SECURITY;
+
+-- Defensive RLS (service_role bypasses these; they protect against client keys)
+DROP POLICY IF EXISTS "group_plans_read" ON group_plans;
+CREATE POLICY "group_plans_read" ON group_plans FOR SELECT USING (true);
+DROP POLICY IF EXISTS "group_plans_insert_own" ON group_plans;
+CREATE POLICY "group_plans_insert_own" ON group_plans FOR INSERT WITH CHECK (created_by::text = current_setting('app.user_id', true));
+DROP POLICY IF EXISTS "plan_members_read" ON plan_members;
+CREATE POLICY "plan_members_read" ON plan_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "plan_members_insert_own" ON plan_members;
+CREATE POLICY "plan_members_insert_own" ON plan_members FOR INSERT WITH CHECK (user_id::text = current_setting('app.user_id', true));
+
+DROP TRIGGER IF EXISTS group_plans_updated_at ON group_plans;
+CREATE TRIGGER group_plans_updated_at BEFORE UPDATE ON group_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS plan_members_updated_at ON plan_members;
+CREATE TRIGGER plan_members_updated_at BEFORE UPDATE ON plan_members FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- =============================================================================
+-- FUNCTION: cancel_expired_group_plans()
+-- Sweeps group plans whose close date has passed without reaching the target
+-- headcount and marks them 'cancelled'. Called by a cron job — see vercel.json.
+-- No capacity is held by open plans (reserve_capacity_slot runs only on
+-- finalize), so cancellation is a status flip. Returns the number cancelled.
+-- =============================================================================
+CREATE OR REPLACE FUNCTION cancel_expired_group_plans()
+RETURNS TABLE (cancelled INTEGER)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_count INTEGER := 0;
+BEGIN
+  UPDATE group_plans
+     SET status = 'cancelled',
+         updated_at = now()
+   WHERE status = 'active'
+     AND expires_at <= now();
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN QUERY SELECT v_count;
+END;
+$$;

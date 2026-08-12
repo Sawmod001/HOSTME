@@ -1,0 +1,37 @@
+import { supabase } from "@/lib/supabase";
+import { finalizeGroupPlan } from "@/lib/group-booking";
+import { resolveActor } from "@/lib/guest-identity";
+import { rateLimitOk, clientIp } from "@/lib/rate-limit";
+import { ok, fail, unauthorised, forbidden, notFound, parseId } from "@/lib/supabase-utils";
+
+export async function POST(request, { params }) {
+    try {
+        if (!rateLimitOk(`finalize:${clientIp(request)}`, 20)) {
+            return fail("Too many attempts. Try again later.", 429);
+        }
+
+        const actor = await resolveActor(request);
+        if (!actor) return unauthorised();
+
+        const p = await params;
+        if (!parseId(p.id)) return fail("Invalid plan ID", 400);
+
+        const { data: plan } = await supabase.from("group_plans").select().eq("id", p.id).maybeSingle();
+        if (!plan) return notFound("Plan not found");
+
+        // Only the plan creator can finalize. Members' payments already trigger
+        // finalization inside the payment route, so this surface is for the
+        // creator to confirm once everyone has paid.
+        if (plan.created_by !== actor.user.id) {
+            return forbidden("Only the plan creator can finalize");
+        }
+
+        const result = await finalizeGroupPlan({ planId: p.id });
+
+        if (!result.ok) return fail(result.error, result.status);
+        return ok({ ok: true, data: result.data });
+    } catch (error) {
+        console.error("POST /api/group-plans/[id]/finalize error:", error);
+        return fail("Failed to finalize plan", 500);
+    }
+}

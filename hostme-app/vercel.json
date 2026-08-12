@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/release-expired-holds",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/cancel-expired-group-plans",
+      "schedule": "0 * * * *"
     }
   ]
 }

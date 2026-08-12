@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Loader2, Bot, AlertCircle, RefreshCw } from "lucide-react";
 
-const WELCOME = "Hi! I'm HostMe AI. Ask me anything about finding venues, booking spaces, or using the platform.";
+const WELCOME = "Hi! I'm HostMe AI. Ask me anything about finding venues, booking spaces or using the platform.";
 const HIDDEN_PATHS = ["/sign-in", "/sign-up", "/complete-profile", "/admin", "/admin/listings"];
 
 export default function ChatBot() {

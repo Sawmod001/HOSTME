@@ -94,6 +94,14 @@ class PgQuery {
     return this;
   }
 
+  rpc(fn, args = {}) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fn)) {
+      throw new Error(`Invalid function name: ${fn}`);
+    }
+    this._operation = { type: "rpc", fn, args };
+    return this;
+  }
+
   update(data) {
     this._operation = { type: "update", data };
     return this;
@@ -196,7 +204,7 @@ class PgQuery {
       if (this._maybeSingle) data = data[0] || null;
       return { data, error: null };
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      return { data: null, error: { message: err.message, code: err.code } };
     }
   }
 
@@ -220,6 +228,12 @@ class PgQuery {
       params.push(...values);
     } else if (type === "delete") {
       sql = `DELETE FROM ${this._table}`;
+    } else if (type === "rpc") {
+      const fn = this._operation.fn;
+      const values = Object.values(this._operation.args);
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
+      sql = `SELECT * FROM ${fn}(${placeholders})`;
+      params.push(...values);
     }
 
     const filterSql = this._buildFilterSql(params, params.length);
@@ -239,9 +253,15 @@ class PgQuery {
       if (this._maybeSingle) data = data[0] || null;
       return { data, error: null };
     } catch (err) {
-      return { data: null, error: { message: err.message } };
+      // Writes throw (preserving err.code e.g. 23505) so idempotency guards
+      // and callers that expect exceptions keep working as designed.
+      if (type !== "select") throw err;
+      return { data: null, error: { message: err.message, code: err.code } };
     }
   }
 }
 
-export const supabase = { from: (table) => new PgQuery(table) };
+export const supabase = {
+  from: (table) => new PgQuery(table),
+  rpc: (fn, args) => new PgQuery("").rpc(fn, args),
+};
