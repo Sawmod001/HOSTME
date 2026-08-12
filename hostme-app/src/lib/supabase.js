@@ -38,6 +38,12 @@ class PgQuery {
     return this;
   }
 
+  lt(key, value) {
+    if (value === undefined || value === null) return this;
+    this._filters.push({ op: "lt", key, value });
+    return this;
+  }
+
   gte(key, value) {
     if (value === undefined || value === null) return this;
     this._filters.push({ op: "gte", key, value });
@@ -153,6 +159,9 @@ class PgQuery {
       } else if (f.op === "gt") {
         idx++;
         clauses.push({ sql: `${this._mapColumn(f.key)} > $${idx}`, params: [f.value] });
+      } else if (f.op === "lt") {
+        idx++;
+        clauses.push({ sql: `${this._mapColumn(f.key)} < $${idx}`, params: [f.value] });
       } else if (f.op === "gte") {
         idx++;
         clauses.push({ sql: `${this._mapColumn(f.key)} >= $${idx}`, params: [f.value] });
