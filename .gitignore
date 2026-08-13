@@ -5,8 +5,8 @@
 .env.*
 
 # dependencies
-hostme-app/node_modules/
-hostme-app/.pnp
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -15,14 +15,14 @@ hostme-app/.pnp
 !.yarn/versions
 
 # testing
-hostme-app/coverage/
+coverage/
 
 # next.js build output
-hostme-app/.next/
-hostme-app/out/
+.next/
+out/
 
 # production build
-hostme-app/build/
+build/
 
 # misc
 .DS_Store
@@ -45,4 +45,4 @@ next-env.d.ts
 server.log
 
 # user uploads (not committed)
-hostme-app/public/uploads/
+public/uploads/

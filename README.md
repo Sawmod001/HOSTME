@@ -24,7 +24,6 @@ Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list 
 ## Repository structure
 
 ```
-hostme-app/
 ├── src/
 │   ├── app/                          # App Router — folder path = URL
 │   │   ├── (auth)/                   # sign-in, sign-up, verify-email, sso-callback, complete-profile
@@ -49,10 +48,13 @@ hostme-app/
 │   │   ├── rate-limit.js             # shared guard
 │   │   └── validation.js             # Zod schemas
 │   └── middleware.js                 # route protection
+├── public/                           # static assets (uploaded images)
 ├── supabase/
 │   ├── migration.sql                  # schema + stored procedures
 │   └── scripts/                       # DB migration runners
 ├── tests/                             # offline unit tests
+├── next.config.mjs                    # Next.js config
+├── package.json                       # dependencies + scripts
 └── vercel.json                        # cron schedule
 ```
 
@@ -96,7 +98,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Create a single `.env` file in **this directory** (`hostme-app/.env`) and fill in all required values. It is gitignored — never commit it; there is no `.env.example` template by design.
+Create a single `.env` file in **this directory** (the repository root) and fill in all required values. It is gitignored — never commit it; there is no `.env.example` template by design.
 
 Required vars:
 
@@ -144,9 +146,8 @@ npm run build
 
 1. Push to GitHub.
 2. Import the repo in Vercel.
-3. Set the root directory to `hostme-app`.
-4. Add all env vars listed above.
-5. `vercel.json` registers two daily crons (midnight UTC), both bearer-gated by `CRON_SECRET`:
+3. Add all env vars listed above.
+4. `vercel.json` registers two daily crons (midnight UTC), both bearer-gated by `CRON_SECRET`:
    - `/api/cron/release-expired-holds`
    - `/api/cron/cancel-expired-group-plans`
 
