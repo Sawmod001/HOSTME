@@ -49,9 +49,11 @@ hostme-app/
 │   │   ├── rate-limit.js             # shared guard
 │   │   └── validation.js             # Zod schemas
 │   └── middleware.js                 # route protection
-├── supabase/migration.sql            # schema + stored procedures
-├── __tests__/                        # offline unit tests
-└── vercel.json                       # cron schedule
+├── supabase/
+│   ├── migration.sql                  # schema + stored procedures
+│   └── scripts/                       # DB migration runners
+├── tests/                             # offline unit tests
+└── vercel.json                        # cron schedule
 ```
 
 ## How the pieces connect
@@ -129,7 +131,7 @@ Key tables: `users`, `listings`, `bookings`, `slots`, `exclusive_locks`, `soft_h
 npm test
 ```
 
-The suites (`__tests__/`) run fully offline with hand-rolled fakes for the Postgres pool and Supabase client — they prove the concurrency guarantees (capacity oversell → 409, exclusive first-pay-wins) and the WhatsApp bot brain without needing a database.
+The suites (`tests/`) run fully offline with hand-rolled fakes for the Postgres pool and Supabase client — they prove the concurrency guarantees (capacity oversell → 409, exclusive first-pay-wins) and the WhatsApp bot brain without needing a database.
 
 ```bash
 npm run lint
