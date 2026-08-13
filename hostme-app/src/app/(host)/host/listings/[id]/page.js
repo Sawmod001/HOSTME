@@ -389,11 +389,14 @@ export default function HostListingDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm block mb-1">Base Rate (₦/hr)</label>
-                  <input type="number" value={editData.pricing.baseRatePerHour > 0 ? editData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, pricing: { baseRatePerHour: (parseInt(e.target.value) || 0) * 100 } }))} className="w-full rounded-xl border px-3 py-2 text-sm" />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="0.01" value={editData.pricing.baseRatePerHour > 0 ? editData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, pricing: { baseRatePerHour: (parseInt(e.target.value) || 0) * 100 } }))} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border py-2 pl-8 pr-3 text-sm" />
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm block mb-1">Max Capacity</label>
-                  <input type="number" value={editData.operationalRules.maxCapacity || ""} onChange={(e) => setEditData((p) => ({ ...p, operationalRules: { ...p.operationalRules, maxCapacity: parseInt(e.target.value) || 1 } }))} className="w-full rounded-xl border px-3 py-2 text-sm" />
+                  <input type="number" min="1" value={editData.operationalRules.maxCapacity || ""} onChange={(e) => setEditData((p) => ({ ...p, operationalRules: { ...p.operationalRules, maxCapacity: parseInt(e.target.value) || 1 } }))} onFocus={(e) => e.target.select()} className="w-full rounded-xl border px-3 py-2 text-sm" />
                 </div>
               </div>
             </div>

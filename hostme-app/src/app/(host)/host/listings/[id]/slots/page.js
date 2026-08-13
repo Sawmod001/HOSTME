@@ -130,6 +130,7 @@ export default function HostSlotsPage({ params }) {
                   <label className="text-xs font-semibold block mb-1">Capacity</label>
                   <input type="number" min="1" value={form.capacity}
                     onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                    onFocus={(e) => e.target.select()}
                     className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
                 </div>
               </div>

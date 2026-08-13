@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Script from "next/script";
+import { useRouter } from "next/navigation";
 import { MapPin, Building2, Home, Package, Music2, Cake, Star, Mic2, Gamepad2, Menu, X, ArrowRight, ChevronDown, Users, Link2, Wallet } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -15,16 +16,31 @@ const CATEGORIES = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
   const [listings, setListings] = useState([]);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     fetch("/api/listings?limit=6")
       .then((r) => r.json())
       .then((d) => setListings(d.data || []))
       .catch(() => {});
+    fetch("/api/auth/profile-status")
+      .then((r) => r.json())
+      .then((d) => setAuthenticated(!!d.authenticated))
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
   }, []);
+
+  const requireAccount = (e, href) => {
+    if (authChecked && authenticated) return;
+    if (!authChecked) return;
+    e.preventDefault();
+    router.push(`/sign-up?next=${encodeURIComponent(href)}`);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-alt)]">
@@ -33,8 +49,8 @@ export default function HomePage() {
           <Logo href="/" />
 
           <nav className="hidden items-center gap-1 sm:flex">
-            <Link href="/listings" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Browse</Link>
-            <Link href="/group-plans" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Group booking</Link>
+            <Link href="/listings" onClick={(e) => requireAccount(e, "/listings")} className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Browse</Link>
+            <Link href="/group-plans" onClick={(e) => requireAccount(e, "/group-plans")} className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Group booking</Link>
             <Link href="/sign-in" className="rounded-xl px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">Sign in</Link>
             <Link href="/sign-up" className="ml-2 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)]">Get started</Link>
           </nav>
@@ -47,8 +63,8 @@ export default function HomePage() {
         {mobileMenu && (
           <div className="border-t border-[var(--color-border)] bg-white px-4 py-4 sm:hidden animate-fade-in">
             <nav className="flex flex-col gap-2">
-              <Link href="/listings" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Browse spaces</Link>
-              <Link href="/group-plans" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Group booking</Link>
+              <Link href="/listings" onClick={(e) => { setMobileMenu(false); requireAccount(e, "/listings"); }} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Browse spaces</Link>
+              <Link href="/group-plans" onClick={(e) => { setMobileMenu(false); requireAccount(e, "/group-plans"); }} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">Group booking</Link>
               <Link href="/sign-in" onClick={() => setMobileMenu(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-[var(--color-ink-muted)] hover:bg-[var(--color-surface-alt)]">Sign in</Link>
               <Link href="/sign-up" onClick={() => setMobileMenu(false)} className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-center text-sm font-semibold text-white">Get started</Link>
             </nav>
@@ -69,7 +85,7 @@ export default function HomePage() {
               From lively karaoke bars to elegant event centers — find and book the perfect space for any occasion.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/listings" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-3.5 font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)] sm:w-auto">
+              <Link href="/listings" onClick={(e) => requireAccount(e, "/listings")} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-3.5 font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)] sm:w-auto">
                 Browse spaces <ArrowRight size={18} />
               </Link>
               <Link href="/sign-up" className="btn-outline w-full px-8 py-3.5 sm:w-auto">
@@ -89,7 +105,7 @@ export default function HomePage() {
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             return (
-              <Link key={cat.key} href={`/listings?vertical=venue&subVertical=${cat.key}`}
+              <Link key={cat.key} href={`/listings?vertical=venue&subVertical=${cat.key}`} onClick={(e) => requireAccount(e, `/listings?vertical=venue&subVertical=${cat.key}`)}
                 className="group relative rounded-2xl border border-[var(--color-border)] bg-white p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)] transition-all duration-300 group-hover:bg-[var(--color-primary)] group-hover:text-white">
                   <Icon size={24} />
@@ -102,7 +118,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Link href="/listings?vertical=housing"
+          <Link href="/listings?vertical=housing" onClick={(e) => requireAccount(e, "/listings?vertical=housing")}
             className="group relative rounded-2xl border border-[var(--color-border)] bg-white p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)] transition-all duration-300 group-hover:bg-[var(--color-primary)] group-hover:text-white">
               <Home size={24} />
@@ -110,7 +126,7 @@ export default function HomePage() {
             <h3 className="font-semibold" style={{ color: "var(--color-ink)" }}>Housing & Shortlets</h3>
             <p className="mt-1 text-xs" style={{ color: "var(--color-ink-muted)" }}>Apartments, houses and short-term rentals</p>
           </Link>
-          <Link href="/listings?vertical=preorder"
+          <Link href="/listings?vertical=preorder" onClick={(e) => requireAccount(e, "/listings?vertical=preorder")}
             className="group relative rounded-2xl border border-[var(--color-border)] bg-white p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-lg">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)] transition-all duration-300 group-hover:bg-[var(--color-primary)] group-hover:text-white">
               <Package size={24} />
@@ -129,7 +145,7 @@ export default function HomePage() {
                 <h2 className="text-2xl font-semibold sm:text-3xl" style={{ color: "var(--color-ink)" }}>Featured spaces</h2>
                 <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>Popular venues handpicked for you</p>
               </div>
-              <Link href="/listings" className="hidden items-center gap-1 text-sm font-semibold sm:flex" style={{ color: "var(--color-primary)" }}>
+              <Link href="/listings" onClick={(e) => requireAccount(e, "/listings")} className="hidden items-center gap-1 text-sm font-semibold sm:flex" style={{ color: "var(--color-primary)" }}>
                 View all <ArrowRight size={16} />
               </Link>
             </div>
@@ -137,7 +153,7 @@ export default function HomePage() {
               {listings.map((listing) => {
                 const Icon = VERTICAL_ICONS[listing.vertical] || Building2;
                 return (
-                  <Link key={listing.id} href={`/listings/${listing.id}`}
+                  <Link key={listing.id} href={`/listings/${listing.id}`} onClick={(e) => requireAccount(e, `/listings/${listing.id}`)}
                     className="group rounded-2xl border border-[var(--color-border)] bg-white overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                     <div className="h-44 overflow-hidden bg-[var(--color-surface-alt)] sm:h-48">
                       {listing.media?.[0] ? (
@@ -165,7 +181,7 @@ export default function HomePage() {
               })}
             </div>
             <div className="mt-10 text-center sm:hidden">
-              <Link href="/listings" className="btn-outline gap-1 px-6 py-3">
+              <Link href="/listings" onClick={(e) => requireAccount(e, "/listings")} className="btn-outline gap-1 px-6 py-3">
                 View all spaces <ArrowRight size={16} />
               </Link>
             </div>
@@ -204,7 +220,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 text-center">
-            <Link href="/listings?vertical=venue"
+            <Link href="/listings?vertical=venue" onClick={(e) => requireAccount(e, "/listings?vertical=venue")}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-3.5 font-semibold text-white transition-all hover:bg-[var(--color-primary-dark)]">
               Find a group-friendly venue <ArrowRight size={18} />
             </Link>
@@ -256,8 +272,8 @@ export default function HomePage() {
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Logo size="sm" />
             <nav className="flex flex-wrap justify-center gap-4 text-sm" style={{ color: "var(--color-ink-muted)" }}>
-              <Link href="/listings" className="hover:text-[var(--color-primary)]">Browse</Link>
-              <Link href="/group-plans" className="hover:text-[var(--color-primary)]">Group booking</Link>
+              <Link href="/listings" onClick={(e) => requireAccount(e, "/listings")} className="hover:text-[var(--color-primary)]">Browse</Link>
+              <Link href="/group-plans" onClick={(e) => requireAccount(e, "/group-plans")} className="hover:text-[var(--color-primary)]">Group booking</Link>
               <Link href="/sign-up" className="hover:text-[var(--color-primary)]">List your space</Link>
               <Link href="/sign-in" className="hover:text-[var(--color-primary)]">Sign in</Link>
             </nav>

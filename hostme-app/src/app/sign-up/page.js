@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export default function SignUpPage() {
+function safeNext(raw) {
+  if (!raw) return null;
+  return raw.startsWith("/") && !raw.startsWith("//") && !raw.includes(":") && !raw.includes("\\") ? raw : null;
+}
+
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const abortRef = useRef(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +60,8 @@ export default function SignUpPage() {
         return;
       }
 
-      router.push(data.redirectTo || "/complete-profile");
+      const next = safeNext(searchParams.get("next"));
+      router.push(next || data.redirectTo || "/complete-profile");
     } catch (err) {
       console.error("Sign-up client error:", err);
       if (err.name === "AbortError") {
@@ -133,5 +140,17 @@ export default function SignUpPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[var(--color-primary-subtle)] via-white to-white px-4">
+        <div className="text-sm" style={{ color: "var(--color-ink-muted)" }}>Loading...</div>
+      </main>
+    }>
+      <SignUpForm />
+    </Suspense>
   );
 }

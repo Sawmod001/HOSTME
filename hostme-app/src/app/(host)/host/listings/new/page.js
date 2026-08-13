@@ -409,7 +409,7 @@ export default function CreateListingPage() {
               </div>
               <div>
                 <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Capacity</label>
-                <input type="number" value={formData.operationalRules.maxCapacity || ""} onChange={(e) => handleInputChange("operationalRules.maxCapacity", parseInt(e.target.value) || 0)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                <input type="number" value={formData.operationalRules.maxCapacity || ""} onChange={(e) => handleInputChange("operationalRules.maxCapacity", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
               </div>
             </div>
           </div>
@@ -420,12 +420,12 @@ export default function CreateListingPage() {
               <div>
                 <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Setup time (minutes)</label>
                 <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to prepare before guests arrive</p>
-                <input type="number" value={formData.operationalRules.setupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.setupTimeMinutes", parseInt(e.target.value) || 0)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                <input type="number" value={formData.operationalRules.setupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.setupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Cleanup time (minutes)</label>
                 <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to tidy up after the event ends</p>
-                <input type="number" value={formData.operationalRules.cleanupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.cleanupTimeMinutes", parseInt(e.target.value) || 0)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                <input type="number" value={formData.operationalRules.cleanupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.cleanupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
               </div>
             </div>
           </div>

@@ -6,6 +6,11 @@ import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
+function safeNext(raw) {
+  if (!raw) return null;
+  return raw.startsWith("/") && !raw.startsWith("//") && !raw.includes(":") && !raw.includes("\\") ? raw : null;
+}
+
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,7 +64,8 @@ function SignInForm() {
         return;
       }
 
-      router.push(data.redirectTo || "/complete-profile");
+      const redirectTo = safeNext(searchParams.get("next"));
+      router.push(redirectTo || data.redirectTo || "/complete-profile");
     } catch (err) {
       if (err.name === "AbortError") {
         setError("Request timed out. Please check that the server is running and try again.");
