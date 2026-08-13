@@ -46,6 +46,3 @@ server.log
 
 # user uploads (not committed)
 hostme-app/public/uploads/
-
-# docker
-hostme-app/.dockerignore

@@ -11,7 +11,7 @@ Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list 
 - **Validation**: Zod v4
 - **Payments**: Paystack (mock mode for dev)
 - **AI**: Google Gemini (ChatBot + WhatsApp assistant)
-- **Deployment**: Vercel (crons) + optional Docker self-host
+- **Deployment**: Vercel (crons)
 
 ## Features
 
@@ -97,19 +97,6 @@ npm run build
    - `/api/cron/release-expired-holds`
    - `/api/cron/cancel-expired-group-plans`
 
-### Docker
-
-```bash
-docker build -t hostme .
-docker run -p 3000:3000 --env-file .env hostme
-```
-
-Or with compose:
-
-```bash
-docker compose up --build
-```
-
 ## Architecture Notes
 
 - **No ClerkProvider**: Auth is handled server-side via cookie-based JWT parsing and Clerk API verification. No Clerk React SDK in the client bundle.
@@ -117,4 +104,3 @@ docker compose up --build
 - **The DB owns correctness**: concurrency, capacity, and payment idempotency live in Postgres, not fragile JS.
 - **Money is integer kobo** — never floats, never client-supplied totals; shared math lives in `src/lib/pricing.js`.
 - **No guest identity**: every booking and group-plan write requires a real Clerk account.
-- **Docker builds**: use `NEXT_OUTPUT=standalone` for minimal container images; Vercel ignores this and uses its own pipeline.
