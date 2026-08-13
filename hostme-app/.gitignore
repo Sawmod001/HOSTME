@@ -56,6 +56,3 @@ public/uploads/
 
 # docker
 .dockerignore
-
-# academy (local engineering course, not committed)
-.academy/
