@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/supabase-queries";
-import { clerkFetch } from "@/lib/clerk";
+import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/db/supabase-queries";
+import { clerkFetch } from "@/lib/auth/clerk";
 
 export async function POST(request) {
   try {

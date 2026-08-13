@@ -1,4 +1,4 @@
-import { supabase } from "../supabase.js";
+import { supabase } from "../db/supabase.js";
 
 export async function sweepExpiredHolds() {
   const { data, error } = await supabase.rpc("release_expired_holds");

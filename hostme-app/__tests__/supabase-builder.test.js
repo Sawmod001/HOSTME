@@ -8,8 +8,8 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { pool } from "../src/lib/db.js";
-import { supabase } from "../src/lib/supabase.js";
+import { pool } from "../src/lib/db/connection.js";
+import { supabase } from "../src/lib/db/supabase.js";
 
 const calls = [];
 

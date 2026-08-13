@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser";
-import { findUserByClerkId } from "@/lib/supabase-queries";
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { findUserByClerkId } from "@/lib/db/supabase-queries";
 
 export async function GET(request) {
   try {

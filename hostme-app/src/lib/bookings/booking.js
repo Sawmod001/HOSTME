@@ -1,5 +1,5 @@
-import { pool as defaultPool } from "./db.js";
-import { createSoftHold as defaultCreateSoftHold } from "./supabase-queries.js";
+import { pool as defaultPool } from "../db/connection.js";
+import { createSoftHold as defaultCreateSoftHold } from "../db/supabase-queries.js";
 
 export async function reserveCapacitySlot({
   slotId,

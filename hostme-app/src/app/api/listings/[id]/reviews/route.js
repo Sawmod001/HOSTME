@@ -1,7 +1,7 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { listReviews, createReview, findBookingById, findReviewByBooking, findListingById } from "@/lib/supabase-queries";
-import { toCamelCase, ok, cachedOk, fail, unauthorised, notFound, forbidden } from "@/lib/supabase-utils";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { listReviews, createReview, findBookingById, findReviewByBooking, findListingById } from "@/lib/db/supabase-queries";
+import { toCamelCase, ok, cachedOk, fail, unauthorised, notFound, forbidden } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
   try {

@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { toCamelCase, ok, fail, notFound } from "@/lib/supabase-utils";
-import { computeCapacityPriceKobo } from "@/lib/pricing";
+import { supabase } from "@/lib/db/supabase";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
+import { computeCapacityPriceKobo } from "@/lib/bookings/pricing";
 
 export async function POST(request) {
     try {

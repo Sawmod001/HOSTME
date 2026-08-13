@@ -1,8 +1,8 @@
-import { createGroupPlan, listPlansForUser } from "@/lib/group-booking";
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
+import { createGroupPlan, listPlansForUser } from "@/lib/bookings/group-booking";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
 import { rateLimitOk, clientIp } from "@/lib/rate-limit";
-import { ok, fail } from "@/lib/supabase-utils";
+import { ok, fail } from "@/lib/db/supabase-utils";
 
 export async function GET(request) {
     try {

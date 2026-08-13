@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { clerkFetch } from "@/lib/clerk";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser";
-import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/supabase-queries";
+import { clerkFetch } from "@/lib/auth/clerk";
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/db/supabase-queries";
 
 export async function POST(request) {
   try {

@@ -1,7 +1,7 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { updateUserByClerkId } from "@/lib/supabase-queries";
-import { ok, fail, unauthorised } from "@/lib/supabase-utils";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { updateUserByClerkId } from "@/lib/db/supabase-queries";
+import { ok, fail, unauthorised } from "@/lib/db/supabase-utils";
 
 export async function GET(request) {
   try {

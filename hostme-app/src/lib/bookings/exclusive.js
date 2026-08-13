@@ -1,5 +1,5 @@
-import { pool } from "./db.js";
-import { supabase } from "./supabase.js";
+import { pool } from "../db/connection.js";
+import { supabase } from "../db/supabase.js";
 
 export async function resolveExclusiveLock({
   lockId,

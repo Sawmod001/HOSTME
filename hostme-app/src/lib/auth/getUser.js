@@ -1,6 +1,6 @@
-import { getClerkUser } from "@/lib/getSessionUser";
-import { findUserByClerkId, createUser } from "@/lib/supabase-queries";
-import { supabase } from "./supabase.js";
+import { getClerkUser } from "@/lib/auth/getSessionUser";
+import { findUserByClerkId, createUser } from "@/lib/db/supabase-queries";
+import { supabase } from "../db/supabase.js";
 
 async function findUserByEmail(email) {
   const { data, error } = await supabase.from("users").select().eq("email", email).maybeSingle();

@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { resolveExclusiveLock, markWebhookProcessing } from "../src/lib/exclusive.js";
+import { resolveExclusiveLock, markWebhookProcessing } from "../src/lib/bookings/exclusive.js";
 
 function fakePool(firstWins = true) {
   let calls = 0;

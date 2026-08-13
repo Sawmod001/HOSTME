@@ -1,5 +1,5 @@
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
+import { supabaseAdmin } from "@/lib/db/supabase-admin";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
 
 const BUCKET = "HOSTME";
 const ALLOWED = ["jpg", "jpeg", "png", "webp", "gif"];

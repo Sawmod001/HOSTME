@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { finalizeGroupPlan, computeShareKobo } from "../src/lib/group-booking.js";
+import { finalizeGroupPlan, computeShareKobo } from "../src/lib/bookings/group-booking.js";
 
 function planRow({ status = "active", target = 8 } = {}) {
   return {

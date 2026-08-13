@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { clerkFetch } from "@/lib/clerk";
-import { createUser } from "@/lib/supabase-queries";
-import { getRedirectPath } from "@/lib/redirect";
+import { clerkFetch } from "@/lib/auth/clerk";
+import { createUser } from "@/lib/db/supabase-queries";
+import { getRedirectPath } from "@/lib/auth/redirect";
 
 export async function POST(request) {
   try {

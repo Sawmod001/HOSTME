@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { listListings } from "@/lib/supabase-queries";
-import { getWhatsAppConfig, verifyWhatsAppSignature, sendWhatsAppText, sendWhatsAppList, sendWhatsAppButtons, markWhatsAppRead } from "@/lib/whatsapp";
-import { handleMessage } from "@/lib/whatsapp-bot";
-import { generateReply } from "@/lib/whatsapp-gemini";
+import { supabase } from "@/lib/db/supabase";
+import { listListings } from "@/lib/db/supabase-queries";
+import { getWhatsAppConfig, verifyWhatsAppSignature, sendWhatsAppText, sendWhatsAppList, sendWhatsAppButtons, markWhatsAppRead } from "@/lib/whatsapp/client";
+import { handleMessage } from "@/lib/whatsapp/bot";
+import { generateReply } from "@/lib/whatsapp/gemini";
 
 const sessions = new Map();
 

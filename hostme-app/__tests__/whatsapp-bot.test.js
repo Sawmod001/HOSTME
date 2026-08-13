@@ -10,7 +10,7 @@ import {
   handleMessage,
   normalizePhone,
   shouldUseGemini,
-} from "../src/lib/whatsapp-bot.js";
+} from "../src/lib/whatsapp/bot.js";
 
 function makeListing(overrides = {}) {
   return {

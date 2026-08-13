@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clerkFetch } from "@/lib/clerk";
+import { clerkFetch } from "@/lib/auth/clerk";
 
 export async function POST(request) {
   try {

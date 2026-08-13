@@ -1,7 +1,7 @@
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser";
-import { findListingById, updateListing } from "@/lib/supabase-queries";
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { findListingById, updateListing } from "@/lib/db/supabase-queries";
 import { z } from "zod";
-import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
+import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 const RejectSchema = z.object({
   reason: z.string().min(5).max(500),

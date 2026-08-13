@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { getClerkUser } from "@/lib/getSessionUser";
-import { verifyClerkSession } from "@/lib/getSessionUser";
+import { getClerkUser } from "@/lib/auth/getSessionUser";
+import { verifyClerkSession } from "@/lib/auth/getSessionUser";
 import Link from "next/link";
 import { ShieldCheck, FileText, AlertTriangle, Eye } from "lucide-react";
 

@@ -1,6 +1,6 @@
-import { findListingById } from "@/lib/supabase-queries";
-import { supabase } from "@/lib/supabase";
-import { toCamelCase, ok, cachedOk, fail, notFound, parseId } from "@/lib/supabase-utils";
+import { findListingById } from "@/lib/db/supabase-queries";
+import { supabase } from "@/lib/db/supabase";
+import { toCamelCase, ok, cachedOk, fail, notFound, parseId } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
     try {

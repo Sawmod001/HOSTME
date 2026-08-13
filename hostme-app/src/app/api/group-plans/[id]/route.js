@@ -1,7 +1,7 @@
-import { getPlan } from "@/lib/group-booking";
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { ok, fail, notFound, parseId } from "@/lib/supabase-utils";
+import { getPlan } from "@/lib/bookings/group-booking";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { ok, fail, notFound, parseId } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
     try {

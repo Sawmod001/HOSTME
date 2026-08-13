@@ -1,4 +1,4 @@
-import { freeSlots, formatSlotTime } from "./whatsapp-bot.js";
+import { freeSlots, formatSlotTime } from "./bot.js";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const GENERATE_URL = (model) =>

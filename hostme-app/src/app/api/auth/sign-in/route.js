@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { clerkFetch } from "@/lib/clerk";
-import { getRedirectPath } from "@/lib/redirect";
+import { clerkFetch } from "@/lib/auth/clerk";
+import { getRedirectPath } from "@/lib/auth/redirect";
 
 export async function POST(request) {
   try {

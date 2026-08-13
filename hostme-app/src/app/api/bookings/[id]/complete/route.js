@@ -1,7 +1,7 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { supabase } from "@/lib/supabase";
-import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { supabase } from "@/lib/db/supabase";
+import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function POST(request, { params }) {
   try {

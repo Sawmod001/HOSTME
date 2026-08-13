@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
-import { resolveExclusiveLock } from "@/lib/exclusive";
-import { finalizeGroupPlan } from "@/lib/group-booking";
+import { supabase } from "@/lib/db/supabase";
+import { resolveExclusiveLock } from "@/lib/bookings/exclusive";
+import { finalizeGroupPlan } from "@/lib/bookings/group-booking";
 import { verifyPaystackSignature } from "@/lib/payments/verifyWebhookSignature";
-import { ok, fail } from "@/lib/supabase-utils";
+import { ok, fail } from "@/lib/db/supabase-utils";
 
 // Refs come in the shape "<prefix>-<uuid>-<rand>"; the uuid contains dashes,
 // so split("-")[1] is wrong. Extract the full uuid by trimming the fixed parts.

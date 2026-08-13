@@ -1,6 +1,6 @@
-import { pool } from "./db.js";
-import { supabase } from "./supabase.js";
-import { findListingById, findSlotById } from "./supabase-queries.js";
+import { pool } from "../db/connection.js";
+import { supabase } from "../db/supabase.js";
+import { findListingById, findSlotById } from "../db/supabase-queries.js";
 import { computeCapacityPriceKobo } from "./pricing.js";
 
 const PLAN_STATUSES = ["active", "finalized", "cancelled"];

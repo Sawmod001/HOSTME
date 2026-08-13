@@ -1,6 +1,6 @@
-import { findUserById } from "@/lib/supabase-queries";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/getSessionUser";
-import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/supabase-utils";
+import { findUserById } from "@/lib/db/supabase-queries";
+import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
   try {

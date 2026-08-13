@@ -1,4 +1,4 @@
-import { clerkFetch } from "@/lib/clerk";
+import { clerkFetch } from "@/lib/auth/clerk";
 
 const API = "https://api.clerk.com/v1";
 

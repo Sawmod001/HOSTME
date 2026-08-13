@@ -5,7 +5,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { reserveCapacitySlot } from "../src/lib/booking.js";
+import { reserveCapacitySlot } from "../src/lib/bookings/booking.js";
 
 function fakePool() {
   let calls = 0;

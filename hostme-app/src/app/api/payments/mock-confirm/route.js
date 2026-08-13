@@ -1,9 +1,9 @@
 import crypto from "crypto";
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { supabase } from "@/lib/supabase";
-import { resolveExclusiveLock } from "@/lib/exclusive";
-import { ok, fail, notFound, forbidden } from "@/lib/supabase-utils";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { supabase } from "@/lib/db/supabase";
+import { resolveExclusiveLock } from "@/lib/bookings/exclusive";
+import { ok, fail, notFound, forbidden } from "@/lib/db/supabase-utils";
 
 export async function POST(request) {
   try {

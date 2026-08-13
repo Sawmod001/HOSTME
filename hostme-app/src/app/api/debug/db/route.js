@@ -1,7 +1,7 @@
-import { pool } from "@/lib/db";
+import { pool } from "@/lib/db/connection";
 import fs from "fs";
 import path from "path";
-import { ok } from "@/lib/supabase-utils";
+import { ok } from "@/lib/db/supabase-utils";
 
 function isAuthorized(request) {
   if (process.env.NODE_ENV !== "production") return true;

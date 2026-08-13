@@ -1,9 +1,9 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/getSessionUser";
-import { getUser } from "@/lib/getUser";
-import { findListingById, updateListing } from "@/lib/supabase-queries";
-import { supabase } from "@/lib/supabase";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { getUser } from "@/lib/auth/getUser";
+import { findListingById, updateListing } from "@/lib/db/supabase-queries";
+import { supabase } from "@/lib/db/supabase";
 import { validateListingUpdate } from "@/lib/validation";
-import { toCamelCase, ok, cachedOk, fail, notFound, forbidden, parseId } from "@/lib/supabase-utils";
+import { toCamelCase, ok, cachedOk, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
     try {
