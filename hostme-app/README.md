@@ -23,9 +23,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Copy `.env.example` to `.env` and fill in all required values.
+Create `.env` (gitignored) at the repo root and fill in all required values. See `.gitignore` — env files are never committed.
 
-Required vars: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `GEMINI_API_KEY`.
+Required vars: `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `CLERK_SECRET_KEY`, `ADMIN_SETUP_SECRET`, `CRON_SECRET`, `PAYSTACK_SECRET_KEY`, `GEMINI_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_TOKEN`, `HOSTME_BASE_URL`.
 
 ## Database Setup
 
@@ -52,7 +52,7 @@ npm run build
 1. Push to GitHub
 2. Import repo in Vercel
 3. Set root directory: `hostme-app`
-4. Add all environment variables from `.env.example`
+4. Add all environment variables listed in the **Environment** section above
 5. Build command: `npm run build`
 6. Output: `standalone` (configured in `next.config.mjs`)
 
