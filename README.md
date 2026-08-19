@@ -5,13 +5,13 @@ Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list 
 ## Tech Stack
 
 - **Framework**: Next.js 16 App Router (JavaScript)
-- **Database**: Supabase PostgreSQL — direct `pg` pool, no REST client. Query-critical logic lives in stored functions.
-- **Auth**: Clerk (custom cookie-based JWT integration, no client SDK)
+- **Database**: Supabase PostgreSQL 
+- **Auth**: Clerk 
 - **CSS**: Tailwind v4
 - **Validation**: Zod v4
-- **Payments**: Paystack (mock mode for dev)
+- **Payments**: Paystack (mock mode
 - **AI**: Google Gemini (ChatBot + WhatsApp assistant)
-- **Deployment**: Vercel (crons)
+- **Deployment**: Vercel
 
 ## Features
 

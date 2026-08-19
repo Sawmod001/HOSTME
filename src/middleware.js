@@ -19,7 +19,7 @@ function unauthorized(request) {
 }
 
 const PUBLIC_EXACT = new Set([
-  "/", "/sign-in", "/sign-up", "/sso-callback", "/verify-email",
+  "/", "/sign-in", "/sign-up",
   "/complete-profile",
 ]);
 
