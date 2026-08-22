@@ -23,6 +23,12 @@ const PUBLIC_EXACT = new Set([
   "/complete-profile",
 ]);
 
+// Block one-time setup pages and duplicate admin portal from public access
+const BLOCKED_EXACT = new Set([
+  "/admin-setup",
+  "/management-portal-x7q",
+]);
+
 const PUBLIC_API_EXACT = new Set([
   "/api/auth/sign-in", "/api/auth/sign-up", "/api/auth/logout",
   "/api/payments/webhook", "/api/payments/webhook/paystack",
@@ -42,6 +48,9 @@ export default function middleware(request) {
 
     // Exact public page matches
     if (PUBLIC_EXACT.has(pathname)) return NextResponse.next();
+
+    // Blocked one-time setup pages
+    if (BLOCKED_EXACT.has(pathname)) return unauthorized(request);
 
     // Exact public API matches
     if (PUBLIC_API_EXACT.has(pathname)) return NextResponse.next();

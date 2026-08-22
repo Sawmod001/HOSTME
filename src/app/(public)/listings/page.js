@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search, Filter, Loader2, X } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
 
 const subVerticalLabels = {
   birthday: "Birthday",
@@ -118,6 +119,7 @@ export default function DiscoveryPage() {
     return (
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6 sm:px-6">
             <div className="mx-auto max-w-4xl space-y-6">
+                <PublicHeader />
                 <div className="space-y-3">
                     <h1 className="text-3xl font-semibold text-[var(--color-ink)] sm:text-4xl">Discover Spaces</h1>
                     <p className="text-sm text-[var(--color-ink-muted)]">Find the perfect venue for your next event</p>

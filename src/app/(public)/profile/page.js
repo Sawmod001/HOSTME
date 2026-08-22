@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
@@ -69,7 +70,11 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-lg space-y-6">
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-[var(--color-primary)]">
+        <PublicHeader backHref="/dashboard" />
+        <Link
+          href={(profile?.roles || []).includes("host") ? "/host/dashboard" : "/dashboard"}
+          className="flex items-center gap-2 text-sm text-[var(--color-primary)]"
+        >
           <ArrowLeft size={16} /> Back to dashboard
         </Link>
 

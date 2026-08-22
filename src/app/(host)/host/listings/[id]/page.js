@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Save, Send, ExternalLink, ImagePlus, X, Trash2 } from "lucide-react";
 import Link from "next/link";
+import DashboardLayout from "@/components/sidebar/DashboardLayout";
+import HostSidebar from "@/components/sidebar/HostSidebar";
 
 const VENUE_SUB_VERTICALS = [
   { key: "birthday", label: "Birthday" },
@@ -291,18 +293,18 @@ export default function HostListingDetailPage() {
   function removeMedia(idx) { setEditData((prev) => ({ ...prev, media: prev.media.filter((_, i) => i !== idx) })); }
 
   if (loading) {
-    return <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6"><div className="mx-auto max-w-2xl space-y-4">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-white border border-[var(--color-border)]" />)}</div></main>;
+    return <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}><div className="mx-auto max-w-2xl space-y-4">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-white border border-[var(--color-border)]" />)}</div></DashboardLayout>;
   }
 
   if (error) {
-    return <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6"><div className="mx-auto max-w-2xl flex flex-col items-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-8"><p className="text-sm text-[var(--color-ink-muted)]">{error}</p><Link href="/host/listings" className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-white font-semibold text-sm">Back to My Listings</Link></div></main>;
+    return <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}><div className="mx-auto max-w-2xl flex flex-col items-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-8"><p className="text-sm text-[var(--color-ink-muted)]">{error}</p><Link href="/host/listings" className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-white font-semibold text-sm">Back to My Listings</Link></div></DashboardLayout>;
   }
 
   const canEdit = listing.status !== "pending_review";
   const statusColors = { draft: "bg-[#F3F4F6] text-[#6B7280]", pending_review: "bg-[#FEF3C7] text-[#B45309]", active: "bg-[#DCFCE7] text-[#166534]", rejected: "bg-[#FEE2E2] text-[#991B1B]" };
 
   return (
-    <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
       <div className="mx-auto max-w-2xl space-y-6">
         <Link href="/host/listings" className="flex items-center gap-2 text-[var(--color-primary)] text-sm"><ArrowLeft size={16} />Back to My Listings</Link>
 
@@ -438,6 +440,6 @@ export default function HostListingDetailPage() {
           </div>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

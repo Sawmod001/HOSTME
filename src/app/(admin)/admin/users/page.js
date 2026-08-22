@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, Mail, ShieldCheck, User } from "lucide-react";
+import DashboardLayout from "@/components/sidebar/DashboardLayout";
+import AdminSidebar from "@/components/sidebar/AdminSidebar";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -29,8 +31,8 @@ export default function AdminUsersPage() {
   useEffect(() => { fetchUsers(page); }, [page]);
 
   return (
-    <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <DashboardLayout sidebar={AdminSidebar} sidebarProps={{ activePage: "users" }}>
+      <div className="space-y-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold text-[var(--color-ink)]">Users</h1>
           <p className="text-sm text-[var(--color-ink-muted)]">Manage platform users</p>
@@ -94,6 +96,6 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

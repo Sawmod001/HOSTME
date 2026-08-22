@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, Link2, Loader2, Lock, Users } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
 
 const STATUS_STYLE = {
   pending: "bg-[#FEF3C7] text-[#B45309]",
@@ -148,6 +149,7 @@ export default function GroupPlanPage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6">
+        <PublicHeader backHref="/group-plans" />
         <Link href={listing ? `/listings/${listing.id}` : "/listings"} className="flex items-center gap-2 text-[var(--color-primary)]">
           <ArrowLeft size={18} />
           Back to listing

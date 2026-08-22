@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
+import DashboardLayout from "@/components/sidebar/DashboardLayout";
+import AdminSidebar from "@/components/sidebar/AdminSidebar";
 
 export default function AdminPendingListingsPage() {
     const [listings, setListings] = useState([]);
@@ -88,20 +90,20 @@ export default function AdminPendingListingsPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-                <div className="mx-auto max-w-4xl space-y-6">
+            <DashboardLayout sidebar={AdminSidebar} sidebarProps={{ activePage: "pending" }}>
+                <div className="space-y-6">
                     {Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="h-32 rounded-2xl bg-white animate-pulse border border-[var(--color-border)]" />
                     ))}
                 </div>
-            </main>
+            </DashboardLayout>
         );
     }
 
     if (error && listings.length === 0) {
         return (
-            <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-                <div className="mx-auto max-w-4xl flex flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-8">
+            <DashboardLayout sidebar={AdminSidebar} sidebarProps={{ activePage: "pending" }}>
+                <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-8">
                     <p className="text-sm text-[var(--color-ink-muted)]">Error: {error}</p>
                     <button
                         onClick={fetchListings}
@@ -110,13 +112,13 @@ export default function AdminPendingListingsPage() {
                         Try Again
                     </button>
                 </div>
-            </main>
+            </DashboardLayout>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-            <div className="mx-auto max-w-4xl space-y-6">
+        <DashboardLayout sidebar={AdminSidebar} sidebarProps={{ activePage: "pending" }}>
+            <div className="space-y-6">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-semibold text-[var(--color-ink)]">Pending Approvals</h1>
                     <p className="text-sm text-[var(--color-ink-muted)]">Review and approve new listings</p>
@@ -240,6 +242,6 @@ export default function AdminPendingListingsPage() {
                     </div>
                 )}
             </div>
-        </main>
+        </DashboardLayout>
     );
 }

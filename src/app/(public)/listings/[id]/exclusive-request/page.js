@@ -13,6 +13,9 @@ export default function ExclusiveRequestPage({ params }) {
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(null);
+    const [availableLocks, setAvailableLocks] = useState([]);
+    const [locksLoading, setLocksLoading] = useState(false);
+    const [locksError, setLocksError] = useState(null);
     const [form, setForm] = useState({
         lockId: "",
         headcount: 2,
@@ -53,8 +56,40 @@ export default function ExclusiveRequestPage({ params }) {
         fetchListing();
     }, [id]);
 
+    useEffect(() => {
+        if (!form.eventStart) return;
+        const date = form.eventStart.slice(0, 10);
+        if (!date) return;
+
+        let cancelled = false;
+        setLocksLoading(true);
+        setLocksError(null);
+        fetch(`/api/listings/${id}/exclusive-locks?date=${date}`)
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load locks");
+                return res.json();
+            })
+            .then((data) => {
+                if (cancelled) return;
+                setAvailableLocks(Array.isArray(data) ? data : data.data || []);
+                setForm((prev) => ({ ...prev, lockId: "" }));
+            })
+            .catch((err) => {
+                if (!cancelled) setLocksError(err.message);
+            })
+            .finally(() => {
+                if (!cancelled) setLocksLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [id, form.eventStart]);
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (!form.lockId) {
+            setError("Please select an available lock");
+            return;
+        }
         setSubmitting(true);
         setError(null);
         setSuccess(null);
@@ -150,16 +185,65 @@ export default function ExclusiveRequestPage({ params }) {
                     </p>
 
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                        <label className="block text-sm font-semibold text-[var(--color-ink)]">
-                            Exclusive lock ID
-                            <input
-                                value={form.lockId}
-                                onChange={(event) => setForm({ ...form, lockId: event.target.value })}
-                                className="mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                                placeholder="lock-1"
-                                required
-                            />
-                        </label>
+                        <div className="block text-sm font-semibold text-[var(--color-ink)]">
+                            Exclusive lock
+                            {!form.eventStart && (
+                                <p className="mt-1 text-xs font-normal text-[var(--color-ink-muted)]">
+                                    Select a start date above to view available locks
+                                </p>
+                            )}
+                            {locksLoading && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
+                                    <Loader2 size={14} className="animate-spin" /> Loading available locks...
+                                </div>
+                            )}
+                            {locksError && (
+                                <p className="mt-2 text-xs text-red-500">{locksError}</p>
+                            )}
+                            {!locksLoading && form.eventStart && availableLocks.length === 0 && !locksError && (
+                                <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
+                                    No exclusive locks available for this date
+                                </p>
+                            )}
+                            {availableLocks.length > 0 && (
+                                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    {availableLocks.map((lock) => {
+                                        const isSelected = form.lockId === lock.id;
+                                        const isOpen = lock.status === "open";
+                                        return (
+                                            <button
+                                                key={lock.id}
+                                                type="button"
+                                                disabled={!isOpen}
+                                                onClick={() => setForm({ ...form, lockId: lock.id })}
+                                                className={`flex flex-col items-start rounded-xl border p-3 text-left text-xs transition ${
+                                                    isSelected
+                                                        ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] ring-1 ring-[var(--color-primary)]"
+                                                        : isOpen
+                                                        ? "border-[var(--color-border)] bg-white hover:border-[var(--color-primary)]"
+                                                        : "border-[var(--color-border)] bg-[var(--color-surface-alt)] opacity-50 cursor-not-allowed"
+                                                }`}
+                                            >
+                                                <span className="font-semibold text-[var(--color-ink)]">{lock.id}</span>
+                                                <span className="mt-0.5 text-[var(--color-ink-muted)]">
+                                                    {lock.date || (lock.start ? new Date(lock.start).toLocaleDateString() : "")}
+                                                </span>
+                                                {(lock.startTime || lock.start) && (
+                                                    <span className="text-[var(--color-ink-muted)]">
+                                                        {lock.startTime || new Date(lock.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                        {lock.endTime || lock.end ? ` – ${lock.endTime || new Date(lock.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                                                    </span>
+                                                )}
+                                                <span className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                    {isOpen ? "Open" : "Locked"}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <input type="hidden" value={form.lockId} required />
+                        </div>
 
                         <label className="block text-sm font-semibold text-[var(--color-ink)]">
                             How many people?

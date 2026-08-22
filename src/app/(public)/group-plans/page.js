@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Loader2, Users } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
 
 const STATUS_STYLE = {
   active: "bg-[#DBEAFE] text-[#1E40AF]",
@@ -39,6 +40,7 @@ export default function MyGroupPlansPage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-3xl space-y-6">
+        <PublicHeader />
         <Link href="/" className="flex items-center gap-2 text-[var(--color-primary)] text-sm">
           <ArrowLeft size={16} /> Back to Home
         </Link>

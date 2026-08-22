@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import DashboardLayout from "@/components/sidebar/DashboardLayout";
+import HostSidebar from "@/components/sidebar/HostSidebar";
 
 const TABS = [
   { key: "", label: "All" },
@@ -75,30 +77,30 @@ export default function HostBookingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-        <div className="mx-auto max-w-4xl space-y-4">
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+        <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-28 animate-pulse rounded-2xl border border-[var(--color-border)] bg-white" />
           ))}
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-        <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
           <p className="text-sm text-[var(--color-ink-muted)]">{error}</p>
           <button onClick={() => loadData(activeTab)} className="mt-4 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white">Try Again</button>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+      <div className="space-y-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold text-[var(--color-ink)]">Booking Inbox</h1>
           <p className="text-sm text-[var(--color-ink-muted)]">Review pending requests and manage bookings</p>
@@ -176,6 +178,6 @@ export default function HostBookingsPage() {
           </div>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

@@ -13,7 +13,8 @@ export default function CheckoutPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authChecked, setAuthChecked] = useState(false);
     const [listing, setListing] = useState(null);
-    const [slot, setSlot] = useState(null);
+    const [slots, setSlots] = useState([]);
+    const [selectedSlotId, setSelectedSlotId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -24,6 +25,8 @@ export default function CheckoutPage() {
         const offset = now.getTimezoneOffset();
         return new Date(now.getTime() - offset * 60000).toISOString().split("T")[0];
     });
+
+    const slot = useMemo(() => slots.find((s) => s.id === selectedSlotId) || null, [slots, selectedSlotId]);
 
     useEffect(() => {
         let cancelled = false;
@@ -51,8 +54,9 @@ export default function CheckoutPage() {
                 const slotsRes = await fetch(`/api/listings/${listingId}/slots?date=${selectedDate}`);
                 if (!slotsRes.ok) throw new Error("No slots available");
                 const slotsData = await slotsRes.json();
-                const firstSlot = slotsData?.data?.[0];
-                setSlot(firstSlot || null);
+                const availableSlots = slotsData?.data || [];
+                setSlots(availableSlots);
+                setSelectedSlotId(availableSlots.length > 0 ? availableSlots[0].id : null);
                 setError(null);
             } catch (err) {
                 setError(err.message || "Unable to load checkout details");
@@ -192,6 +196,44 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[var(--color-ink)]">Available Slots</label>
+                        {slots.length === 0 ? (
+                            <p className="text-sm text-[var(--color-ink-muted)]">No slots available for this date.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {slots.map((s) => (
+                                    <label
+                                        key={s.id}
+                                        className={`flex items-center justify-between rounded-xl border p-3 text-sm cursor-pointer transition-colors ${
+                                            selectedSlotId === s.id
+                                                ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]"
+                                                : "border-[var(--color-border)] hover:border-[var(--color-primary)]"
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            <input
+                                                type="radio"
+                                                name="slot"
+                                                value={s.id}
+                                                checked={selectedSlotId === s.id}
+                                                onChange={() => setSelectedSlotId(s.id)}
+                                                disabled={submitting}
+                                                className="accent-[var(--color-primary)]"
+                                            />
+                                            <span>
+                                                {new Date(s.eventStart).toLocaleTimeString()} – {new Date(s.eventEnd).toLocaleTimeString()}
+                                            </span>
+                                        </span>
+                                        <span className="text-xs text-[var(--color-ink-muted)]">
+                                            {s.capacity != null ? `${s.capacity} available` : ""}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
                         <label className="text-sm font-semibold text-[var(--color-ink)]">How many people?</label>
                         <input
                             type="number"
@@ -232,10 +274,10 @@ export default function CheckoutPage() {
                         </div>
                         {slot ? (
                             <div className="mt-2 text-xs text-[var(--color-ink-muted)]">
-                                Selected slot: {new Date(slot.eventStart).toLocaleTimeString()} – {new Date(slot.eventEnd).toLocaleTimeString()}
+                                {new Date(slot.eventStart).toLocaleTimeString()} – {new Date(slot.eventEnd).toLocaleTimeString()}
                             </div>
                         ) : (
-                            <div className="mt-2 text-xs text-[var(--color-ink-muted)]">No slot available for this date.</div>
+                            <div className="mt-2 text-xs text-[var(--color-ink-muted)]">Select a slot above.</div>
                         )}
                     </div>
 

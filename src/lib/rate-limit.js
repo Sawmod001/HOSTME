@@ -93,3 +93,27 @@ export function checkRateLimit(request, opts = {}, keyPrefix = "global") {
 
   return null; // allowed
 }
+
+/**
+ * Extract client IP from request headers.
+ * @param {Request} request
+ * @returns {string}
+ */
+export function clientIp(request) {
+  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")
+    || "anonymous";
+}
+
+/**
+ * Simple boolean rate limit check. Returns true if allowed, false if exceeded.
+ * Uses a fixed window of 60 seconds.
+ *
+ * @param {string} key - Unique identifier (e.g. "create:192.168.1.1")
+ * @param {number} max - Max requests within the window (default 10)
+ * @returns {boolean}
+ */
+export function rateLimitOk(key, max = 10) {
+  const { allowed } = rateLimit({ windowMs: 60_000, max }).check(key);
+  return allowed;
+}

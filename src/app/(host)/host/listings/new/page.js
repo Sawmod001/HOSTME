@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import { ArrowLeft, Loader2, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
+import DashboardLayout from "@/components/sidebar/DashboardLayout";
+import HostSidebar from "@/components/sidebar/HostSidebar";
 
 const VENUE_SUB_VERTICALS = [
   { key: "birthday", label: "Birthday" },
@@ -293,29 +295,32 @@ export default function CreateListingPage() {
 
   if (createdId) {
     return (
-      <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-        <div className="mx-auto max-w-2xl text-center space-y-4 py-16">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DCFCE7]">
-            <svg className="h-8 w-8 text-[#15803D]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+        <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+          <div className="mx-auto max-w-2xl text-center space-y-4 py-16">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DCFCE7]">
+              <svg className="h-8 w-8 text-[#15803D]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h1 className="text-2xl font-semibold">Listing submitted for review!</h1>
+            <p className="text-[var(--color-ink-muted)]">Your listing is pending admin approval. You will be notified once it&apos;s approved.</p>
+            <div className="flex items-center justify-center gap-4 pt-4">
+              <Link href={`/host/listings/${createdId}`} className="rounded-xl bg-[var(--color-primary)] px-6 py-3 font-semibold text-white">View listing</Link>
+              <Link href="/host/listings" className="btn-outline px-6 py-3">My listings</Link>
+            </div>
           </div>
-          <h1 className="text-2xl font-semibold">Listing submitted for review!</h1>
-          <p className="text-[var(--color-ink-muted)]">Your listing is pending admin approval. You will be notified once it&apos;s approved.</p>
-          <div className="flex items-center justify-center gap-4 pt-4">
-            <Link href={`/host/listings/${createdId}`} className="rounded-xl bg-[var(--color-primary)] px-6 py-3 font-semibold text-white">View listing</Link>
-            <Link href="/host/listings" className="btn-outline px-6 py-3">My listings</Link>
-          </div>
-        </div>
-      </main>
+        </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <Link href="/host/listings" className="flex items-center gap-2 text-[var(--color-primary)] text-sm">
-          <ArrowLeft size={18} />
-          Back to my listings
-        </Link>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+      <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <Link href="/host/listings" className="flex items-center gap-2 text-[var(--color-primary)] text-sm">
+            <ArrowLeft size={18} />
+            Back to my listings
+          </Link>
 
         <div className="space-y-3">
           <h1 className="text-3xl font-semibold text-[var(--color-ink)]">Create New Listing</h1>
@@ -485,8 +490,9 @@ export default function CreateListingPage() {
             {submitting && <Loader2 size={18} className="animate-spin" />}
             {submitting ? "Submitting..." : "Submit for Review"}
           </button>
-        </form>
-      </div>
-    </main>
+          </form>
+        </div>
+      </main>
+    </DashboardLayout>
   );
 }
