@@ -43,18 +43,8 @@ const HousingFeaturesSchema = z.object({
   }).optional(),
 }).strict();
 
-const PreorderFeaturesSchema = z.object({
-  preorder: z.object({
-    cuisineType: z.enum(["african", "continental", "fast_food", "local", "drinks"]).optional(),
-    deliveryAvailable: z.boolean().optional(),
-    pickupAvailable: z.boolean().optional(),
-    prepTimeMinutes: z.number().int().min(0).optional(),
-    minOrderKobo: z.number().int().min(0).optional(),
-  }).optional(),
-}).strict();
-
 export const ListingCreateSchema = z.object({
-  vertical: z.enum(["venue", "housing", "preorder"]),
+  vertical: z.enum(["venue", "housing"]),
   subVertical: z.array(z.string()).optional(),
   bookingType: z.enum(["capacity", "exclusive"]),
   title: z.string().min(3).max(100),
@@ -79,7 +69,7 @@ export const ListingCreateSchema = z.object({
     isByobAllowed: z.boolean(),
     cancellationPolicy: z.enum(["flexible", "moderate", "strict"]),
   }),
-  features: z.union([VenueFeaturesSchema, HousingFeaturesSchema, PreorderFeaturesSchema]).optional(),
+  features: z.union([VenueFeaturesSchema, HousingFeaturesSchema]).optional(),
   addOns: z
     .array(
       z.object({
@@ -96,7 +86,7 @@ export const ListingCreateSchema = z.object({
 export const ListingUpdateSchema = ListingCreateSchema.partial();
 
 export const ListingFilterSchema = z.object({
-  vertical: z.enum(["venue", "housing", "preorder"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
+  vertical: z.enum(["venue", "housing"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   subVertical: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   cityArea: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   bookingType: z.enum(["capacity", "exclusive"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),

@@ -84,7 +84,7 @@ export async function PATCH(request, { params }) {
 
         const dbFields = {
             ...(updates.vertical != null && { vertical: updates.vertical }),
-            ...(updates.title != null && { title: updates.title }),
+            ...(updates.title != null && { title: updates.title.trim() }),
             ...(updates.description != null && { description: updates.description }),
             ...(updates.media != null && { media: updates.media }),
             ...(updates.location != null && { location: { ...updates.location, ...(coords && { coordinates: coords }) } }),
@@ -93,7 +93,7 @@ export async function PATCH(request, { params }) {
             ...(updates.subVertical != null && { sub_vertical: updates.subVertical }),
             ...(updates.bookingType != null && { booking_type: updates.bookingType }),
             ...(updates.operationalRules != null && { operational_rules: updates.operationalRules }),
-            ...(updates.addOns != null && { add_ons: updates.addOns }),
+            ...(updates.addOns != null && { add_ons: Array.isArray(updates.addOns) ? updates.addOns : [] }),
         };
 
         const updated = await updateListing(p.id, dbFields);

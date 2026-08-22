@@ -302,7 +302,7 @@ export default function ListingDetailPage({ params }) {
                   <span key={sv} className="inline-block rounded-full bg-[var(--color-primary)]/10 px-3 py-0.5 text-xs font-medium text-[var(--color-primary)]">{subVerticalLabels[sv] || sv.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
                 ))}
                 {(!listing.subVertical || listing.subVertical.length === 0) && listing.vertical === "housing" && <span className="inline-block rounded-full bg-[var(--color-primary)]/10 px-3 py-0.5 text-xs font-medium text-[var(--color-primary)]">Housing</span>}
-                {(!listing.subVertical || listing.subVertical.length === 0) && listing.vertical === "preorder" && <span className="inline-block rounded-full bg-[var(--color-primary)]/10 px-3 py-0.5 text-xs font-medium text-[var(--color-primary)]">Preorder</span>}
+
               </div>
             </div>
 
@@ -346,7 +346,7 @@ export default function ListingDetailPage({ params }) {
             ));
           })()}
 
-          {listing.addOns?.length > 0 && (
+          {Array.isArray(listing.addOns) && listing.addOns.length > 0 && (
             <div className="border-t pt-4">
               <p className="text-sm font-semibold mb-3">Add-ons</p>
               <div className="space-y-2">

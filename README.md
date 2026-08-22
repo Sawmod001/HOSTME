@@ -1,6 +1,6 @@
 # HostMe App
 
-Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list commercial spaces (venues, short-let housing, pre-orders) and guests book them by the hour. Built for the App Router, server-rendered, with two distinct booking engines.
+Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list commercial spaces (venues, short-let housing) and guests book them by the hour. Built for the App Router, server-rendered, with two distinct booking engines.
 
 ## Tech Stack
 

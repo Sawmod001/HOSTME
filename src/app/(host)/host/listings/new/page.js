@@ -17,7 +17,6 @@ const FEATURE_DEFAULTS = {
   karaoke: { microphoneCount: 1, songGenres: "", privateRoom: false, hasStage: false, soundSystem: "" },
   groupNight: { gameTypes: "", hasPoolTable: false, hasVideoGames: false, hasBoardGames: false, maxGroupSize: 0, hasBar: false },
   housing: { propertyType: "apartment", bedrooms: 1, bathrooms: 1, hasWifi: false, hasParking: false, hasAC: false, furnished: false, petFriendly: false },
-  preorder: { cuisineType: "african", deliveryAvailable: false, pickupAvailable: false, prepTimeMinutes: 0, minOrderKobo: 0 },
 };
 
 const SUB_VERTICAL_KEY_MAP = {
@@ -65,13 +64,6 @@ const FEATURE_FIELD_CONFIG = {
     { key: "furnished", label: "Furnished", type: "checkbox" },
     { key: "petFriendly", label: "Pet friendly", type: "checkbox" },
   ],
-  preorder: [
-    { key: "cuisineType", label: "Cuisine type", type: "select", options: [{ value: "african", label: "African" }, { value: "continental", label: "Continental" }, { value: "fast_food", label: "Fast food" }, { value: "local", label: "Local" }, { value: "drinks", label: "Drinks" }] },
-    { key: "prepTimeMinutes", label: "Prep time (minutes)", type: "number" },
-    { key: "deliveryAvailable", label: "Delivery available", type: "checkbox" },
-    { key: "pickupAvailable", label: "Pickup available", type: "checkbox" },
-    { key: "minOrderKobo", label: "Min order (in kobo)", type: "number" },
-  ],
 };
 
 const FEATURE_SECTION_LABELS = {
@@ -80,7 +72,6 @@ const FEATURE_SECTION_LABELS = {
   karaoke: "Karaoke Features",
   groupNight: "Group Night Features",
   housing: "Housing Features",
-  preorder: "Preorder Features",
 };
 
 function getDefaultFeatures(vertical, subVerticals) {
@@ -340,7 +331,7 @@ export default function CreateListingPage() {
               <select value={formData.vertical} onChange={(e) => handleVerticalChange(e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
                 <option value="venue">Venue</option>
                 <option value="housing">Housing</option>
-                <option value="preorder">Pre-Order</option>
+
               </select>
             </div>
             <div>

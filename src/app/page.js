@@ -37,8 +37,18 @@ export default function HomePage() {
   }, []);
 
   const gate = (e, href) => {
-    if (!authChecked) return;
-    if (authenticated) return;
+    if (!authChecked) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (authenticated) {
+      if (e.currentTarget?.tagName === "BUTTON") {
+        e.preventDefault();
+        router.push(href);
+      }
+      return;
+    }
     e.preventDefault();
     router.push(`/sign-up?next=${encodeURIComponent(href)}`);
   };

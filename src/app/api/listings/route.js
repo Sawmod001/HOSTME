@@ -117,7 +117,7 @@ export async function POST(request) {
                 vertical: validation.data.vertical,
                 sub_vertical: validation.data.subVertical || [],
                 booking_type: validation.data.bookingType,
-                title: validation.data.title,
+                title: validation.data.title.trim(),
                 description: validation.data.description,
                 location: loc,
                 pricing: validation.data.pricing || {},

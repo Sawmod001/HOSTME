@@ -44,7 +44,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   host_id UUID REFERENCES users(id) NOT NULL,
-  vertical TEXT NOT NULL CHECK (vertical IN ('venue', 'housing', 'preorder')),
+  vertical TEXT NOT NULL CHECK (vertical IN ('venue', 'housing')),
   sub_vertical TEXT[] DEFAULT ARRAY[]::TEXT[],                -- e.g. ['group_night', 'karaoke']
   booking_type TEXT NOT NULL CHECK (booking_type IN ('capacity', 'exclusive')),
   physical_space_id TEXT DEFAULT NULL,                         -- groups same physical venue across listings

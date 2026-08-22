@@ -15,7 +15,7 @@ const BUSINESS_TYPES = [
   { value: "", label: "Select your business type" },
   { value: "venue_owner", label: "Venue Owner" },
   { value: "house_agent", label: "House Agent" },
-  { value: "preorder_seller", label: "Pre-order Seller" },
+
 ];
 
 const REFERRAL_OPTIONS = [

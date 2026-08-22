@@ -43,7 +43,7 @@ export default function FeaturedSpaces({ listings, gate, loading }) {
             We are onboarding hosts in Ilorin. Stay close, the first venues go live very soon.
           </p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link href="/sign-up" className="btn-outline-night btn-outline-night-sm">
+            <Link href="/sign-up" onClick={(e) => gate(e, "/sign-up")} className="btn-outline-night btn-outline-night-sm">
               Get notified
             </Link>
           </div>

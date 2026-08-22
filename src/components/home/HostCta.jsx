@@ -30,6 +30,7 @@ export default function HostCta({ gate }) {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={HOST_CTA.primaryCta.href}
+                  onClick={(e) => gate(e, HOST_CTA.primaryCta.href)}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-flame)] px-7 py-3.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[var(--color-flame-bright)]"
                 >
                   {HOST_CTA.primaryCta.label} <ArrowRight size={18} aria-hidden="true" />

@@ -149,7 +149,6 @@ export default function DiscoveryPage() {
                             <option value="">All Verticals</option>
                             <option value="venue">Venues</option>
                             <option value="housing">Housing</option>
-                            <option value="preorder">Pre-Order</option>
                         </select>
                     </div>
 

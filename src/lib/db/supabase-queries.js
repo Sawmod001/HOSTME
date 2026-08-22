@@ -120,7 +120,7 @@ export async function listBookings(filters = {}, { limit = 50, offset = 0, order
 export async function listReviews(listingId) {
   const { data, error } = await supabase
     .from("reviews")
-    .select("*, guest:guest_id(name)")
+    .select("*")
     .eq("listing_id", listingId)
     .order("created_at", { ascending: false });
   if (error) throw error;
