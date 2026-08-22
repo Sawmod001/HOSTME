@@ -5,9 +5,7 @@ export default function PublicHeader({ backHref }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/">
-          <Logo size="sm" />
-        </Link>
+        <Logo size="sm" href="/" />
         <div className="flex items-center gap-3">
           {backHref && (
             <Link href={backHref} className="text-sm font-semibold text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">
