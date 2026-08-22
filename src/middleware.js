@@ -25,7 +25,7 @@ const PUBLIC_EXACT = new Set([
 
 const PUBLIC_API_EXACT = new Set([
   "/api/auth/sign-in", "/api/auth/sign-up", "/api/auth/logout",
-  "/api/payments/webhook", "/api/payments/webhook/paystack", "/api/chat",
+  "/api/payments/webhook", "/api/payments/webhook/paystack",
   "/api/whatsapp/webhook", "/api/cron/release-expired-holds",
   "/api/cron/cancel-expired-group-plans",
 ]);
@@ -69,8 +69,8 @@ export default function middleware(request) {
     if (!hasSession(request)) return unauthorized(request);
   } catch (e) {
     console.error("Middleware error:", e);
+    return unauthorized(request);
   }
-  return NextResponse.next();
 }
 
 export const config = {

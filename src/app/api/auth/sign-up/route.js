@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 import { clerkFetch } from "@/lib/auth/clerk";
 import { createUser } from "@/lib/db/supabase-queries";
 import { getRedirectPath } from "@/lib/auth/redirect";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function POST(request) {
   try {
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "auth:signup");
+    if (rateLimited) return rateLimited;
+
     const { email, password } = await request.json();
     const trimmedEmail = email?.trim();
 

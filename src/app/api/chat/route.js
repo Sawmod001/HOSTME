@@ -1,3 +1,7 @@
+import { parseSessionToken } from "@/lib/auth/getSessionUser";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { validateCsrfOrigin } from "@/lib/csrf";
+
 const FALLBACK_REPLIES = [
   "I can help you find venues, understand booking types, or navigate your dashboard. What would you like to know?",
   "HostMe lets you browse venues, check availability, and book spaces. Try the Discover page to get started.",
@@ -20,6 +24,17 @@ Answer questions clearly and concisely in 2-3 sentences. If you don't know, say 
 
 export async function POST(request) {
   try {
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
+    const sessionInfo = parseSessionToken(request);
+    if (!sessionInfo?.userId) {
+      return Response.json({ error: "Sign in to use the AI assistant." }, { status: 401 });
+    }
+
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 20 }, "chat");
+    if (rateLimited) return rateLimited;
+
     const { message, history = [] } = await request.json();
     if (!message?.trim()) {
       return Response.json({ error: "Message is required" }, { status: 400 });
