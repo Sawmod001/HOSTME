@@ -3,6 +3,8 @@ import { getUser } from "@/lib/auth/getUser";
 import { findListingById, updateListing } from "@/lib/db/supabase-queries";
 import { supabase } from "@/lib/db/supabase";
 import { validateListingUpdate } from "@/lib/validation";
+import { validateCsrfOrigin } from "@/lib/csrf";
+import { logAudit } from "@/lib/db/audit";
 import { toCamelCase, ok, cachedOk, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function GET(request, { params }) {
@@ -15,8 +17,7 @@ export async function GET(request, { params }) {
             const listing = await findListingById(p.id);
             if (!listing) return notFound("Listing not found");
 
-            // Only active listings are public. Owner/host and admins may view
-            // their own non-active (draft/pending/rejected/suspended) listings.
+            // Only active listings are public. Owner and admins may view non-active.
             if (listing.status !== "active") {
                 const sessionInfo = parseSessionToken(request);
                 let caller = null;
@@ -24,8 +25,8 @@ export async function GET(request, { params }) {
                     const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
                     if (isValid) caller = await getUser(sessionInfo.userId);
                 }
-                const isAdmin = caller ? (caller.roles || []).includes("admin") : false;
-                const isOwner = caller && listing.host_id === caller.id;
+                const isAdmin = caller ? caller.role === "admin" : false;
+                const isOwner = caller?.providerProfile?.id === listing.provider_profile_id;
                 if (!isAdmin && !isOwner) return notFound("Listing not found");
             }
 
@@ -42,6 +43,9 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
@@ -50,16 +54,16 @@ export async function PATCH(request, { params }) {
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
-        const roles = user.roles || [];
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
         const listing = await findListingById(p.id);
         if (!listing) return notFound("Listing not found");
 
-        if (listing.host_id !== user.id && !roles.includes("admin")) {
-            return forbidden();
-        }
+        // Ownership check: provider must own the listing, or be admin
+        const isOwner = user.providerProfile?.id === listing.provider_profile_id;
+        const isAdmin = user.role === "admin";
+        if (!isOwner && !isAdmin) return forbidden();
 
         if (listing.status === "pending_review") {
             return fail("Cannot edit listing while under review", 400);
@@ -96,7 +100,33 @@ export async function PATCH(request, { params }) {
             ...(updates.addOns != null && { add_ons: Array.isArray(updates.addOns) ? updates.addOns : [] }),
         };
 
+        // Clean up removed images from storage
+        if (updates.media && listing.media) {
+            const removedUrls = listing.media.filter((url) => !updates.media.includes(url));
+            if (removedUrls.length > 0) {
+                try {
+                    const filePaths = removedUrls.map((url) => {
+                        const path = url.split("/storage/v1/object/public/HOSTME/")[1];
+                        return path;
+                    }).filter(Boolean);
+                    if (filePaths.length > 0) {
+                        await supabase.storage.from("HOSTME").remove(filePaths);
+                    }
+                } catch {
+                    // Best-effort cleanup — don't block the update
+                }
+            }
+        }
+
         const updated = await updateListing(p.id, dbFields);
+
+        await logAudit({
+            actorId: user.id,
+            action: "listing.updated",
+            resourceType: "listing",
+            resourceId: p.id,
+            metadata: { changedFields: Object.keys(dbFields) },
+        });
 
         return ok(toCamelCase(updated || listing));
     } catch (error) {
@@ -107,6 +137,9 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
@@ -115,17 +148,43 @@ export async function DELETE(request, { params }) {
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
-        const roles = user.roles || [];
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
         const listing = await findListingById(p.id);
         if (!listing) return notFound("Listing not found");
-        if (listing.host_id !== user.id && !roles.includes("admin")) return forbidden();
+
+        const isOwner = user.providerProfile?.id === listing.provider_profile_id;
+        const isAdmin = user.role === "admin";
+        if (!isOwner && !isAdmin) return forbidden();
+
         if (listing.status === "active") return fail("Deactivate listing before deleting", 400);
+
+        // Clean up images from storage before deleting the listing
+        if (listing.media?.length > 0) {
+            try {
+                const filePaths = listing.media.map((url) => {
+                    const path = url.split("/storage/v1/object/public/HOSTME/")[1];
+                    return path;
+                }).filter(Boolean);
+                if (filePaths.length > 0) {
+                    await supabase.storage.from("HOSTME").remove(filePaths);
+                }
+            } catch {
+                // Best-effort cleanup — don't block deletion
+            }
+        }
 
         const { error: delError } = await supabase.from("listings").delete().eq("id", p.id);
         if (delError) throw delError;
+
+        await logAudit({
+            actorId: user.id,
+            action: "listing.deleted",
+            resourceType: "listing",
+            resourceId: p.id,
+            metadata: { title: listing.title, mediaCount: listing.media?.length || 0 },
+        });
 
         return ok({ deleted: true, id: p.id });
     } catch (error) {

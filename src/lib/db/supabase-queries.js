@@ -36,6 +36,32 @@ export async function listUsers(filters = {}) {
   return data || [];
 }
 
+// ===================== PROVIDER PROFILES =====================
+
+export async function findProviderProfileByUserId(userId) {
+  const { data, error } = await supabase.from("provider_profiles").select().eq("user_id", userId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function findProviderProfileById(id) {
+  const { data, error } = await supabase.from("provider_profiles").select().eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function createProviderProfile(profileData) {
+  const { data, error } = await supabase.from("provider_profiles").insert(profileData).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateProviderProfile(id, updates) {
+  const { data, error } = await supabase.from("provider_profiles").update(updates).eq("id", id).select().maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 // ===================== LISTINGS =====================
 
 export async function findListingById(id) {
@@ -57,16 +83,20 @@ export async function updateListing(id, updates) {
 }
 
 export async function listListings({
-  status, hostId, vertical, subVertical, bookingType, cityArea,
-  cursor, limit = 50, offset = 0, orderBy = "created_at", orderDir = "desc",
+  status, providerProfileId, vertical, subVertical, bookingType, cityArea,
+  keyword, cursor, limit = 50, offset = 0, orderBy = "created_at", orderDir = "desc",
 } = {}) {
   let query = supabase.from("listings").select();
   if (status) query = query.eq("status", status);
-  if (hostId) query = query.eq("host_id", hostId);
+  if (providerProfileId) query = query.eq("provider_profile_id", providerProfileId);
   if (vertical) query = query.eq("vertical", vertical);
   if (subVertical) query = query.contains("sub_vertical", [subVertical]);
   if (bookingType) query = query.eq("booking_type", bookingType);
   if (cityArea) query = query.eq("location->>cityArea", cityArea);
+  if (keyword) {
+    const pattern = `%${keyword}%`;
+    query = query.or(`title.ilike.${pattern},description.ilike.${pattern}`);
+  }
   if (cursor) query = query.gt("created_at", cursor);
   query = query.order(orderBy, { ascending: orderDir === "asc" }).range(offset, offset + limit - 1);
   const { data, error } = await query;
@@ -212,6 +242,56 @@ export async function findSoftHoldsBySlotId(slotId) {
   const { data, error } = await supabase.from("soft_holds").select().eq("slot_id", slotId);
   if (error) throw error;
   return data || [];
+}
+
+// ===================== PROVIDER VERIFICATIONS =====================
+
+export async function findVerificationById(id) {
+  const { data, error } = await supabase.from("provider_verifications").select().eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function listVerificationsByProviderProfile(providerProfileId) {
+  const { data, error } = await supabase
+    .from("provider_verifications")
+    .select("*")
+    .eq("provider_profile_id", providerProfileId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createVerification(verificationData) {
+  const { data, error } = await supabase.from("provider_verifications").insert(verificationData).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateVerification(id, updates) {
+  const { data, error } = await supabase.from("provider_verifications").update(updates).eq("id", id).select().maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function listPendingVerifications({ limit = 50, offset = 0 } = {}) {
+  const { data, error } = await supabase
+    .from("provider_verifications")
+    .select("*, provider_profiles!inner(id, user_id, business_name, provider_type, display_name)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function countPendingVerifications() {
+  const { count, error } = await supabase
+    .from("provider_verifications")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) throw error;
+  return count || 0;
 }
 
 // ===================== PROCESSED WEBHOOKS =====================

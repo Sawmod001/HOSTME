@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, CalendarCheck, LayoutDashboard } from "lucide-react";
+import { Plus, CalendarCheck, LayoutDashboard, Shield, CheckCircle2, Clock } from "lucide-react";
 import DashboardLayout from "@/components/sidebar/DashboardLayout";
 import HostSidebar from "@/components/sidebar/HostSidebar";
 
@@ -11,10 +11,9 @@ export default function HostDashboardPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [listings, setListings] = useState([]);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const roles = profile?.roles && profile.roles.length > 0 ? profile.roles : (profile?.activeRole === "host" ? ["host"] : ["guest"]);
 
   useEffect(() => {
     fetch("/api/auth/profile-status")
@@ -36,15 +35,23 @@ export default function HostDashboardPage() {
       let meId = null;
       if (meRes.ok) {
         const meData = await meRes.json();
-        meId = meData.data?.id || meData.id || null;
+        meId = meData.data?.providerProfile?.id || meData.providerProfile?.id || null;
       }
 
-      const query = meId ? `&hostId=${meId}` : "";
-      const [bookingsRes, pendingRes, activeRes] = await Promise.all([
+      const query = meId ? `&providerProfileId=${meId}` : "";
+      const [bookingsRes, pendingRes, activeRes, verifRes] = await Promise.all([
         fetch("/api/bookings"),
         fetch(`/api/listings?status=pending_review${query}`),
         fetch(`/api/listings?status=active${query}`),
+        fetch("/api/provider/verifications"),
       ]);
+      if (verifRes.ok) {
+        const verifData = await verifRes.json();
+        const verifs = verifData.data || [];
+        const hasApproved = verifs.some((v) => v.status === "approved");
+        const hasPending = verifs.some((v) => v.status === "pending");
+        setVerificationStatus(hasApproved ? "approved" : hasPending ? "pending" : "none");
+      }
       if (!bookingsRes.ok) throw new Error("Failed to load data");
       const bookingsData = await bookingsRes.json();
       setBookings(bookingsData.data || []);
@@ -76,7 +83,7 @@ export default function HostDashboardPage() {
   const confirmedCount = bookings.filter((b) => b.status === "confirmed").length;
 
   return (
-    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles, activePage: "dashboard" }}>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "dashboard" }}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -149,6 +156,40 @@ export default function HostDashboardPage() {
                 </div>
               </div>
             </div>
+
+            {verificationStatus && verificationStatus !== "approved" && (
+              <div className={`rounded-2xl border p-4 ${
+                verificationStatus === "pending"
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-[var(--color-border)] bg-white"
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-xl p-2 ${
+                      verificationStatus === "pending" ? "bg-amber-100 text-amber-700" : "bg-[var(--color-surface-alt)] text-[var(--color-ink-muted)]"
+                    }`}>
+                      {verificationStatus === "pending" ? <Clock size={20} /> : <Shield size={20} />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--color-ink)]">
+                        {verificationStatus === "pending" ? "Verification in progress" : "Get verified"}
+                      </p>
+                      <p className="text-xs text-[var(--color-ink-muted)]">
+                        {verificationStatus === "pending"
+                          ? "Your documents are being reviewed"
+                          : "Complete verification to build trust with guests"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/host/verification"
+                    className="rounded-xl bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    {verificationStatus === "pending" ? "View Status" : "Start Now"}
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1">
               <h2 className="font-semibold text-[var(--color-ink)]">Quick Actions</h2>

@@ -14,8 +14,6 @@ export default function GuestDashboardPage() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("upcoming");
 
-  const roles = profile?.roles?.length ? profile.roles : ["guest"];
-
   useEffect(() => {
     fetch("/api/auth/profile-status")
       .then((res) => res.json())
@@ -68,7 +66,7 @@ export default function GuestDashboardPage() {
   }
 
   return (
-    <DashboardLayout sidebar={GuestSidebar} sidebarProps={{ roles, activePage: "bookings" }}>
+    <DashboardLayout sidebar={GuestSidebar} sidebarProps={{ activePage: "bookings" }}>
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold text-[var(--color-ink)]">My Bookings</h1>
         <p className="text-sm text-[var(--color-ink-muted)]">Manage your reservations</p>

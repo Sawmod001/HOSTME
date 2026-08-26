@@ -18,9 +18,9 @@ export async function POST(request, { params }) {
     const { data: booking } = await supabase.from("bookings").select().eq("id", p.id).maybeSingle();
     if (!booking) return notFound("Booking not found");
 
-    const { data: listing } = await supabase.from("listings").select("host_id").eq("id", booking.listing_id).maybeSingle();
+    const { data: listing } = await supabase.from("listings").select("provider_profile_id").eq("id", booking.listing_id).maybeSingle();
     if (!listing) return notFound("Listing not found");
-    if (listing.host_id !== user.id) return forbidden();
+    if (user.providerProfile?.id !== listing.provider_profile_id) return forbidden();
 
     if (booking.status !== "confirmed") return fail("Only confirmed bookings can be marked completed", 400);
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 
 export default function ProfilePage() {
@@ -70,13 +69,7 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-lg space-y-6">
-        <PublicHeader backHref="/dashboard" />
-        <Link
-          href={(profile?.roles || []).includes("host") ? "/host/dashboard" : "/dashboard"}
-          className="flex items-center gap-2 text-sm text-[var(--color-primary)]"
-        >
-          <ArrowLeft size={16} /> Back to dashboard
-        </Link>
+        <PublicHeader backHref={profile?.role === "venue_host" || profile?.role === "housing_agent" ? "/host/dashboard" : "/dashboard"} role={profile?.role} />
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 space-y-6">
           <div>
@@ -119,7 +112,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
-          <p className="text-xs text-[var(--color-ink-muted)]">Roles: {(profile?.roles || []).join(", ")}</p>
+          <p className="text-xs text-[var(--color-ink-muted)]">Role: {(profile?.role || "guest").replace("_", " ")}</p>
           <p className="text-xs text-[var(--color-ink-muted)]">Member since {new Date(profile?.createdAt || profile?.created_at).toLocaleDateString()}</p>
         </div>
       </div>

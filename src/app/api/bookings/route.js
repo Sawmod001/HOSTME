@@ -13,18 +13,20 @@ export async function GET(request) {
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
-        const roles = user.roles || [];
 
         const { searchParams } = new URL(request.url);
         const statusFilter = searchParams.get("status");
 
         let query = supabase.from("bookings").select();
 
-        if (roles.includes("host")) {
+        const role = user.role || "guest";
+        if (role === "venue_host" || role === "housing_agent") {
+            // Provider: fetch all their listings via provider_profile_id
+            if (!user.providerProfile) return ok({ data: [] });
             const { data: listings } = await supabase
                 .from("listings")
                 .select("id")
-                .eq("host_id", user.id);
+                .eq("provider_profile_id", user.providerProfile.id);
             const listingIds = (listings || []).map((l) => l.id);
             if (listingIds.length === 0) return ok({ data: [] });
             query = query.in("listing_id", listingIds);

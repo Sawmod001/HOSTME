@@ -84,7 +84,7 @@ export default function HostSlotsPage({ params }) {
 
   if (loading) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
           <div className="mx-auto max-w-2xl space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -97,7 +97,7 @@ export default function HostSlotsPage({ params }) {
   }
 
   return (
-    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
       <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
           <Link href={`/host/listings/${id}`} className="flex items-center gap-2 text-sm text-[var(--color-primary)]">

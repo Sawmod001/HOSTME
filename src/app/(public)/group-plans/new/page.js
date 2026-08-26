@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Lock, Users } from "lucide-react";
+import { Loader2, Lock, Users } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 const toLocalDateInput = (d) => {
   const offset = d.getTimezoneOffset();
@@ -144,10 +146,8 @@ export default function NewGroupPlanPage() {
     return (
       <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
-          <Link href={listingId ? `/listings/${listingId}` : "/listings"} className="flex items-center gap-2 text-[var(--color-primary)]">
-            <ArrowLeft size={18} />
-            Back to listing
-          </Link>
+          <PublicHeader />
+          <BackButton href={listingId ? `/listings/${listingId}` : "/listings"} label="Back to listing" />
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
             <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
               <Lock size={22} />
@@ -168,10 +168,8 @@ export default function NewGroupPlanPage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6">
-        <Link href={listingId ? `/listings/${listingId}` : "/listings"} className="flex items-center gap-2 text-[var(--color-primary)]">
-          <ArrowLeft size={18} />
-          Back to listing
-        </Link>
+        <PublicHeader />
+        <BackButton href={listingId ? `/listings/${listingId}` : "/listings"} label="Back to listing" />
 
         <form onSubmit={handleCreate} className="space-y-6 rounded-2xl border border-[var(--color-border)] bg-white p-6">
           <div className="space-y-2">

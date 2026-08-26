@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 export default function CheckoutPage() {
     const params = useParams();
@@ -149,10 +151,8 @@ export default function CheckoutPage() {
         return (
             <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                 <div className="mx-auto max-w-2xl space-y-6">
-                    <Link href={`/listings/${listingId}`} className="flex items-center gap-2 text-[var(--color-primary)]">
-                        <ArrowLeft size={18} />
-                        Back to listing
-                    </Link>
+                    <PublicHeader />
+                    <BackButton href={`/listings/${listingId}`} label="Back to listing" />
                     <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
                         <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
                             <Lock size={22} />
@@ -173,10 +173,8 @@ export default function CheckoutPage() {
     return (
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
             <div className="mx-auto max-w-2xl space-y-6">
-                <Link href={`/listings/${listingId}`} className="flex items-center gap-2 text-[var(--color-primary)]">
-                    <ArrowLeft size={18} />
-                    Back to listing
-                </Link>
+                <PublicHeader />
+                <BackButton href={`/listings/${listingId}`} label="Back to listing" />
 
                 <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-[var(--color-border)] bg-white p-6">
                     <div className="space-y-2">

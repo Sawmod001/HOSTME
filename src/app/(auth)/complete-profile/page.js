@@ -11,11 +11,18 @@ const GENDER_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-const BUSINESS_TYPES = [
+const VENUE_BUSINESS_TYPES = [
   { value: "", label: "Select your business type" },
   { value: "venue_owner", label: "Venue Owner" },
-  { value: "house_agent", label: "House Agent" },
+  { value: "event_planner", label: "Event Planner" },
+  { value: "hospitality", label: "Hospitality Business" },
+];
 
+const HOUSING_BUSINESS_TYPES = [
+  { value: "", label: "Select your business type" },
+  { value: "property_owner", label: "Property Owner" },
+  { value: "real_estate_agent", label: "Real Estate Agent" },
+  { value: "property_manager", label: "Property Manager" },
 ];
 
 const REFERRAL_OPTIONS = [
@@ -62,6 +69,9 @@ export default function CompleteProfilePage() {
       });
   }, [router]);
 
+  const isProvider = role === "venue_host" || role === "housing_agent";
+  const businessTypes = role === "venue_host" ? VENUE_BUSINESS_TYPES : HOUSING_BUSINESS_TYPES;
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -70,7 +80,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    if (role === "host" && !termsAccepted) {
+    if (isProvider && !termsAccepted) {
       setStatus("You must accept HostMe's terms and conditions.");
       return;
     }
@@ -87,7 +97,7 @@ export default function CompleteProfilePage() {
         referralSource: referralSource || null,
       };
 
-      if (role === "host") {
+      if (isProvider) {
         body.businessName = businessName.trim();
         body.businessType = businessType;
         body.operatingHours = operatingHours.trim() || null;
@@ -133,10 +143,11 @@ export default function CompleteProfilePage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold" style={{ color: "var(--color-ink)" }}>Complete your profile</h1>
             <p className="text-sm" style={{ color: "var(--color-ink-muted)" }}>
-              {role === "host"
-                ? "Set up your host profile and tell guests about your space."
-                : "Just a few more details to help hosts know you better."}
-          </p>
+              {isProvider
+                ? "Set up your provider profile and start listing your spaces."
+                : "Just a few more details to help providers know you better."}
+            </p>
+          </div>
         </div>
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -150,24 +161,35 @@ export default function CompleteProfilePage() {
               }`}
               onClick={() => setRole("guest")}
             >
-              I&apos;m a Guest
+              Guest
             </button>
             <button
               type="button"
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
-                role === "host"
+                role === "venue_host"
                   ? "bg-[var(--color-primary)] text-white"
                   : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"
               }`}
-              onClick={() => setRole("host")}
+              onClick={() => setRole("venue_host")}
             >
-              I&apos;m a Host
+              Venue Host
+            </button>
+            <button
+              type="button"
+              className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
+                role === "housing_agent"
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"
+              }`}
+              onClick={() => setRole("housing_agent")}
+            >
+              Housing Agent
             </button>
           </div>
 
           <div className="h-px bg-[var(--color-border)]" />
 
-          {role === "host" && (
+          {isProvider && (
             <>
               <label className="flex flex-col gap-2 text-sm font-medium">
                 Business name <span className="text-[var(--color-danger)]">*</span>
@@ -189,7 +211,7 @@ export default function CompleteProfilePage() {
                   onChange={(e) => setBusinessType(e.target.value)}
                   required
                 >
-                  {BUSINESS_TYPES.map((opt) => (
+                  {businessTypes.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -204,7 +226,7 @@ export default function CompleteProfilePage() {
                   type="text"
                   value={operatingHours}
                   onChange={(e) => setOperatingHours(e.target.value)}
-                  placeholder="e.g. Mon–Fri 9am–10pm, Sat–Sun 10am–12am"
+                  placeholder="e.g. Mon-Fri 9am-10pm, Sat-Sun 10am-12am"
                 />
               </label>
             </>
@@ -263,7 +285,7 @@ export default function CompleteProfilePage() {
             </select>
           </label>
 
-          {role === "host" && (
+          {isProvider && (
             <label className="flex items-start gap-3 text-sm">
               <input
                 type="checkbox"
@@ -275,7 +297,7 @@ export default function CompleteProfilePage() {
                 I have read and agree to HostMe&apos;s{" "}
                 <span className="font-semibold text-[var(--color-ink)]">Terms and Conditions</span>{" "}
                 and{" "}
-                <span className="font-semibold text-[var(--color-ink)]">Host Guidelines</span>. I
+                <span className="font-semibold text-[var(--color-ink)]">Provider Guidelines</span>. I
                 understand that my listings will be reviewed before going live.
               </span>
             </label>
@@ -291,7 +313,6 @@ export default function CompleteProfilePage() {
         </form>
 
         <p className="mt-4 text-sm" style={{ color: "var(--color-ink-muted)" }}>{status}</p>
-        </div>
       </div>
     </main>
   );

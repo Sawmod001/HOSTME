@@ -184,10 +184,10 @@ export const BOOKING_TYPES = {
 };
 
 export const ROLES = {
-  eyebrow: "One account, two roles",
-  title: "Guest or host, switch anytime",
+  eyebrow: "One account, multiple roles",
+  title: "Book spaces or list your own",
   subtitle:
-    "Your HostMe account works for both sides of the market. Sign up once, then do both whenever you want.",
+    "Your HostMe account works for both sides of the market. Sign up as a guest to book, or as a host to list your space.",
   guest: {
     label: "Book as a guest",
     icon: "search",
@@ -253,7 +253,7 @@ export const FAQS = [
   },
   {
     q: "Can I be both a host and a guest?",
-    a: "Yes. One HostMe account supports both roles. Sign up as a guest to book spaces first, then add the host side from your profile to start listing your own space. You can switch between them anytime.",
+    a: "Yes. One HostMe account supports both sides. Sign up as a guest to book spaces first, then add the host side from your profile to start listing your own space. You can switch between them anytime.",
   },
   {
     q: "What is the difference between capacity and exclusive booking?",

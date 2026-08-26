@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, X } from "lucide-react";
+import { LogOut, X, Shield } from "lucide-react";
 import Logo from "@/components/Logo";
 
 export default function AdminSidebar({ activePage, onClose }) {
@@ -29,6 +29,12 @@ export default function AdminSidebar({ activePage, onClose }) {
       </Link>
       <Link href="/admin/listings/active" className={linkClass("active")}>
         Active Listings
+      </Link>
+      <Link href="/admin/verifications" className={linkClass("verifications")}>
+        <span className="flex items-center gap-2">
+          <Shield size={16} />
+          Verifications
+        </span>
       </Link>
       <Link href="/admin/users" className={linkClass("users")}>
         Users

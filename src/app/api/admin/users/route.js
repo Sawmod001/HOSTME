@@ -15,8 +15,7 @@ export async function GET(request) {
     }
 
     const userInfo = await getClerkUser(sessionInfo.userId);
-    const roles = userInfo?.roles || [];
-    if (!roles.includes("admin")) {
+    if (userInfo?.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

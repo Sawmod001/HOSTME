@@ -1,6 +1,7 @@
-import { findUserById } from "@/lib/db/supabase-queries";
+import { findUserById, findProviderProfileById } from "@/lib/db/supabase-queries";
 import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
 import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { supabase } from "@/lib/db/supabase";
 
 export async function GET(request, { params }) {
   try {
@@ -12,11 +13,21 @@ export async function GET(request, { params }) {
 
     const adminUser = await getClerkUser(sessionInfo.userId);
     if (!adminUser) return unauthorised("Clerk user not found");
-    if (!adminUser.roles?.includes("admin")) return forbidden("Admin role required");
+    if (adminUser.role !== "admin") return forbidden("Admin role required");
 
     if (!parseId(p.id)) return fail("Invalid user ID", 400);
 
-    const user = await findUserById(p.id);
+    // First try direct user lookup
+    let user = await findUserById(p.id);
+
+    // If not found, try as provider profile ID
+    if (!user) {
+      const providerProfile = await findProviderProfileById(p.id);
+      if (providerProfile) {
+        user = await findUserById(providerProfile.user_id);
+      }
+    }
+
     if (!user) return notFound("User not found");
 
     return ok({
@@ -24,6 +35,8 @@ export async function GET(request, { params }) {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        role: user.role,
         profile: user.profile,
       }),
     });

@@ -2,7 +2,9 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 export default function BookingStatusPage({ params }) {
     const { id } = use(params);
@@ -43,6 +45,7 @@ export default function BookingStatusPage({ params }) {
             <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                 <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
                     <p className="text-sm text-[var(--color-ink-muted)]">{error || "Booking not found"}</p>
+                    <BackButton href="/dashboard" label="Back to dashboard" />
                 </div>
             </main>
         );
@@ -51,10 +54,8 @@ export default function BookingStatusPage({ params }) {
     return (
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
             <div className="mx-auto max-w-2xl space-y-6">
-                <Link href="/listings" className="flex items-center gap-2 text-[var(--color-primary)]">
-                    <ArrowLeft size={18} />
-                    Back to listings
-                </Link>
+                <PublicHeader />
+                <BackButton href="/dashboard" label="Back to dashboard" />
 
                 <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
                     <div className="flex items-center justify-between gap-4">

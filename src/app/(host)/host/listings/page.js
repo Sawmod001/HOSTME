@@ -10,24 +10,24 @@ export default function HostListingsPage() {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [userId, setUserId] = useState(null);
+    const [providerProfileId, setProviderProfileId] = useState(null);
 
     useEffect(() => {
-        const fetchUserId = async () => {
+        const fetchProfile = async () => {
             const res = await fetch("/api/users/me");
             if (!res.ok) { setLoading(false); return; }
             const data = await res.json();
-            const uid = data.data?.id || data.id;
-            setUserId(uid);
+            const ppid = data.data?.providerProfile?.id || data.providerProfile?.id || null;
+            setProviderProfileId(ppid);
         };
-        fetchUserId();
+        fetchProfile();
     }, []);
 
     useEffect(() => {
-        if (!userId) return;
+        if (!providerProfileId) return;
         const fetchListings = async () => {
             try {
-                const response = await fetch(`/api/listings?hostId=${userId}`);
+                const response = await fetch(`/api/listings?providerProfileId=${providerProfileId}`);
                 if (!response.ok) throw new Error("Failed to fetch listings");
                 const data = await response.json();
                 setListings(data.data);
@@ -40,7 +40,7 @@ export default function HostListingsPage() {
         };
 
         fetchListings();
-    }, [userId]);
+    }, [providerProfileId]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -58,7 +58,7 @@ export default function HostListingsPage() {
     };
 
     return (
-        <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+        <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
             {loading ? (
                 <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
                     <div className="mx-auto max-w-4xl space-y-6">

@@ -58,7 +58,7 @@ export default function HostBookingDetailPage() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
           <div className="mx-auto max-w-2xl space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -72,7 +72,7 @@ export default function HostBookingDetailPage() {
 
   if (error) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
           <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
             <p className="text-sm text-[var(--color-ink-muted)]">{error}</p>
@@ -84,7 +84,7 @@ export default function HostBookingDetailPage() {
   }
 
   return (
-    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
       <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
           <Link href="/host/bookings" className="flex items-center gap-2 text-sm text-[var(--color-primary)]">

@@ -1,11 +1,13 @@
 import { supabaseAdmin } from "@/lib/db/supabase-admin";
 import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { validateCsrfOrigin } from "@/lib/csrf";
 
 const BUCKET = "HOSTME";
-const ALLOWED = ["jpg", "jpeg", "png", "webp", "gif"];
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 
-// Minimal magic-byte sniffing so a .png that is actually HTML/SVG/JS is rejected.
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
+const DOCUMENT_EXTENSIONS = ["pdf"];
+
 function sniffImageType(bytes) {
   if (bytes.length < 12) return null;
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
@@ -15,9 +17,17 @@ function sniffImageType(bytes) {
   return null;
 }
 
+function sniffPdfType(bytes) {
+  if (bytes.length < 5) return false;
+  const header = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4]);
+  return header === "%PDF-";
+}
+
 export async function POST(request) {
   try {
-    // Require a real, verified session — presence-only checks aren't enough.
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
     const sessionInfo = parseSessionToken(request);
     if (!sessionInfo?.userId) {
       return Response.json({ error: "Authentication required" }, { status: 401 });
@@ -36,30 +46,61 @@ export async function POST(request) {
 
     const formData = await request.formData();
     const file = formData.get("file");
+    const purpose = formData.get("purpose") || "listing"; // "listing" | "verification"
 
     if (!file || !file.size) {
       return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
     if (file.size > MAX_BYTES) {
-      return Response.json({ error: "File is too large. Max size is 5MB." }, { status: 400 });
+      return Response.json({ error: "File is too large. Max size is 10MB." }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
-    const detected = sniffImageType(new Uint8Array(bytes));
-    if (!detected) {
-      return Response.json({ error: "File is not a valid image" }, { status: 400 });
+    const uint8 = new Uint8Array(bytes);
+
+    let ext;
+    let contentType;
+    let folder;
+
+    if (purpose === "verification") {
+      // Verification documents: images or PDFs
+      const imageType = sniffImageType(uint8);
+      const isPdf = sniffPdfType(uint8);
+
+      if (imageType) {
+        ext = imageType;
+        contentType = `image/${ext}`;
+        folder = "verification-docs";
+      } else if (isPdf) {
+        ext = "pdf";
+        contentType = "application/pdf";
+        folder = "verification-docs";
+      } else {
+        return Response.json(
+          { error: "File must be an image (JPG, PNG, WebP) or PDF" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Listing images only
+      const detected = sniffImageType(uint8);
+      if (!detected) {
+        return Response.json({ error: "File is not a valid image" }, { status: 400 });
+      }
+      ext = detected;
+      contentType = `image/${ext}`;
+      folder = "listings";
     }
 
-    const ext = detected;
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const uniqueName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     let bucketExists = true;
 
     const { data, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(uniqueName, Buffer.from(bytes), {
-        contentType: `image/${ext}`,
+        contentType,
         upsert: false,
       });
 
@@ -85,18 +126,16 @@ export async function POST(request) {
     if (!bucketExists) {
       const { data: retryData, error: retryErr } = await supabaseAdmin.storage
         .from(BUCKET)
-        .upload(uniqueName, Buffer.from(bytes), {
-          contentType: `image/${ext}`,
-        });
+        .upload(uniqueName, Buffer.from(bytes), { contentType });
       if (retryErr) {
         return Response.json({ error: "Upload failed after creating bucket" }, { status: 500 });
       }
       const url = supabaseAdmin.storage.from(BUCKET).getPublicUrl(retryData.path).data.publicUrl;
-      return Response.json({ url });
+      return Response.json({ url, purpose });
     }
 
     const url = supabaseAdmin.storage.from(BUCKET).getPublicUrl(data.path).data.publicUrl;
-    return Response.json({ url });
+    return Response.json({ url, purpose });
   } catch (error) {
     console.error("POST /api/upload error:", error);
     return Response.json({ error: "Upload failed" }, { status: 500 });

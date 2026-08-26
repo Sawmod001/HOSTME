@@ -210,7 +210,6 @@ The goal is to find names that are:
 **Why:** Most globally modern and tech-forward. Echoes Peerspace/Splacer for venues and Airbnb for accommodation. Less specifically Nigerian but more internationally scalable.
 
 ---
-
 ## Sub-Vertical Naming
 
 ### Current Sub-Verticals (under venue)

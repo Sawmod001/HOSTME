@@ -1,10 +1,45 @@
 import { NextResponse } from "next/server";
 import { clerkFetch } from "@/lib/auth/clerk";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
-import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/db/supabase-queries";
+import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import {
+  findUserByClerkId,
+  createUser,
+  updateUserByClerkId,
+  findProviderProfileByUserId,
+  createProviderProfile,
+} from "@/lib/db/supabase-queries";
+import { validateCsrfOrigin } from "@/lib/csrf";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/db/audit";
+
+const VALID_ROLES = ["guest", "venue_host", "housing_agent"];
+
+const MAX_LENGTHS = {
+  name: 100,
+  phone: 20,
+  businessName: 200,
+  businessType: 100,
+  bio: 500,
+  location: 200,
+  gender: 30,
+  referralSource: 100,
+};
+
+function trim(value, maxLen) {
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  if (!t) return null;
+  return t.slice(0, maxLen);
+}
 
 export async function POST(request) {
   try {
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 10 }, "auth:complete-profile");
+    if (rateLimited) return rateLimited;
+
     const sessionInfo = parseSessionToken(request);
     if (!sessionInfo?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,47 +51,39 @@ export async function POST(request) {
 
     const clerkId = sessionInfo.userId;
     const payload = await request.json();
-    const selectedRole = payload?.role === "host" ? "host" : "guest";
-    const wantsHost = selectedRole === "host";
 
-    if (wantsHost) {
-      if (!payload?.businessName?.trim()) {
-        return NextResponse.json({ error: "Business name is required for host accounts" }, { status: 400 });
+    const selectedRole = VALID_ROLES.includes(payload?.role) ? payload.role : "guest";
+    const isProvider = selectedRole === "venue_host" || selectedRole === "housing_agent";
+
+    if (isProvider) {
+      if (!trim(payload?.businessName, MAX_LENGTHS.businessName)) {
+        return NextResponse.json({ error: "Business name is required for provider accounts" }, { status: 400 });
       }
-      if (!payload?.businessType) {
-        return NextResponse.json({ error: "Business type is required for host accounts" }, { status: 400 });
+      if (!trim(payload?.businessType, MAX_LENGTHS.businessType)) {
+        return NextResponse.json({ error: "Business type is required for provider accounts" }, { status: 400 });
       }
       if (!payload?.termsAccepted) {
         return NextResponse.json({ error: "You must accept the terms and conditions" }, { status: 400 });
       }
     }
 
-    if (!payload?.phone?.trim()) {
+    if (!trim(payload?.phone, MAX_LENGTHS.phone)) {
       return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
     }
 
-    const currentUser = await getClerkUser(clerkId);
-    const currentRoles = currentUser?.roles || ["guest"];
-    const newRoles = wantsHost
-      ? [...new Set([...currentRoles, "guest", "host"])]
-      : ["guest"];
-    const newActiveRole = wantsHost ? "host" : "guest";
-
-    // Save to Clerk public_metadata (reliable — always works)
     await clerkFetch(`/users/${clerkId}/metadata`, {
       method: "PATCH",
       body: JSON.stringify({
         public_metadata: {
-          roles: newRoles,
-          activeRole: newActiveRole,
+          role: selectedRole,
           profileCompleted: true,
         },
       }),
     });
 
-    // Try to save extended profile to Supabase (best-effort)
+    let dbUser = null;
     try {
-      let dbUser = await findUserByClerkId(clerkId);
+      dbUser = await findUserByClerkId(clerkId);
       if (!dbUser) {
         const clerkUser = await clerkFetch(`/users/${clerkId}`);
         const email = clerkUser.email_addresses?.[0]?.email_address || "";
@@ -65,8 +92,7 @@ export async function POST(request) {
           clerk_id: clerkId,
           name,
           email,
-          roles: ["guest"],
-          active_role: "guest",
+          role: "guest",
           is_email_verified: true,
           email_verified_at: new Date().toISOString(),
           status: "active",
@@ -74,37 +100,78 @@ export async function POST(request) {
         });
       }
 
+      const previousRole = dbUser.role;
+
       const profile = {
         ...(dbUser.profile || {}),
-        fullName: payload?.fullName || dbUser.profile?.fullName || dbUser.name,
-        phone: payload?.phone?.trim() || dbUser.profile?.phone || null,
-        gender: payload?.gender || dbUser.profile?.gender || null,
-        location: payload?.location?.trim() || dbUser.profile?.location || null,
-        bio: payload?.bio || dbUser.profile?.bio || null,
-        referralSource: payload?.referralSource || dbUser.profile?.referralSource || null,
-        businessName: wantsHost ? payload?.businessName?.trim() || null : null,
-        businessType: wantsHost ? payload?.businessType || null : null,
-        operatingHours: wantsHost ? payload?.operatingHours?.trim() || null : null,
-        termsAcceptedAt: wantsHost ? new Date().toISOString() : null,
+        fullName: trim(payload?.fullName, MAX_LENGTHS.name) || dbUser.profile?.fullName || dbUser.name,
+        phone: trim(payload?.phone, MAX_LENGTHS.phone) || dbUser.profile?.phone || null,
+        gender: trim(payload?.gender, MAX_LENGTHS.gender) || dbUser.profile?.gender || null,
+        location: trim(payload?.location, MAX_LENGTHS.location) || dbUser.profile?.location || null,
+        bio: trim(payload?.bio, MAX_LENGTHS.bio) || dbUser.profile?.bio || null,
+        referralSource: trim(payload?.referralSource, MAX_LENGTHS.referralSource) || dbUser.profile?.referralSource || null,
+        termsAcceptedAt: isProvider ? new Date().toISOString() : null,
       };
 
       await updateUserByClerkId(clerkId, {
-        roles: newRoles,
-        active_role: newActiveRole,
+        role: selectedRole,
         profile_completed: true,
         status: "active",
-        phone: payload?.phone?.trim() || dbUser.phone || null,
+        phone: trim(payload?.phone, MAX_LENGTHS.phone) || dbUser.phone || null,
         profile,
       });
+
+      await logAudit({
+        actorId: dbUser.id,
+        action: "profile.completed",
+        resourceType: "user",
+        resourceId: dbUser.id,
+        metadata: { previousRole, newRole: selectedRole, isProvider },
+      });
+
+      if (previousRole !== selectedRole) {
+        await logAudit({
+          actorId: dbUser.id,
+          action: "role.changed",
+          resourceType: "user",
+          resourceId: dbUser.id,
+          metadata: { from: previousRole, to: selectedRole, source: "complete-profile" },
+        });
+      }
+
+      if (isProvider) {
+        const existingProfile = await findProviderProfileByUserId(dbUser.id);
+        if (!existingProfile) {
+          const pp = await createProviderProfile({
+            user_id: dbUser.id,
+            provider_type: selectedRole,
+            business_name: trim(payload.businessName, MAX_LENGTHS.businessName),
+            business_type: trim(payload.businessType, MAX_LENGTHS.businessType),
+            display_name: trim(payload.businessName, MAX_LENGTHS.businessName),
+            verification_status: "none",
+          });
+
+          await logAudit({
+            actorId: dbUser.id,
+            action: "provider_profile.created",
+            resourceType: "provider_profile",
+            resourceId: pp.id,
+            metadata: {
+              providerType: selectedRole,
+              businessName: trim(payload.businessName, MAX_LENGTHS.businessName),
+            },
+          });
+        }
+      }
     } catch {
       // Supabase unavailable — Clerk metadata has all critical data
     }
 
-    const redirectTo = wantsHost ? "/host/dashboard" : "/dashboard";
+    const redirectTo = isProvider ? "/host/dashboard" : "/dashboard";
 
     return NextResponse.json({
       ok: true,
-      data: { roles: newRoles, activeRole: newActiveRole, redirectTo },
+      data: { role: selectedRole, redirectTo },
     });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Failed to save profile" }, { status: 500 });

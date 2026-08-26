@@ -1,283 +1,348 @@
 -- =============================================================================
--- HostMe Supabase Migration — Full Schema
--- Run this once in the Supabase SQL editor before starting the app.
+-- HostMe Supabase Migration — Batch 1: Auth + Authorization + Account Model
+-- =============================================================================
+-- IMPORTANT: Run this in a transaction. If anything fails, nothing is applied.
+-- Migration order: ADD → BACKFILL → VALIDATE → SWITCH READS → SWITCH WRITES → REMOVE LEGACY
 -- =============================================================================
 
 -- Enable PostGIS for geospatial queries
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- =============================================================================
--- USERS
--- Mirrors Clerk user. All auth state lives in Clerk; this table stores
--- platform-specific profile data and role assignments.
+-- ENUMS
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS users (
+
+DO $$ BEGIN
+  CREATE TYPE provider_type AS ENUM ('venue_host', 'housing_agent');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE verification_status AS ENUM ('none', 'pending', 'approved', 'rejected', 'suspended');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE verification_kind AS ENUM ('identity', 'business', 'property_authority');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE verification_state AS ENUM ('pending', 'approved', 'rejected', 'expired');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================================================
+-- USERS (modified)
+-- - Add role TEXT column (single role per user, not array)
+-- - Drop legacy roles[] and active_role columns (superseded by role)
+-- =============================================================================
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'guest'
+  CHECK (role IN ('guest', 'venue_host', 'housing_agent', 'admin'));
+
+-- Backfill role from existing roles array
+UPDATE users SET role = CASE
+  WHEN 'admin' = ANY(roles) THEN 'admin'
+  WHEN 'host' = ANY(roles) THEN 'venue_host'
+  ELSE 'guest'
+END
+WHERE role = 'guest' OR role IS NULL;
+
+ALTER TABLE users ALTER COLUMN role SET NOT NULL;
+ALTER TABLE users ALTER COLUMN role SET DEFAULT 'guest';
+
+-- Drop legacy columns — role column is now the source of truth
+ALTER TABLE users DROP COLUMN IF EXISTS roles;
+ALTER TABLE users DROP COLUMN IF EXISTS active_role;
+
+-- =============================================================================
+-- PROVIDER PROFILES
+-- One profile per user. A user is either a venue_host or housing_agent.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS provider_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  clerk_id TEXT UNIQUE,                                       -- Clerk user ID
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  phone TEXT DEFAULT NULL,
-  roles TEXT[] DEFAULT ARRAY['guest'],                        -- ['guest'], ['guest','host'], etc.
-  active_role TEXT DEFAULT 'guest',                           -- UI context only (never auth boundary)
-  email_verified_at TIMESTAMPTZ DEFAULT NULL,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'pending')),
-  is_email_verified BOOLEAN DEFAULT false,
-  otp_code TEXT DEFAULT NULL,                                 -- deprecated (Clerk handles OTP)
-  otp_expires_at TIMESTAMPTZ DEFAULT NULL,                    -- deprecated
-  profile_completed BOOLEAN DEFAULT false,
-  profile JSONB DEFAULT '{}'::jsonb,                          -- {fullName, phone, gender, location, bio, businessName, businessType, ...}
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider_type provider_type NOT NULL,
+  business_name TEXT,
+  business_type TEXT,
+  display_name TEXT,
+  verification_status verification_status NOT NULL DEFAULT 'none',
+  verified_at TIMESTAMPTZ,
+  suspension_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_provider_profiles_user_id ON provider_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_provider_profiles_type ON provider_profiles(provider_type);
+CREATE INDEX IF NOT EXISTS idx_provider_profiles_verification ON provider_profiles(verification_status);
 
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "provider_profiles_read_own" ON provider_profiles;
+CREATE POLICY "provider_profiles_read_own" ON provider_profiles
+  FOR SELECT USING (user_id::text = current_setting('app.user_id', true));
+
+DROP POLICY IF EXISTS "provider_profiles_insert_own" ON provider_profiles;
+CREATE POLICY "provider_profiles_insert_own" ON provider_profiles
+  FOR INSERT WITH CHECK (user_id::text = current_setting('app.user_id', true));
+
+DROP POLICY IF EXISTS "provider_profiles_update_own" ON provider_profiles;
+CREATE POLICY "provider_profiles_update_own" ON provider_profiles
+  FOR UPDATE USING (user_id::text = current_setting('app.user_id', true));
 
 -- =============================================================================
--- LISTINGS
--- Every listing has a booking_type ('capacity' or 'exclusive') that determines
--- which engine handles its bookings. JSONB columns (pricing, location, etc.)
--- keep the flexibility of the original document model.
+-- PROVIDER VERIFICATIONS
+-- Separate domain from provider profiles. Tracks identity, business, and
+-- property-authority verification per provider.
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS listings (
+
+CREATE TABLE IF NOT EXISTS provider_verifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  host_id UUID REFERENCES users(id) NOT NULL,
-  vertical TEXT NOT NULL CHECK (vertical IN ('venue', 'housing')),
-  sub_vertical TEXT[] DEFAULT ARRAY[]::TEXT[],                -- e.g. ['group_night', 'karaoke']
-  booking_type TEXT NOT NULL CHECK (booking_type IN ('capacity', 'exclusive')),
-  physical_space_id TEXT DEFAULT NULL,                         -- groups same physical venue across listings
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending_review', 'active', 'suspended', 'rejected')),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  location JSONB NOT NULL,                                     -- {state, cityArea, address, coordinates: {type, coordinates}}
-  pricing JSONB DEFAULT '{}'::jsonb,                           -- {baseRatePerHour (kobo), inspectionTransportFee}
-  operational_rules JSONB DEFAULT '{}'::jsonb,                 -- {maxCapacity, setupTimeMinutes, cleanupTimeMinutes, isByobAllowed, cancellationPolicy}
-  features JSONB DEFAULT '{}'::jsonb,                          -- vertical-specific feature flags
-  rejection_reason TEXT DEFAULT NULL,
-  media TEXT[] DEFAULT ARRAY[]::TEXT[],
-  add_ons JSONB DEFAULT '[]'::jsonb,                           -- [{id, name, priceInKobo, isRequired}]
-  coordinates GEOGRAPHY(POINT, 4326) DEFAULT NULL,             -- PostGIS point for geo queries
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  provider_profile_id UUID NOT NULL REFERENCES provider_profiles(id) ON DELETE CASCADE,
+  verification_type verification_kind NOT NULL,
+  status verification_state NOT NULL DEFAULT 'pending',
+  documents JSONB DEFAULT '[]'::jsonb,
+  review_note TEXT,
+  reviewed_by UUID REFERENCES users(id),
+  reviewed_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_listings_host_id ON listings(host_id);
-CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
-CREATE INDEX IF NOT EXISTS idx_listings_vertical ON listings(vertical);
-CREATE INDEX IF NOT EXISTS idx_listings_coordinates ON listings USING GIST(coordinates);
+CREATE INDEX IF NOT EXISTS idx_provider_verifications_profile ON provider_verifications(provider_profile_id);
+CREATE INDEX IF NOT EXISTS idx_provider_verifications_status ON provider_verifications(status);
 
-ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_verifications ENABLE ROW LEVEL SECURITY;
+
+-- Provider can read own verifications
+DROP POLICY IF EXISTS "provider_verifications_read_own" ON provider_verifications;
+CREATE POLICY "provider_verifications_read_own" ON provider_verifications
+  FOR SELECT USING (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+-- Provider can insert own verifications (submit new request)
+DROP POLICY IF EXISTS "provider_verifications_insert_own" ON provider_verifications;
+CREATE POLICY "provider_verifications_insert_own" ON provider_verifications
+  FOR INSERT WITH CHECK (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+    AND status = 'pending'
+  );
+
+-- Provider can update own pending verifications (replace documents before admin review)
+DROP POLICY IF EXISTS "provider_verifications_update_own" ON provider_verifications;
+CREATE POLICY "provider_verifications_update_own" ON provider_verifications
+  FOR UPDATE USING (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+    AND status = 'pending'
+  );
+
+-- Admin can read all verifications (using service_role, bypasses RLS — but for safety)
+DROP POLICY IF EXISTS "provider_verifications_admin_read" ON provider_verifications;
+CREATE POLICY "provider_verifications_admin_read" ON provider_verifications
+  FOR SELECT USING (
+    current_setting('app.user_role', true) = 'admin'
+  );
+
+-- Admin can update all verifications (approve/reject)
+DROP POLICY IF EXISTS "provider_verifications_admin_update" ON provider_verifications;
+CREATE POLICY "provider_verifications_admin_update" ON provider_verifications
+  FOR UPDATE USING (
+    current_setting('app.user_role', true) = 'admin'
+  );
+
+-- Auto-update updated_at on any row change
+CREATE OR REPLACE FUNCTION update_provider_verifications_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS provider_verifications_updated_at ON provider_verifications;
+CREATE TRIGGER provider_verifications_updated_at
+  BEFORE UPDATE ON provider_verifications
+  FOR EACH ROW
+  EXECUTE FUNCTION update_provider_verifications_updated_at();
 
 -- =============================================================================
--- BOOKINGS
--- Shared by both booking engines. The booking_type column is denormalized
--- from the listing for fast filtered queries.
+-- AUDIT LOGS
+-- Append-only audit trail for sensitive operations.
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS bookings (
+
+CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id UUID REFERENCES listings(id) NOT NULL,
-  guest_id UUID REFERENCES users(id) DEFAULT NULL,
-  booking_type TEXT NOT NULL CHECK (booking_type IN ('capacity', 'exclusive')),
-  event_start TIMESTAMPTZ NOT NULL,
-  event_end TIMESTAMPTZ NOT NULL,
-  headcount INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN (
-      'pending', 'awaiting_payment', 'confirmed', 'rejected',
-      'lost_race', 'expired', 'cancelled', 'completed', 'disputed'
-    )),
-  gateway_transaction_ref TEXT UNIQUE DEFAULT NULL,            -- idempotency key for webhooks
-  total_amount_kobo INTEGER NOT NULL,
-  commission_kobo INTEGER NOT NULL,                            -- 5% of total, stored for audit trail
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  actor_id UUID REFERENCES users(id),
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id UUID,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_bookings_listing_id ON bookings(listing_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_guest_id ON bookings(guest_id);
-CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_gateway_ref ON bookings(gateway_transaction_ref)
-  WHERE gateway_transaction_ref IS NOT NULL;                   -- partial unique index
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 
-ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
--- SLOTS (Capacity-Based Engine)
--- One document per bookable time window. The atomic unit that prevents
--- overselling — never compute remaining capacity by summing bookings.
+-- MIGRATE EXISTING HOSTS TO PROVIDER_PROFILES
+-- Mark as legacy_migrated — NOT auto-verified.
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS slots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id UUID REFERENCES listings(id) NOT NULL,
-  event_start TIMESTAMPTZ NOT NULL,
-  event_end TIMESTAMPTZ NOT NULL,
-  capacity INTEGER NOT NULL,
-  booked INTEGER NOT NULL DEFAULT 0,                            -- confirmed + soft-held headcount
-  held_until TIMESTAMPTZ DEFAULT NULL,                          -- earliest expiry among active holds
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_slots_listing_time ON slots(listing_id, event_start);
-CREATE INDEX IF NOT EXISTS idx_slots_listing_id ON slots(listing_id);
-
-ALTER TABLE slots ENABLE ROW LEVEL SECURITY;
+INSERT INTO provider_profiles (user_id, provider_type, business_name, business_type, verification_status)
+SELECT
+  id,
+  'venue_host'::provider_type,
+  COALESCE(profile->>'businessName', 'Legacy Host'),
+  COALESCE(profile->>'businessType', 'venue_owner'),
+  'none'::verification_status
+FROM users
+WHERE 'host' = ANY(roles)
+  AND NOT EXISTS (
+    SELECT 1 FROM provider_profiles WHERE user_id = users.id
+  );
 
 -- =============================================================================
--- EXCLUSIVE LOCKS (Exclusive-Space Engine)
--- "First-to-pay wins" mechanism. One row per date/time window.
+-- LISTINGS (modified)
+-- Add provider_profile_id, backfill from host_id, then drop host_id
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS exclusive_locks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id UUID REFERENCES listings(id) NOT NULL,
-  event_start TIMESTAMPTZ NOT NULL,
-  event_end TIMESTAMPTZ NOT NULL,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'locked')),
-  locked_by_booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_exclusive_locks_listing_time ON exclusive_locks(listing_id, event_start);
-CREATE INDEX IF NOT EXISTS idx_exclusive_locks_listing_id ON exclusive_locks(listing_id);
+-- Step 1: Add new column
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS provider_profile_id UUID REFERENCES provider_profiles(id);
 
-ALTER TABLE exclusive_locks ENABLE ROW LEVEL SECURITY;
+-- Step 2: Backfill from host_id via provider_profiles
+UPDATE listings l
+SET provider_profile_id = pp.id
+FROM provider_profiles pp
+WHERE pp.user_id = l.host_id
+  AND l.provider_profile_id IS NULL;
+
+-- Step 3: Make NOT NULL after backfill
+ALTER TABLE listings ALTER COLUMN provider_profile_id SET NOT NULL;
+
+-- Step 4: Drop old host_id column and its index
+DROP INDEX IF EXISTS idx_listings_host_id;
+ALTER TABLE listings DROP COLUMN host_id;
+
+-- Step 5: Add new index
+CREATE INDEX IF NOT EXISTS idx_listings_provider_profile_id ON listings(provider_profile_id);
 
 -- =============================================================================
--- REVIEWS & RATINGS
--- Users can leave a review for a listing after a completed booking.
+-- UPDATE RLS POLICIES
+-- Switch from host_id to provider_profile_id ownership checks
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS reviews (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id UUID REFERENCES listings(id) NOT NULL,
-  guest_id UUID REFERENCES users(id) NOT NULL,
-  booking_id UUID REFERENCES bookings(id) NOT NULL,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  review_text TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(booking_id)
-);
 
-CREATE INDEX IF NOT EXISTS idx_reviews_listing_id ON reviews(listing_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_guest_id ON reviews(guest_id);
+-- Users: keep existing policies
+DROP POLICY IF EXISTS "users_read_own" ON users;
+CREATE POLICY "users_read_own" ON users
+  FOR SELECT USING (clerk_id = current_setting('app.clerk_id', true));
+DROP POLICY IF EXISTS "users_update_own" ON users;
+CREATE POLICY "users_update_own" ON users
+  FOR UPDATE USING (clerk_id = current_setting('app.clerk_id', true));
 
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+-- Listings: switch to provider_profile_id ownership
+DROP POLICY IF EXISTS "listings_read_active" ON listings;
+CREATE POLICY "listings_read_active" ON listings
+  FOR SELECT USING (status = 'active');
 
+DROP POLICY IF EXISTS "listings_read_own" ON listings;
+CREATE POLICY "listings_read_own" ON listings
+  FOR SELECT USING (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+DROP POLICY IF EXISTS "listings_insert_own" ON listings;
+CREATE POLICY "listings_insert_own" ON listings
+  FOR INSERT WITH CHECK (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+DROP POLICY IF EXISTS "listings_update_own" ON listings;
+CREATE POLICY "listings_update_own" ON listings
+  FOR UPDATE USING (
+    provider_profile_id IN (
+      SELECT id FROM provider_profiles WHERE user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+-- Bookings: update to use provider_profile_id for host ownership
+DROP POLICY IF EXISTS "bookings_read_own" ON bookings;
+CREATE POLICY "bookings_read_own" ON bookings
+  FOR SELECT USING (
+    guest_id::text = current_setting('app.user_id', true)
+    OR listing_id IN (
+      SELECT l.id FROM listings l
+      JOIN provider_profiles pp ON pp.id = l.provider_profile_id
+      WHERE pp.user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+DROP POLICY IF EXISTS "bookings_insert" ON bookings;
+CREATE POLICY "bookings_insert" ON bookings FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "bookings_update_own" ON bookings;
+CREATE POLICY "bookings_update_own" ON bookings
+  FOR UPDATE USING (guest_id::text = current_setting('app.user_id', true));
+
+-- Reviews, slots, locks, holds, webhooks: keep existing policies
 DROP POLICY IF EXISTS "reviews_read" ON reviews;
 CREATE POLICY "reviews_read" ON reviews FOR SELECT USING (true);
 DROP POLICY IF EXISTS "reviews_insert_own" ON reviews;
-CREATE POLICY "reviews_insert_own" ON reviews FOR INSERT WITH CHECK (guest_id::text = current_setting('app.user_id', true));
+CREATE POLICY "reviews_insert_own" ON reviews
+  FOR INSERT WITH CHECK (guest_id::text = current_setting('app.user_id', true));
 
--- =============================================================================
--- SOFT HOLDS (Capacity-Based Engine)
--- Temporary headcount reservation. Expired holds are periodically swept
--- by the release_expired_holds() function (see below).
--- =============================================================================
-CREATE TABLE IF NOT EXISTS soft_holds (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slot_id UUID REFERENCES slots(id) NOT NULL,
-  headcount INTEGER NOT NULL CHECK (headcount >= 1),
-  booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
-  guest_id UUID REFERENCES users(id),
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_soft_holds_slot_id ON soft_holds(slot_id);
-CREATE INDEX IF NOT EXISTS idx_soft_holds_expires ON soft_holds(expires_at);
-
-ALTER TABLE soft_holds ENABLE ROW LEVEL SECURITY;
-
--- =============================================================================
--- PROCESSED WEBHOOKS
--- Idempotency guard for gateway webhooks. Ensures a given transaction ref
--- is only ever processed once.
--- =============================================================================
-CREATE TABLE IF NOT EXISTS processed_webhooks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  gateway_transaction_ref TEXT NOT NULL UNIQUE,
-  booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
-  gateway TEXT DEFAULT NULL CHECK (gateway IN ('paystack', 'mock')),
-  status TEXT DEFAULT 'processed',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE processed_webhooks ENABLE ROW LEVEL SECURITY;
-
--- =============================================================================
--- ROW LEVEL SECURITY POLICIES
--- Since all API requests use the service_role key (bypassed by default),
--- these policies are defensive belts-and-suspenders. They prevent accidental
--- exposure if a client-side key is ever used.
--- =============================================================================
-
--- Users: can only read/update own record
-DROP POLICY IF EXISTS "users_read_own" ON users;
-CREATE POLICY "users_read_own" ON users FOR SELECT USING (clerk_id = current_setting('app.clerk_id', true));
-DROP POLICY IF EXISTS "users_update_own" ON users;
-CREATE POLICY "users_update_own" ON users FOR UPDATE USING (clerk_id = current_setting('app.clerk_id', true));
-
--- Listings: anyone can read active; hosts manage own; admins manage all
-DROP POLICY IF EXISTS "listings_read_active" ON listings;
-CREATE POLICY "listings_read_active" ON listings FOR SELECT USING (status = 'active');
-DROP POLICY IF EXISTS "listings_read_own" ON listings;
-CREATE POLICY "listings_read_own" ON listings FOR SELECT USING (host_id::text = current_setting('app.user_id', true));
-DROP POLICY IF EXISTS "listings_insert_own" ON listings;
-CREATE POLICY "listings_insert_own" ON listings FOR INSERT WITH CHECK (host_id::text = current_setting('app.user_id', true));
-DROP POLICY IF EXISTS "listings_update_own" ON listings;
-CREATE POLICY "listings_update_own" ON listings FOR UPDATE USING (host_id::text = current_setting('app.user_id', true));
-
--- Bookings: guest host see own
-DROP POLICY IF EXISTS "bookings_read_own" ON bookings;
-CREATE POLICY "bookings_read_own" ON bookings FOR SELECT USING (
-  guest_id::text = current_setting('app.user_id', true)
-  OR listing_id IN (SELECT id FROM listings WHERE host_id::text = current_setting('app.user_id', true))
-);
-DROP POLICY IF EXISTS "bookings_insert" ON bookings;
-CREATE POLICY "bookings_insert" ON bookings FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "bookings_update_own" ON bookings;
-CREATE POLICY "bookings_update_own" ON bookings FOR UPDATE USING (guest_id::text = current_setting('app.user_id', true));
-
--- Slots: readable by all authenticated
 DROP POLICY IF EXISTS "slots_read" ON slots;
 CREATE POLICY "slots_read" ON slots FOR SELECT USING (true);
-
--- Exclusive locks: readable by all authenticated
 DROP POLICY IF EXISTS "exclusive_locks_read" ON exclusive_locks;
 CREATE POLICY "exclusive_locks_read" ON exclusive_locks FOR SELECT USING (true);
-
--- Soft holds
 DROP POLICY IF EXISTS "soft_holds_read" ON soft_holds;
 CREATE POLICY "soft_holds_read" ON soft_holds FOR SELECT USING (true);
-
--- Processed webhooks
 DROP POLICY IF EXISTS "webhooks_insert" ON processed_webhooks;
 CREATE POLICY "webhooks_insert" ON processed_webhooks FOR INSERT WITH CHECK (true);
 
+-- Group plans: keep existing policies
+DROP POLICY IF EXISTS "group_plans_read" ON group_plans;
+CREATE POLICY "group_plans_read" ON group_plans FOR SELECT USING (true);
+DROP POLICY IF EXISTS "group_plans_insert_own" ON group_plans;
+CREATE POLICY "group_plans_insert_own" ON group_plans
+  FOR INSERT WITH CHECK (created_by::text = current_setting('app.user_id', true));
+DROP POLICY IF EXISTS "plan_members_read" ON plan_members;
+CREATE POLICY "plan_members_read" ON plan_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "plan_members_insert_own" ON plan_members;
+CREATE POLICY "plan_members_insert_own" ON plan_members
+  FOR INSERT WITH CHECK (user_id::text = current_setting('app.user_id', true));
+
 -- =============================================================================
--- STORAGE BUCKET & RLS
--- The "HOSTME" bucket must exist for image uploads. These policies
--- allow public reads (for <img> tags in the browser) and authenticated uploads.
--- AFTER running this SQL, also create the bucket via Dashboard or API:
---   Supabase Dashboard → Storage → New bucket → name: "HOSTME", Public: ON
--- The API will auto-create it if missing, but it's better to do it now.
+-- STORAGE: public read for listing images
 -- =============================================================================
 
--- Allow public read access to the HOSTME bucket
 DROP POLICY IF EXISTS "listings_storage_select" ON storage.objects;
 CREATE POLICY "listings_storage_select" ON storage.objects
   FOR SELECT TO public
   USING (bucket_id = 'HOSTME');
 
 -- =============================================================================
--- FUNCTION: search_listings_nearby()
--- Returns active listings within a given radius of a point, ordered by distance.
--- Uses PostGIS ST_DWithin for efficient spatial filtering.
+-- FUNCTIONS (unchanged from original — keep PostGIS search + atomic ops)
 -- =============================================================================
+
 CREATE OR REPLACE FUNCTION search_listings_nearby(
   p_lat DOUBLE PRECISION,
   p_lng DOUBLE PRECISION,
@@ -289,7 +354,7 @@ CREATE OR REPLACE FUNCTION search_listings_nearby(
   p_offset INTEGER DEFAULT 0
 )
 RETURNS TABLE (
-  id UUID, host_id UUID, vertical TEXT, sub_vertical TEXT[], booking_type TEXT,
+  id UUID, provider_profile_id UUID, vertical TEXT, sub_vertical TEXT[], booking_type TEXT,
   status TEXT, title TEXT, description TEXT, location JSONB, pricing JSONB,
   operational_rules JSONB, features JSONB, media TEXT[], add_ons JSONB,
   distance_meters DOUBLE PRECISION
@@ -297,7 +362,7 @@ RETURNS TABLE (
 LANGUAGE sql STABLE
 AS $$
   SELECT
-    l.id, l.host_id, l.vertical, l.sub_vertical, l.booking_type,
+    l.id, l.provider_profile_id, l.vertical, l.sub_vertical, l.booking_type,
     l.status, l.title, l.description, l.location, l.pricing,
     l.operational_rules, l.features, l.media, l.add_ons,
     ST_Distance(l.coordinates, ST_MakePoint(p_lng, p_lat)::geography) AS distance_meters
@@ -313,11 +378,6 @@ AS $$
   OFFSET p_offset;
 $$;
 
--- =============================================================================
--- FUNCTION: reserve_capacity_slot()
--- Atomically increments `booked` on a slot if capacity allows.
--- Returns the updated slot row, or empty if capacity exhausted.
--- =============================================================================
 CREATE OR REPLACE FUNCTION reserve_capacity_slot(
   p_slot_id UUID,
   p_listing_id UUID,
@@ -337,12 +397,6 @@ BEGIN
 END;
 $$;
 
--- =============================================================================
--- FUNCTION: resolve_exclusive_lock()
--- Atomically claims an open exclusive lock. On success, marks the winning
--- booking as confirmed and rejects all other pending bookings for the same slot.
--- Returns NULL if someone else already locked it (lost race).
--- =============================================================================
 CREATE OR REPLACE FUNCTION resolve_exclusive_lock(
   p_lock_id UUID,
   p_booking_id UUID,
@@ -377,12 +431,6 @@ BEGIN
 END;
 $$;
 
--- =============================================================================
--- FUNCTION: release_expired_holds()
--- Sweeps all expired soft holds and releases their headcount back to the slot.
--- Called by a cron job (Vercel Cron / pg_cron) — see vercel.json.
--- Returns the number of holds released.
--- =============================================================================
 CREATE OR REPLACE FUNCTION release_expired_holds()
 RETURNS TABLE (released INTEGER)
 LANGUAGE plpgsql
@@ -409,10 +457,6 @@ BEGIN
 END;
 $$;
 
--- =============================================================================
--- FUNCTION: update_updated_at()
--- Trigger function that auto-sets `updated_at` on row modification.
--- =============================================================================
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -421,6 +465,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Triggers
 DROP TRIGGER IF EXISTS users_updated_at ON users;
 CREATE TRIGGER users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS listings_updated_at ON listings;
@@ -435,14 +480,13 @@ DROP TRIGGER IF EXISTS reviews_updated_at ON reviews;
 CREATE TRIGGER reviews_updated_at BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS processed_webhooks_updated_at ON processed_webhooks;
 CREATE TRIGGER processed_webhooks_updated_at BEFORE UPDATE ON processed_webhooks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS provider_profiles_updated_at ON provider_profiles;
+CREATE TRIGGER provider_profiles_updated_at BEFORE UPDATE ON provider_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- =============================================================================
--- GROUP PLANS & PLAN MEMBERS (Book Together)
--- A plan lets a group coordinate booking a venue slot. Capacity is ONLY consumed
--- when the plan is finalized (see finalize_group_plan), which reuses the atomic
--- reserve_capacity_slot() engine. Plans start 'active' and move to 'finalized'
--- (booking created) or 'cancelled'. No capacity is held while a plan is open.
+-- GROUP PLANS (keep as-is for now, deprecated in later batch)
 -- =============================================================================
+
 CREATE TABLE IF NOT EXISTS group_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID REFERENCES listings(id) NOT NULL,
@@ -475,35 +519,18 @@ CREATE TABLE IF NOT EXISTS plan_members (
   gateway_transaction_ref TEXT UNIQUE DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(plan_id, user_id)                                -- each user joins a plan once
+  UNIQUE(plan_id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_plan_members_plan ON plan_members(plan_id);
 
 ALTER TABLE plan_members ENABLE ROW LEVEL SECURITY;
 
--- Defensive RLS (service_role bypasses these; they protect against client keys)
-DROP POLICY IF EXISTS "group_plans_read" ON group_plans;
-CREATE POLICY "group_plans_read" ON group_plans FOR SELECT USING (true);
-DROP POLICY IF EXISTS "group_plans_insert_own" ON group_plans;
-CREATE POLICY "group_plans_insert_own" ON group_plans FOR INSERT WITH CHECK (created_by::text = current_setting('app.user_id', true));
-DROP POLICY IF EXISTS "plan_members_read" ON plan_members;
-CREATE POLICY "plan_members_read" ON plan_members FOR SELECT USING (true);
-DROP POLICY IF EXISTS "plan_members_insert_own" ON plan_members;
-CREATE POLICY "plan_members_insert_own" ON plan_members FOR INSERT WITH CHECK (user_id::text = current_setting('app.user_id', true));
-
 DROP TRIGGER IF EXISTS group_plans_updated_at ON group_plans;
 CREATE TRIGGER group_plans_updated_at BEFORE UPDATE ON group_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS plan_members_updated_at ON plan_members;
 CREATE TRIGGER plan_members_updated_at BEFORE UPDATE ON plan_members FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- =============================================================================
--- FUNCTION: cancel_expired_group_plans()
--- Sweeps group plans whose close date has passed without reaching the target
--- headcount and marks them 'cancelled'. Called by a cron job — see vercel.json.
--- No capacity is held by open plans (reserve_capacity_slot runs only on
--- finalize), so cancellation is a status flip. Returns the number cancelled.
--- =============================================================================
 CREATE OR REPLACE FUNCTION cancel_expired_group_plans()
 RETURNS TABLE (cancelled INTEGER)
 LANGUAGE plpgsql

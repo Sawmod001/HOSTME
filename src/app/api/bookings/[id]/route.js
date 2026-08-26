@@ -18,8 +18,8 @@ export async function GET(request, { params }) {
         const { data: booking } = await supabase.from("bookings").select().eq("id", p.id).maybeSingle();
         if (!booking) return notFound("Booking not found");
 
-        const { data: listing } = await supabase.from("listings").select("host_id").eq("id", booking.listing_id).maybeSingle();
-        const isHost = listing && listing.host_id === user.id;
+        const { data: listing } = await supabase.from("listings").select("provider_profile_id").eq("id", booking.listing_id).maybeSingle();
+        const isHost = listing && user.providerProfile?.id === listing.provider_profile_id;
         const isGuest = booking.guest_id === user.id;
 
         if (!isHost && !isGuest) return forbidden();

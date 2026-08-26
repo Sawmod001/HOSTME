@@ -70,11 +70,9 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {(user.roles || []).map((role) => (
-                      <span key={role} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
-                        <ShieldCheck size={10} /> {role}
-                      </span>
-                    ))}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                      <ShieldCheck size={10} /> {user.role || "guest"}
+                    </span>
                   </div>
                 </div>
               </div>

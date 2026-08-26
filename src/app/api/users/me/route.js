@@ -18,8 +18,8 @@ export async function GET(request) {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      roles: user.roles,
-      activeRole: user.active_role,
+      role: user.role || "guest",
+      providerProfile: user.providerProfile || null,
       profile: user.profile || {},
       createdAt: user.created_at,
     });
@@ -57,8 +57,7 @@ export async function PATCH(request) {
       name: updated.name,
       email: updated.email,
       phone: updated.phone,
-      roles: updated.roles,
-      activeRole: updated.active_role,
+      role: updated.role || "guest",
       profile: updated.profile || {},
     });
   } catch (error) {

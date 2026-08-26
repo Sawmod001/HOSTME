@@ -65,7 +65,7 @@ export async function POST(request) {
     });
 
     const meta = matchedUser.public_metadata || {};
-    const redirectTo = getRedirectPath(meta);
+    const redirectTo = getRedirectPath({ role: meta.role || "guest", profileCompleted: meta.profileCompleted });
 
     const response = NextResponse.json({ success: true, redirectTo });
 

@@ -42,7 +42,7 @@ export async function POST(request, { params }) {
     if (existing) return fail("You already reviewed this booking", 409);
 
     const listing = await findListingById(p.id);
-    if (listing && listing.host_id === user.id) return forbidden("Hosts cannot review their own listings");
+    if (listing && user.providerProfile?.id === listing.provider_profile_id) return forbidden("Providers cannot review their own listings");
 
     const review = await createReview({
       listing_id: p.id,

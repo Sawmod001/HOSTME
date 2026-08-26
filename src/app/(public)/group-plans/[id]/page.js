@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, Copy, Link2, Loader2, Lock, Users } from "lucide-react";
+import { Check, Copy, Loader2, Lock, Users } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 const STATUS_STYLE = {
   pending: "bg-[#FEF3C7] text-[#B45309]",
@@ -150,10 +151,7 @@ export default function GroupPlanPage() {
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <PublicHeader backHref="/group-plans" />
-        <Link href={listing ? `/listings/${listing.id}` : "/listings"} className="flex items-center gap-2 text-[var(--color-primary)]">
-          <ArrowLeft size={18} />
-          Back to listing
-        </Link>
+        <BackButton href={listing ? `/listings/${listing.id}` : "/listings"} label="Back to listing" />
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
           <div className="flex items-start justify-between gap-4">

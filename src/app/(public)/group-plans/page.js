@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Loader2, Users } from "lucide-react";
+import { ArrowRight, Loader2, Users } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 const STATUS_STYLE = {
   active: "bg-[#DBEAFE] text-[#1E40AF]",
@@ -41,9 +42,7 @@ export default function MyGroupPlansPage() {
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <PublicHeader />
-        <Link href="/" className="flex items-center gap-2 text-[var(--color-primary)] text-sm">
-          <ArrowLeft size={16} /> Back to Home
-        </Link>
+        <BackButton href="/dashboard" label="Back to dashboard" />
 
         <div className="flex items-center justify-between gap-4">
           <div>

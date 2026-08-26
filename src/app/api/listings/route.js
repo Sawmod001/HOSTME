@@ -1,21 +1,24 @@
 import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
 import { getUser } from "@/lib/auth/getUser";
-import { createListing, listListings, countListings } from "@/lib/db/supabase-queries";
+import { createListing, listListings, countListings, findProviderProfileById } from "@/lib/db/supabase-queries";
 import { validateListingCreate, validateListingFilter } from "@/lib/validation";
-import { toCamelCase, cachedOk, fail } from "@/lib/db/supabase-utils";
+import { validateCsrfOrigin } from "@/lib/csrf";
+import { logAudit } from "@/lib/db/audit";
+import { toCamelCase, cachedOk, fail, ok } from "@/lib/db/supabase-utils";
 
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
         const requestedStatus = searchParams.get("status") || undefined;
-        const hostId = searchParams.get("hostId") || undefined;
+        const providerProfileId = searchParams.get("providerProfileId") || undefined;
         const filters = {
             vertical: searchParams.get("vertical") || undefined,
             subVertical: searchParams.get("subVertical") || undefined,
             cityArea: searchParams.get("cityArea") || undefined,
             bookingType: searchParams.get("bookingType") || undefined,
             status: requestedStatus,
-            hostId,
+            providerProfileId,
+            keyword: searchParams.get("keyword") || undefined,
             lat: searchParams.get("lat") ? parseFloat(searchParams.get("lat")) : undefined,
             lng: searchParams.get("lng") ? parseFloat(searchParams.get("lng")) : undefined,
             radiusKm: searchParams.get("radiusKm") ? parseFloat(searchParams.get("radiusKm")) : 50,
@@ -28,7 +31,7 @@ export async function GET(request) {
             return fail("Invalid filters", 400);
         }
 
-        // Resolve the caller (optional) to enforce status/host access.
+        // Resolve caller for access control
         const sessionInfo = parseSessionToken(request);
         let caller = null;
         if (sessionInfo?.userId) {
@@ -36,31 +39,33 @@ export async function GET(request) {
             if (isValid) caller = await getUser(sessionInfo.userId);
         }
 
-        const isAdmin = caller ? (caller.roles || []).includes("admin") : false;
-        const isSelf = caller?.id && hostId === caller.id;
+        const isAdmin = caller ? caller.role === "admin" : false;
 
-        // Non-public statuses are admin-only, or the host viewing their own
-        // inventory (hostId must scope that access to themselves).
+        // Non-public statuses require admin or the provider viewing their own
         const requested = validation.data.status;
-        if (requested && requested !== "active" && !isAdmin && !(requested === "pending_review" && isSelf)) {
-            return fail("Forbidden", 403);
+        if (requested && requested !== "active" && !isAdmin) {
+            // Check if the caller owns this provider profile
+            if (providerProfileId && caller?.providerProfile?.id === providerProfileId) {
+                // Allow — provider viewing their own non-active listings
+            } else {
+                return fail("Forbidden", 403);
+            }
         }
 
-        // hostId filter only reveals the requested host's own inventory to the
-        // host themselves, an admin, or an anonymous browser (which is
-        // restricted to active listings below).
-        if (hostId && caller?.id && hostId !== caller.id && !isAdmin) {
+        // providerProfileId filter: only the provider themselves, admin, or anonymous
+        if (providerProfileId && caller?.id && caller.providerProfile?.id !== providerProfileId && !isAdmin) {
             return fail("Forbidden", 403);
         }
 
         try {
             const items = await listListings({
-                status: requested || (hostId && caller?.id && caller.id === hostId ? undefined : "active"),
-                hostId,
+                status: requested || (providerProfileId && caller?.providerProfile?.id === providerProfileId ? undefined : "active"),
+                providerProfileId,
                 vertical: validation.data.vertical,
                 subVertical: validation.data.subVertical,
                 bookingType: validation.data.bookingType,
                 cityArea: validation.data.cityArea,
+                keyword: validation.data.keyword,
                 cursor: validation.data.cursor,
                 limit: validation.data.limit + 1,
             });
@@ -85,6 +90,9 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
         const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
@@ -93,9 +101,14 @@ export async function POST(request) {
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);
 
-        // Only host-capable accounts may create listings.
-        if (!(user.roles || []).includes("host")) {
-            return fail("Only hosts can create listings", 403);
+        // Only providers may create listings
+        if (user.role !== "venue_host" && user.role !== "housing_agent") {
+            return fail("Only providers can create listings", 403);
+        }
+
+        // Must have a provider profile
+        if (!user.providerProfile) {
+            return fail("Provider profile not found. Please complete your profile first.", 404);
         }
 
         const payload = await request.json();
@@ -113,7 +126,7 @@ export async function POST(request) {
             }
 
             const listing = await createListing({
-                host_id: user.id,
+                provider_profile_id: user.providerProfile.id,
                 vertical: validation.data.vertical,
                 sub_vertical: validation.data.subVertical || [],
                 booking_type: validation.data.bookingType,
@@ -125,7 +138,15 @@ export async function POST(request) {
                 features: validation.data.features || {},
                 media: validation.data.media || [],
                 add_ons: validation.data.addOns || [],
-                status: "pending_review",
+                status: "draft",
+            });
+
+            await logAudit({
+                actorId: user.id,
+                action: "listing.created",
+                resourceType: "listing",
+                resourceId: listing.id,
+                metadata: { vertical: listing.vertical, title: listing.title, status: "draft" },
             });
 
             return ok(toCamelCase(listing), 201);
@@ -140,3 +161,5 @@ export async function POST(request) {
         return fail("Failed to create listing", 500);
     }
 }
+
+

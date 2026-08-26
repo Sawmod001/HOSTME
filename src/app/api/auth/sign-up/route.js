@@ -80,8 +80,7 @@ export async function POST(request) {
         clerk_id: clerkUser.id,
         name: trimmedEmail.split("@")[0] || "User",
         email: trimmedEmail,
-        roles: ["guest"],
-        active_role: "guest",
+        role: "guest",
         is_email_verified: true,
         email_verified_at: new Date().toISOString(),
         status: "active",
@@ -93,8 +92,7 @@ export async function POST(request) {
 
     const meta = clerkUser.public_metadata || {};
     const redirectTo = getRedirectPath({
-      roles: meta.roles || ["guest"],
-      activeRole: meta.activeRole || "guest",
+      role: meta.role || "guest",
       profileCompleted: meta.profileCompleted || false,
     });
 

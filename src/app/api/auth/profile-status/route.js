@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
 import { findUserByClerkId } from "@/lib/db/supabase-queries";
 
+const REDIRECTS = {
+  guest: "/dashboard",
+  venue_host: "/host/dashboard",
+  housing_agent: "/host/dashboard",
+  admin: "/admin",
+};
+
 export async function GET(request) {
   try {
     const sessionInfo = parseSessionToken(request);
@@ -18,37 +25,27 @@ export async function GET(request) {
       return NextResponse.json({ authenticated: true, completed: false });
     }
 
-    // Clerk metadata is the source of truth for profile completion
+    // Fast path: Clerk metadata is the source of truth when profile is completed
     if (clerkUser.profileCompleted) {
-      const redirects = {
-        guest: "/dashboard",
-        host: "/host/dashboard",
-        admin: "/management-portal-x7q",
-      };
+      const role = clerkUser.role || "guest";
       return NextResponse.json({
         authenticated: true,
         completed: true,
-        redirectTo: redirects[clerkUser.activeRole] || "/dashboard",
-        roles: clerkUser.roles || ["guest"],
-        activeRole: clerkUser.activeRole || "guest",
+        redirectTo: REDIRECTS[role] || "/dashboard",
+        role,
       });
     }
 
-    // Fallback: check Supabase for profile completion (best-effort)
+    // Slow path: check Supabase for profile completion (legacy users)
     try {
       const dbUser = await findUserByClerkId(sessionInfo.userId);
       if (dbUser?.profile_completed) {
-        const redirects = {
-          guest: "/dashboard",
-          host: "/host/dashboard",
-          admin: "/management-portal-x7q",
-        };
+        const role = dbUser.role || "guest";
         return NextResponse.json({
           authenticated: true,
           completed: true,
-          redirectTo: redirects[dbUser.active_role] || "/dashboard",
-          roles: dbUser.roles || ["guest"],
-          activeRole: dbUser.active_role || "guest",
+          redirectTo: REDIRECTS[role] || "/dashboard",
+          role,
         });
       }
     } catch {

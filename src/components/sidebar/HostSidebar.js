@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, X } from "lucide-react";
+import { LogOut, X, Shield } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export default function HostSidebar({ roles = [], activePage, onClose }) {
+export default function HostSidebar({ activePage, onClose }) {
   const linkClass = (page) =>
     `rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
       activePage === page
@@ -30,12 +30,12 @@ export default function HostSidebar({ roles = [], activePage, onClose }) {
       <Link href="/host/bookings" className={linkClass("bookings")}>
         Booking Inbox
       </Link>
-
-      {roles.includes("guest") && (
-        <Link href="/dashboard" className={linkClass("guest")}>
-          Guest Dashboard
-        </Link>
-      )}
+      <Link href="/host/verification" className={linkClass("verification")}>
+        <span className="flex items-center gap-2">
+          <Shield size={16} />
+          Verification
+        </span>
+      </Link>
 
       <Link href="/profile" className={linkClass("profile")}>
         Profile

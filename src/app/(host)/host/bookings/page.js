@@ -77,7 +77,7 @@ export default function HostBookingsPage() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "bookings" }}>
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-28 animate-pulse rounded-2xl border border-[var(--color-border)] bg-white" />
@@ -89,7 +89,7 @@ export default function HostBookingsPage() {
 
   if (error) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "bookings" }}>
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 text-center">
           <p className="text-sm text-[var(--color-ink-muted)]">{error}</p>
           <button onClick={() => loadData(activeTab)} className="mt-4 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white">Try Again</button>
@@ -99,7 +99,7 @@ export default function HostBookingsPage() {
   }
 
   return (
-    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "bookings" }}>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "bookings" }}>
       <div className="space-y-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold text-[var(--color-ink)]">Booking Inbox</h1>

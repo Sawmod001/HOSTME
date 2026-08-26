@@ -52,7 +52,7 @@ export default function AdminPendingListingsPage() {
     const handleContactHost = async (listing) => {
         setContactingId(listing.id);
         try {
-            const response = await fetch(`/api/users/${listing.hostId}`);
+            const response = await fetch(`/api/users/${listing.providerProfileId}`);
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || "Failed to fetch host info");
             setContactHost({ ...data.data, listingId: listing.id });

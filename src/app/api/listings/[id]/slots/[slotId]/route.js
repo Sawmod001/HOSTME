@@ -14,13 +14,15 @@ export async function DELETE(request, { params }) {
 
     const user = await getUser(sessionInfo.userId);
     if (!user) return unauthorised("User not found");
-    const roles = user.roles || [];
 
     if (!parseId(p.id) || !parseId(p.slotId)) return fail("Invalid ID", 400);
 
     const listing = await findListingById(p.id);
     if (!listing) return notFound("Listing not found");
-    if (listing.host_id !== user.id && !roles.includes("admin")) return forbidden("Not your listing");
+
+    const isOwner = user.providerProfile?.id === listing.provider_profile_id;
+    const isAdmin = user.role === "admin";
+    if (!isOwner && !isAdmin) return forbidden("Not your listing");
 
     const slot = await findSlotById(p.slotId);
     if (!slot) return notFound("Slot not found");

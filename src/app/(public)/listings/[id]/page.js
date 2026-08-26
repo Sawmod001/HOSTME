@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, Users, Clock, Check, X, LogIn, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, Clock, Check, X, LogIn, Star } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 const subVerticalLabels = {
   birthday: "Birthday Venue",
@@ -266,7 +267,7 @@ export default function ListingDetailPage({ params }) {
     return (
       <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
         <div className="mx-auto max-w-2xl">
-          <Link href="/listings" className="flex items-center gap-2 text-[var(--color-primary)] mb-6"><ArrowLeft size={18} />Back to listings</Link>
+          <BackButton href="/listings" label="Back to listings" />
           <div className="rounded-2xl border bg-white p-8 text-center space-y-4">
             {!isAuthenticated ? (
               <>
@@ -291,7 +292,6 @@ export default function ListingDetailPage({ params }) {
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <PublicHeader backHref="/listings" />
-        <Link href="/listings" className="flex items-center gap-2 text-[var(--color-primary)] text-sm"><ArrowLeft size={16} />Back to listings</Link>
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 space-y-6">
           <MediaCarousel media={listing.media} />

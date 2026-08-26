@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, CreditCard, CheckCircle2 } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import PublicHeader from "@/components/PublicHeader";
+import BackButton from "@/components/BackButton";
 
 export default function PayPage() {
   const { id } = useParams();
@@ -88,10 +90,9 @@ export default function PayPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-surface-alt)] px-4">
-      <div className="w-full max-w-sm space-y-4">
-        <Link href={`/listings/${booking?.listingId}`} className="flex items-center gap-2 text-sm text-[var(--color-primary)]">
-          <ArrowLeft size={16} /> Back
-        </Link>
+        <div className="w-full max-w-sm space-y-4">
+          <PublicHeader />
+          <BackButton href={`/bookings/${id}`} label="Back to booking" />
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
           <h1 className="text-xl font-semibold">Complete Payment</h1>
           <div className="mt-4 space-y-2 text-sm">

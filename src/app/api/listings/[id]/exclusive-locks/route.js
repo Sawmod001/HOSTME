@@ -2,10 +2,14 @@ import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser
 import { getUser } from "@/lib/auth/getUser";
 import { findListingById, createExclusiveLock } from "@/lib/db/supabase-queries";
 import { supabase } from "@/lib/db/supabase";
+import { validateCsrfOrigin } from "@/lib/csrf";
 import { toCamelCase, ok, cachedOk, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function POST(request, { params }) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return unauthorised("No session");
@@ -14,13 +18,16 @@ export async function POST(request, { params }) {
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return unauthorised("User not found");
-        const roles = user.roles || [];
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
         const listing = await findListingById(p.id);
         if (!listing) return notFound("Listing not found");
-        if (listing.host_id !== user.id && !roles.includes("admin")) return forbidden("Not your listing");
+
+        const isOwner = user.providerProfile?.id === listing.provider_profile_id;
+        const isAdmin = user.role === "admin";
+        if (!isOwner && !isAdmin) return forbidden("Not your listing");
+
         if (listing.booking_type !== "exclusive") return fail("Only exclusive listings support locks", 400);
 
         const body = await request.json();

@@ -295,7 +295,7 @@ export default function CreateListingPage() {
 
   if (createdId) {
     return (
-      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+      <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
         <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
           <div className="mx-auto max-w-2xl text-center space-y-4 py-16">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DCFCE7]">
@@ -314,7 +314,7 @@ export default function CreateListingPage() {
   }
 
   return (
-    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ roles: [], activePage: "listings" }}>
+    <DashboardLayout sidebar={HostSidebar} sidebarProps={{ activePage: "listings" }}>
       <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
           <Link href="/host/listings" className="flex items-center gap-2 text-[var(--color-primary)] text-sm">

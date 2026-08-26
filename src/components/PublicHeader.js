@@ -1,7 +1,16 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 
-export default function PublicHeader({ backHref }) {
+const DASHBOARD_BY_ROLE = {
+  guest: "/dashboard",
+  venue_host: "/host/dashboard",
+  housing_agent: "/host/dashboard",
+  admin: "/admin",
+};
+
+export default function PublicHeader({ backHref, role }) {
+  const dashboardPath = DASHBOARD_BY_ROLE[role] || "/dashboard";
+
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -15,7 +24,7 @@ export default function PublicHeader({ backHref }) {
           <Link href="/listings" className="text-sm font-semibold text-[var(--color-ink)] hover:text-[var(--color-primary)]">
             Browse
           </Link>
-          <Link href="/dashboard" className="rounded-xl bg-[var(--color-primary)] px-4 py-1.5 text-sm font-semibold text-white">
+          <Link href={dashboardPath} className="rounded-xl bg-[var(--color-primary)] px-4 py-1.5 text-sm font-semibold text-white">
             Dashboard
           </Link>
         </div>

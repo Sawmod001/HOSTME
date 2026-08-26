@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
 import { findUserByClerkId, createUser, updateUserByClerkId } from "@/lib/db/supabase-queries";
 import { clerkFetch } from "@/lib/auth/clerk";
+import { validateCsrfOrigin } from "@/lib/csrf";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/db/audit";
 
 export async function POST(request) {
   try {
-    // Bootstrap gate: the caller must present the one-time setup secret.
-    // This prevents any registered user from self-promoting to admin.
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "auth:admin-setup");
+    if (rateLimited) return rateLimited;
+
     const expected = process.env.ADMIN_SETUP_SECRET;
     const provided = request.headers.get("x-admin-setup-token");
     if (!expected || !provided || provided !== expected) {
       return NextResponse.json({ error: "Setup is locked. This action is not permitted." }, { status: 403 });
     }
 
-    // Disable self-service bootstrap once an admin already exists.
     try {
       const allResp = await clerkFetch("/users?limit=100");
       const allUsers = Array.isArray(allResp) ? allResp : (allResp.data || []);
-      const existingAdmin = allUsers.some((u) => (u.public_metadata?.roles || []).includes("admin"));
+      const existingAdmin = allUsers.some((u) => u.public_metadata?.role === "admin");
       if (existingAdmin) {
         return NextResponse.json({ error: "An admin already exists. Use /sign-in to access the portal." }, { status: 409 });
       }
     } catch (lookupErr) {
-      // If Clerk lookup fails, fail closed rather than risk a second admin.
       console.error("[admin-setup] Admin lookup failed, refusing to proceed", lookupErr);
       return NextResponse.json({ error: "Could not verify admin status. Please retry later." }, { status: 503 });
     }
@@ -44,9 +49,8 @@ export async function POST(request) {
     if (existingUsers.length > 0) {
       const existing = existingUsers[0];
       const existingMeta = existing.public_metadata || {};
-      const existingRoles = existingMeta.roles || [];
 
-      if (existingRoles.includes("admin")) {
+      if (existingMeta.role === "admin") {
         return NextResponse.json({ error: "An admin user with this email already exists." }, { status: 409 });
       }
 
@@ -54,8 +58,7 @@ export async function POST(request) {
         method: "PATCH",
         body: JSON.stringify({
           public_metadata: {
-            roles: [...new Set([...existingRoles, "admin"])],
-            activeRole: "admin",
+            role: "admin",
             profileCompleted: true,
           },
         }),
@@ -65,21 +68,33 @@ export async function POST(request) {
         let user = await findUserByClerkId(existing.id);
         if (user) {
           await updateUserByClerkId(existing.id, {
-            roles: [...new Set([...(user.roles || []), "admin"])],
-            active_role: "admin",
+            role: "admin",
             profile_completed: true,
           });
+          await logAudit({
+            actorId: user.id,
+            action: "role.changed",
+            resourceType: "user",
+            resourceId: user.id,
+            metadata: { from: user.role, to: "admin", source: "admin-setup" },
+          });
         } else {
-          await createUser({
+          user = await createUser({
             clerk_id: existing.id,
             name: name.trim(),
             email: email.trim(),
-            roles: [...new Set([...existingRoles, "admin"])],
-            active_role: "admin",
+            role: "admin",
             profile_completed: true,
             is_email_verified: true,
             email_verified_at: new Date().toISOString(),
             status: "active",
+          });
+          await logAudit({
+            actorId: user.id,
+            action: "admin.created",
+            resourceType: "user",
+            resourceId: user.id,
+            metadata: { email: email.trim(), source: "admin-setup" },
           });
         }
       } catch (dbError) {
@@ -97,21 +112,27 @@ export async function POST(request) {
     await clerkFetch(`/users/${clerkUser.id}/metadata`, {
       method: "PATCH",
       body: JSON.stringify({
-        public_metadata: { roles: ["admin"], activeRole: "admin", profileCompleted: true },
+        public_metadata: { role: "admin", profileCompleted: true },
       }),
     });
 
     try {
-      await createUser({
+      const newUser = await createUser({
         clerk_id: clerkUser.id,
         name: name.trim(),
         email: email.trim(),
-        roles: ["admin"],
-        active_role: "admin",
+        role: "admin",
         profile_completed: true,
         is_email_verified: true,
         email_verified_at: new Date().toISOString(),
         status: "active",
+      });
+      await logAudit({
+        actorId: newUser.id,
+        action: "admin.created",
+        resourceType: "user",
+        resourceId: newUser.id,
+        metadata: { email: email.trim(), source: "admin-setup" },
       });
     } catch (dbError) {
       console.error("[admin-setup] DB unavailable, saved Clerk metadata only", dbError);
