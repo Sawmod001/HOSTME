@@ -43,6 +43,22 @@ const HousingFeaturesSchema = z.object({
   }).optional(),
 }).strict();
 
+const HousingDetailsSchema = z.object({
+  nightlyRateKobo: z.number().int().min(100),
+  weeklyRateKobo: z.number().int().min(0).optional(),
+  cleaningFeeKobo: z.number().int().min(0).optional(),
+  minStayNights: z.number().int().min(1).max(365).optional().default(1),
+  maxStayNights: z.number().int().min(1).max(365).optional(),
+  checkInTime: z.string().optional().default("14:00"),
+  checkOutTime: z.string().optional().default("11:00"),
+  maxGuests: z.number().int().min(1).max(50).optional().default(2),
+  selfCheckIn: z.boolean().optional().default(false),
+  allowsPets: z.boolean().optional().default(false),
+  allowsSmoking: z.boolean().optional().default(false),
+  allowsParties: z.boolean().optional().default(false),
+  houseRules: z.string().max(1000).optional(),
+}).strict();
+
 export const ListingCreateSchema = z.object({
   vertical: z.enum(["venue", "housing"]),
   subVertical: z.array(z.string()).optional(),
@@ -59,14 +75,15 @@ export const ListingCreateSchema = z.object({
     }).optional(),
   }),
   pricing: z.object({
-    baseRatePerHour: z.number().int().min(1),
+    baseRatePerHour: z.number().int().min(1).optional(),
     inspectionTransportFee: z.number().int().optional(),
   }),
+  housingDetails: HousingDetailsSchema.optional(),
   operationalRules: z.object({
     maxCapacity: z.number().int().min(1).max(10000),
-    setupTimeMinutes: z.number().int().min(0).max(240),
-    cleanupTimeMinutes: z.number().int().min(0).max(240),
-    isByobAllowed: z.boolean(),
+    setupTimeMinutes: z.number().int().min(0).max(240).optional().default(0),
+    cleanupTimeMinutes: z.number().int().min(0).max(240).optional().default(0),
+    isByobAllowed: z.boolean().optional().default(false),
     cancellationPolicy: z.enum(["flexible", "moderate", "strict"]),
   }),
   features: z.union([VenueFeaturesSchema, HousingFeaturesSchema]).optional(),
@@ -80,10 +97,58 @@ export const ListingCreateSchema = z.object({
       })
     )
     .optional(),
-  media: z.array(z.string()).max(10).optional(),
-});
+  media: z.array(z.string()).max(15).optional(),
+}).refine(
+  (data) => {
+    if (data.vertical === "housing") {
+      return !!data.housingDetails?.nightlyRateKobo;
+    }
+    return !!data.pricing?.baseRatePerHour;
+  },
+  { message: "Housing requires nightlyRateKobo; venues require baseRatePerHour" }
+);
 
-export const ListingUpdateSchema = ListingCreateSchema.partial();
+export const ListingUpdateSchema = z.object({
+  vertical: z.enum(["venue", "housing"]).optional(),
+  subVertical: z.array(z.string()).optional(),
+  bookingType: z.enum(["capacity", "exclusive"]).optional(),
+  title: z.string().min(3).max(100).optional(),
+  description: z.string().min(20).max(2000).optional(),
+  location: z.object({
+    state: z.string().min(2),
+    cityArea: z.string().min(2),
+    address: z.string().min(5),
+    coordinates: z.object({
+      latitude: z.number().min(-90).max(90).optional(),
+      longitude: z.number().min(-180).max(180).optional(),
+    }).optional(),
+  }).optional(),
+  pricing: z.object({
+    baseRatePerHour: z.number().int().min(1).optional(),
+    inspectionTransportFee: z.number().int().optional(),
+  }).optional(),
+  housingDetails: HousingDetailsSchema.partial().optional(),
+  operationalRules: z.object({
+    maxCapacity: z.number().int().min(1).max(10000).optional(),
+    setupTimeMinutes: z.number().int().min(0).max(240).optional(),
+    cleanupTimeMinutes: z.number().int().min(0).max(240).optional(),
+    isByobAllowed: z.boolean().optional(),
+    cancellationPolicy: z.enum(["flexible", "moderate", "strict"]).optional(),
+  }).optional(),
+  features: z.union([VenueFeaturesSchema, HousingFeaturesSchema]).optional(),
+  addOns: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(50),
+        priceInKobo: z.number().int().min(0),
+        isRequired: z.boolean(),
+      })
+    )
+    .optional(),
+  media: z.array(z.string()).max(15).optional(),
+  status: z.enum(["draft", "pending_review"]).optional(),
+});
 
 export const ListingFilterSchema = z.object({
   vertical: z.enum(["venue", "housing"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),

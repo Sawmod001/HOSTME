@@ -130,6 +130,17 @@ export default function HostListingDetailPage() {
         subVertical: subVerticals,
         features,
         pricing: { baseRatePerHour: data.pricing?.baseRatePerHour || 0 },
+        housingDetails: {
+          nightlyRateKobo: data.housingDetails?.nightlyRateKobo || 0,
+          weeklyRateKobo: data.housingDetails?.weeklyRateKobo || 0,
+          cleaningFeeKobo: data.housingDetails?.cleaningFeeKobo || 0,
+          minStayNights: data.housingDetails?.minStayNights || 1,
+          maxStayNights: data.housingDetails?.maxStayNights || 0,
+          checkInTime: data.housingDetails?.checkInTime || "14:00",
+          checkOutTime: data.housingDetails?.checkOutTime || "11:00",
+          maxGuests: data.housingDetails?.maxGuests || 2,
+          houseRules: data.housingDetails?.houseRules || "",
+        },
         location: {
           state: data.location?.state || "",
           cityArea: data.location?.cityArea || "",
@@ -326,13 +337,19 @@ export default function HostListingDetailPage() {
 
         {listing.status === "pending_review" && <div className="rounded-xl border border-[#B45309] bg-[#FEF3C7] p-4 text-sm text-[#92400E]"><p className="font-semibold">Under Review</p><p>This listing is being reviewed by an admin and cannot be edited.</p></div>}
 
-        {listing.bookingType === "capacity" && (
+        {listing.vertical === "housing" && (
+          <Link href={`/host/listings/${id}/calendar`}
+            className="btn-outline gap-2 px-4 py-2 text-sm">
+            Manage Calendar
+          </Link>
+        )}
+        {listing.vertical === "venue" && listing.bookingType === "capacity" && (
           <Link href={`/host/listings/${id}/slots`}
             className="btn-outline gap-2 px-4 py-2 text-sm">
             Manage Time Slots
           </Link>
         )}
-        {listing.bookingType === "exclusive" && (
+        {listing.vertical === "venue" && listing.bookingType === "exclusive" && (
           <Link href={`/host/listings/${id}/exclusive-locks`}
             className="btn-outline gap-2 px-4 py-2 text-sm">
             Manage Exclusive Locks
@@ -377,22 +394,52 @@ export default function HostListingDetailPage() {
               <input type="text" value={editData.location.address} onChange={(e) => setEditData((p) => ({ ...p, location: { ...p.location, address: e.target.value } }))} placeholder="Address" className="w-full rounded-xl border px-3 py-2 text-sm" />
             </div>
 
-            <div className="space-y-3 border-t pt-4">
-              <h3 className="font-semibold">Pricing & Capacity</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm block mb-1">Base Rate (₦/hr)</label>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
-                    <input type="number" min="0" step="0.01" value={editData.pricing.baseRatePerHour > 0 ? editData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, pricing: { baseRatePerHour: (parseInt(e.target.value) || 0) * 100 } }))} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border py-2 pl-8 pr-3 text-sm" />
+            {listing.vertical === "housing" ? (
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="font-semibold">Housing Pricing</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm block mb-1">Nightly Rate (₦)</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                      <input type="number" min="0" step="100" value={(editData.housingDetails?.nightlyRateKobo || 0) > 0 ? editData.housingDetails.nightlyRateKobo / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, housingDetails: { ...p.housingDetails, nightlyRateKobo: (parseInt(e.target.value) || 0) * 100 } }))} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border py-2 pl-8 pr-3 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">Max Guests</label>
+                    <input type="number" min="1" max="50" value={editData.housingDetails?.maxGuests || ""} onChange={(e) => setEditData((p) => ({ ...p, housingDetails: { ...p.housingDetails, maxGuests: parseInt(e.target.value) || 2 } }))} className="w-full rounded-xl border px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">Cleaning Fee (₦)</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                      <input type="number" min="0" step="100" value={(editData.housingDetails?.cleaningFeeKobo || 0) > 0 ? editData.housingDetails.cleaningFeeKobo / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, housingDetails: { ...p.housingDetails, cleaningFeeKobo: (parseInt(e.target.value) || 0) * 100 } }))} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border py-2 pl-8 pr-3 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">Min Stay (nights)</label>
+                    <input type="number" min="1" max="365" value={editData.housingDetails?.minStayNights || ""} onChange={(e) => setEditData((p) => ({ ...p, housingDetails: { ...p.housingDetails, minStayNights: parseInt(e.target.value) || 1 } }))} className="w-full rounded-xl border px-3 py-2 text-sm" />
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm block mb-1">Max Capacity</label>
-                  <input type="number" min="1" value={editData.operationalRules.maxCapacity || ""} onChange={(e) => setEditData((p) => ({ ...p, operationalRules: { ...p.operationalRules, maxCapacity: parseInt(e.target.value) || 1 } }))} onFocus={(e) => e.target.select()} className="w-full rounded-xl border px-3 py-2 text-sm" />
+              </div>
+            ) : (
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="font-semibold">Pricing & Capacity</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm block mb-1">Base Rate (₦/hr)</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                      <input type="number" min="0" step="0.01" value={editData.pricing.baseRatePerHour > 0 ? editData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => setEditData((p) => ({ ...p, pricing: { baseRatePerHour: (parseInt(e.target.value) || 0) * 100 } }))} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border py-2 pl-8 pr-3 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">Max Capacity</label>
+                    <input type="number" min="1" value={editData.operationalRules.maxCapacity || ""} onChange={(e) => setEditData((p) => ({ ...p, operationalRules: { ...p.operationalRules, maxCapacity: parseInt(e.target.value) || 1 } }))} onFocus={(e) => e.target.select()} className="w-full rounded-xl border px-3 py-2 text-sm" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold">Photos</h3>

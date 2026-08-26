@@ -484,6 +484,77 @@ DROP TRIGGER IF EXISTS provider_profiles_updated_at ON provider_profiles;
 CREATE TRIGGER provider_profiles_updated_at BEFORE UPDATE ON provider_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- =============================================================================
+-- HOUSING: blocked_dates table + availability check function
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS blocked_dates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  blocked_date DATE NOT NULL,
+  reason TEXT DEFAULT 'host_blocked',
+  booking_id UUID REFERENCES bookings(id) DEFAULT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(listing_id, blocked_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_blocked_dates_listing ON blocked_dates(listing_id);
+CREATE INDEX IF NOT EXISTS idx_blocked_dates_date ON blocked_dates(blocked_date);
+
+ALTER TABLE blocked_dates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "blocked_dates_read_public" ON blocked_dates;
+CREATE POLICY "blocked_dates_read_public" ON blocked_dates
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "blocked_dates_insert_own" ON blocked_dates;
+CREATE POLICY "blocked_dates_insert_own" ON blocked_dates
+  FOR INSERT WITH CHECK (
+    listing_id IN (
+      SELECT l.id FROM listings l
+      JOIN provider_profiles pp ON pp.id = l.provider_profile_id
+      WHERE pp.user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+DROP POLICY IF EXISTS "blocked_dates_delete_own" ON blocked_dates;
+CREATE POLICY "blocked_dates_delete_own" ON blocked_dates
+  FOR DELETE USING (
+    listing_id IN (
+      SELECT l.id FROM listings l
+      JOIN provider_profiles pp ON pp.id = l.provider_profile_id
+      WHERE pp.user_id::text = current_setting('app.user_id', true)
+    )
+  );
+
+-- Check if a date range is available for a housing listing
+CREATE OR REPLACE FUNCTION check_housing_availability(
+  p_listing_id UUID,
+  p_check_in DATE,
+  p_check_out DATE
+)
+RETURNS TABLE (available BOOLEAN, blocked_dates DATE[])
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    NOT EXISTS (
+      SELECT 1 FROM blocked_dates bd
+      WHERE bd.listing_id = p_listing_id
+        AND bd.blocked_date >= p_check_in
+        AND bd.blocked_date < p_check_out
+    ) AS available,
+    COALESCE(
+      ARRAY(
+        SELECT bd.blocked_date FROM blocked_dates bd
+        WHERE bd.listing_id = p_listing_id
+          AND bd.blocked_date >= p_check_in
+          AND bd.blocked_date < p_check_out
+        ORDER BY bd.blocked_date
+      ),
+      ARRAY[]::DATE[]
+    ) AS blocked_dates;
+$$;
+
+-- =============================================================================
 -- GROUP PLANS (keep as-is for now, deprecated in later batch)
 -- =============================================================================
 

@@ -308,10 +308,22 @@ export default function ListingDetailPage({ params }) {
               </div>
             </div>
 
-          <div className="flex items-baseline gap-1">
-            <p className="text-3xl font-semibold">₦{((listing.pricing?.baseRatePerHour ?? 0) / 100).toLocaleString()}</p>
-            <p className="text-sm text-[var(--color-ink-muted)]">per hour</p>
-          </div>
+          {listing.vertical === "housing" ? (
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-semibold">₦{((listing.housingDetails?.nightlyRateKobo ?? 0) / 100).toLocaleString()}</p>
+              <p className="text-sm text-[var(--color-ink-muted)]">per night</p>
+              {listing.housingDetails?.weeklyRateKobo > 0 && (
+                <span className="ml-2 text-xs text-[var(--color-ink-muted)]">
+                  (₦{(listing.housingDetails.weeklyRateKobo / 100).toLocaleString()}/week)
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-semibold">₦{((listing.pricing?.baseRatePerHour ?? 0) / 100).toLocaleString()}</p>
+              <p className="text-sm text-[var(--color-ink-muted)]">per hour</p>
+            </div>
+          )}
 
           <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-2">About</p>
@@ -320,14 +332,30 @@ export default function ListingDetailPage({ params }) {
 
           <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-3">Details</p>
-            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Capacity</p><p className="font-semibold">{listing.operationalRules?.maxCapacity ?? "—"} max</p></div>
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Type</p><p className="font-semibold capitalize">{listing.bookingType || "—"}</p></div>
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Setup time</p><p className="font-semibold">{(listing.operationalRules?.setupTimeMinutes ?? listing.operationalRules?.setupBufferMinutes ?? "—")}min</p></div>
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cleanup time</p><p className="font-semibold">{(listing.operationalRules?.cleanupTimeMinutes ?? listing.operationalRules?.teardownBufferMinutes ?? "—")}min</p></div>
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">BYOB</p><p className="font-semibold">{listing.operationalRules?.isByobAllowed ? "Allowed" : "Not allowed"}</p></div>
-              <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cancellation</p><p className="font-semibold capitalize">{listing.operationalRules?.cancellationPolicy || "—"}</p></div>
-            </div>
+            {listing.vertical === "housing" ? (
+              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Max Guests</p><p className="font-semibold">{listing.housingDetails?.maxGuests ?? listing.operationalRules?.maxCapacity ?? "—"}</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Check-in</p><p className="font-semibold">{listing.housingDetails?.checkInTime || "2:00 PM"}</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Check-out</p><p className="font-semibold">{listing.housingDetails?.checkOutTime || "11:00 AM"}</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Min Stay</p><p className="font-semibold">{listing.housingDetails?.minStayNights ?? 1} night{(listing.housingDetails?.minStayNights ?? 1) > 1 ? "s" : ""}</p></div>
+                {listing.housingDetails?.maxStayNights > 0 && (
+                  <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Max Stay</p><p className="font-semibold">{listing.housingDetails.maxStayNights} nights</p></div>
+                )}
+                {listing.housingDetails?.cleaningFeeKobo > 0 && (
+                  <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cleaning Fee</p><p className="font-semibold">₦{(listing.housingDetails.cleaningFeeKobo / 100).toLocaleString()}</p></div>
+                )}
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cancellation</p><p className="font-semibold capitalize">{listing.operationalRules?.cancellationPolicy || "—"}</p></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Capacity</p><p className="font-semibold">{listing.operationalRules?.maxCapacity ?? "—"} max</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Type</p><p className="font-semibold capitalize">{listing.bookingType || "—"}</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Setup time</p><p className="font-semibold">{(listing.operationalRules?.setupTimeMinutes ?? listing.operationalRules?.setupBufferMinutes ?? "—")}min</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cleanup time</p><p className="font-semibold">{(listing.operationalRules?.cleanupTimeMinutes ?? listing.operationalRules?.teardownBufferMinutes ?? "—")}min</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">BYOB</p><p className="font-semibold">{listing.operationalRules?.isByobAllowed ? "Allowed" : "Not allowed"}</p></div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3"><p className="text-xs text-[var(--color-ink-muted)]">Cancellation</p><p className="font-semibold capitalize">{listing.operationalRules?.cancellationPolicy || "—"}</p></div>
+              </div>
+            )}
           </div>
 
           {(() => {
@@ -347,6 +375,13 @@ export default function ListingDetailPage({ params }) {
               </div>
             ));
           })()}
+
+          {listing.vertical === "housing" && listing.housingDetails?.houseRules && (
+            <div className="border-t pt-4">
+              <p className="text-sm font-semibold mb-2">House Rules</p>
+              <p className="text-sm text-[var(--color-ink-muted)] leading-6 whitespace-pre-line">{listing.housingDetails.houseRules}</p>
+            </div>
+          )}
 
           {Array.isArray(listing.addOns) && listing.addOns.length > 0 && (
             <div className="border-t pt-4">
@@ -373,11 +408,40 @@ export default function ListingDetailPage({ params }) {
             </div>
             <CalendarGrid selectedDate={selectedDate} onSelect={setSelectedDate} getDateInfo={getDateInfo} />
             <p className="text-xs text-[var(--color-ink-muted)] text-center">
-              {isCapacity
-                ? "Green dot = good availability, Orange = filling up, Red = nearly full"
-                : "Green dot = open, Gray = booked"}
+              {listing.vertical === "housing"
+                ? "Green dot = available, Gray = blocked"
+                : isCapacity
+                  ? "Green dot = good availability, Orange = filling up, Red = nearly full"
+                  : "Green dot = open, Gray = booked"}
             </p>
           </div>
+
+          {listing.vertical === "housing" && (
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-2"><Clock size={16} />Stay Details</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3">
+                  <p className="text-xs text-[var(--color-ink-muted)]">Nightly Rate</p>
+                  <p className="font-semibold">₦{((listing.housingDetails?.nightlyRateKobo ?? 0) / 100).toLocaleString()}</p>
+                </div>
+                {listing.housingDetails?.cleaningFeeKobo > 0 && (
+                  <div className="rounded-xl bg-[var(--color-surface-alt)] p-3">
+                    <p className="text-xs text-[var(--color-ink-muted)]">Cleaning Fee</p>
+                    <p className="font-semibold">₦{(listing.housingDetails.cleaningFeeKobo / 100).toLocaleString()}</p>
+                  </div>
+                )}
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3">
+                  <p className="text-xs text-[var(--color-ink-muted)]">Check-in</p>
+                  <p className="font-semibold">{listing.housingDetails?.checkInTime || "2:00 PM"}</p>
+                </div>
+                <div className="rounded-xl bg-[var(--color-surface-alt)] p-3">
+                  <p className="text-xs text-[var(--color-ink-muted)]">Check-out</p>
+                  <p className="font-semibold">{listing.housingDetails?.checkOutTime || "11:00 AM"}</p>
+                </div>
+              </div>
+              <p className="text-xs text-[var(--color-ink-muted)]">Select check-in and check-out dates on the calendar to book</p>
+            </div>
+          )}
 
           {isCapacity ? (
             <div className="border-t pt-4 space-y-3">

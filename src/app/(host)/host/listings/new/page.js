@@ -101,6 +101,7 @@ export default function CreateListingPage() {
     description: "",
     location: { state: "", cityArea: "", address: "" },
     pricing: { baseRatePerHour: 0 },
+    housingDetails: { nightlyRateKobo: 0, weeklyRateKobo: 0, cleaningFeeKobo: 0, minStayNights: 1, maxStayNights: 0, checkInTime: "14:00", checkOutTime: "11:00", maxGuests: 2, selfCheckIn: false, houseRules: "" },
     operationalRules: { maxCapacity: 10, setupTimeMinutes: 30, cleanupTimeMinutes: 30, isByobAllowed: false, cancellationPolicy: "moderate" },
     addOns: [],
     media: [],
@@ -157,7 +158,13 @@ export default function CreateListingPage() {
 
   const handleVerticalChange = (value) => {
     const features = value === "venue" ? getDefaultFeatures(value, ["birthday"]) : getDefaultFeatures(value, []);
-    setFormData((prev) => ({ ...prev, vertical: value, subVertical: value === "venue" ? ["birthday"] : [], features }));
+    setFormData((prev) => ({
+      ...prev,
+      vertical: value,
+      subVertical: value === "venue" ? ["birthday"] : [],
+      bookingType: value === "housing" ? "exclusive" : prev.bookingType,
+      features,
+    }));
   };
 
   const toggleSubVertical = (key) => {
@@ -189,6 +196,20 @@ export default function CreateListingPage() {
           }
         }
       }
+    }
+    // For housing: clean up empty optional fields
+    if (p.vertical === "housing") {
+      if (!p.housingDetails?.weeklyRateKobo) delete p.housingDetails?.weeklyRateKobo;
+      if (!p.housingDetails?.cleaningFeeKobo) delete p.housingDetails?.cleaningFeeKobo;
+      if (!p.housingDetails?.maxStayNights) delete p.housingDetails?.maxStayNights;
+      if (!p.housingDetails?.houseRules) delete p.housingDetails?.houseRules;
+      // Set maxCapacity from maxGuests for housing
+      p.operationalRules.maxCapacity = p.housingDetails?.maxGuests || 2;
+      // Remove venue-only fields
+      delete p.pricing?.baseRatePerHour;
+      delete p.operationalRules?.setupTimeMinutes;
+      delete p.operationalRules?.cleanupTimeMinutes;
+      delete p.operationalRules?.isByobAllowed;
     }
     return p;
   }
@@ -336,16 +357,24 @@ export default function CreateListingPage() {
               <select value={formData.vertical} onChange={(e) => handleVerticalChange(e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
                 <option value="venue">Venue</option>
                 <option value="housing">Housing</option>
-
               </select>
             </div>
-            <div>
-              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Booking Type</label>
-              <select value={formData.bookingType} onChange={(e) => handleInputChange("bookingType", e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
-                <option value="capacity">Capacity-Based</option>
-                <option value="exclusive">Exclusive Space</option>
-              </select>
-            </div>
+            {vertical === "venue" && (
+              <div>
+                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Booking Type</label>
+                <select value={formData.bookingType} onChange={(e) => handleInputChange("bookingType", e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
+                  <option value="capacity">Capacity-Based</option>
+                  <option value="exclusive">Exclusive Space</option>
+                </select>
+              </div>
+            )}
+            {vertical === "housing" && (
+              <div className="flex items-end">
+                <span className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-ink-muted)]">
+                  Booking type: Exclusive (entire property)
+                </span>
+              </div>
+            )}
           </div>
 
           {vertical === "venue" && (
@@ -393,38 +422,103 @@ export default function CreateListingPage() {
             </div>
           </div>
 
-          <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
-            <h3 className="font-semibold text-[var(--color-ink)]">Pricing & Capacity</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Base Rate (₦/hour)</label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
-                  <input type="number" min="0" step="0.01" value={formData.pricing.baseRatePerHour > 0 ? formData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => handleInputChange("pricing.baseRatePerHour", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+          {vertical === "venue" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Pricing & Capacity</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Base Rate (₦/hour)</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="0.01" value={formData.pricing.baseRatePerHour > 0 ? formData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => handleInputChange("pricing.baseRatePerHour", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0.00" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Capacity</label>
+                  <input type="number" value={formData.operationalRules.maxCapacity || ""} onChange={(e) => handleInputChange("operationalRules.maxCapacity", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {vertical === "housing" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Housing Pricing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Nightly Rate (₦)</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.housingDetails.nightlyRateKobo > 0 ? formData.housingDetails.nightlyRateKobo / 100 : ""} onChange={(e) => handleInputChange("housingDetails.nightlyRateKobo", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Weekly Rate (₦) <span className="text-[var(--color-ink-muted)] font-normal">optional</span></label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.housingDetails.weeklyRateKobo > 0 ? formData.housingDetails.weeklyRateKobo / 100 : ""} onChange={(e) => handleInputChange("housingDetails.weeklyRateKobo", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Cleaning Fee (₦) <span className="text-[var(--color-ink-muted)] font-normal">optional</span></label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.housingDetails.cleaningFeeKobo > 0 ? formData.housingDetails.cleaningFeeKobo / 100 : ""} onChange={(e) => handleInputChange("housingDetails.cleaningFeeKobo", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Guests</label>
+                  <input type="number" min="1" max="50" value={formData.housingDetails.maxGuests || ""} onChange={(e) => handleInputChange("housingDetails.maxGuests", parseInt(e.target.value) || 2)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {vertical === "venue" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Time Allowances</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Setup time (minutes)</label>
+                  <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to prepare before guests arrive</p>
+                  <input type="number" value={formData.operationalRules.setupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.setupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Cleanup time (minutes)</label>
+                  <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to tidy up after the event ends</p>
+                  <input type="number" value={formData.operationalRules.cleanupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.cleanupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {vertical === "housing" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Stay Rules</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Check-in Time</label>
+                  <input type="time" value={formData.housingDetails.checkInTime} onChange={(e) => handleInputChange("housingDetails.checkInTime", e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Check-out Time</label>
+                  <input type="time" value={formData.housingDetails.checkOutTime} onChange={(e) => handleInputChange("housingDetails.checkOutTime", e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Minimum Stay (nights)</label>
+                  <input type="number" min="1" max="365" value={formData.housingDetails.minStayNights || ""} onChange={(e) => handleInputChange("housingDetails.minStayNights", parseInt(e.target.value) || 1)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Maximum Stay (nights) <span className="text-[var(--color-ink-muted)] font-normal">0 = no limit</span></label>
+                  <input type="number" min="0" max="365" value={formData.housingDetails.maxStayNights || ""} onChange={(e) => handleInputChange("housingDetails.maxStayNights", parseInt(e.target.value) || 0)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Capacity</label>
-                <input type="number" value={formData.operationalRules.maxCapacity || ""} onChange={(e) => handleInputChange("operationalRules.maxCapacity", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">House Rules <span className="text-[var(--color-ink-muted)] font-normal">optional</span></label>
+                <textarea value={formData.housingDetails.houseRules || ""} onChange={(e) => handleInputChange("housingDetails.houseRules", e.target.value)} placeholder="e.g. No smoking, quiet hours after 10pm..." rows="3" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
-            <h3 className="font-semibold text-[var(--color-ink)]">Time Allowances</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Setup time (minutes)</label>
-                <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to prepare before guests arrive</p>
-                <input type="number" value={formData.operationalRules.setupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.setupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Cleanup time (minutes)</label>
-                <p className="text-xs text-[var(--color-ink-muted)] mb-2">Time needed to tidy up after the event ends</p>
-                <input type="number" value={formData.operationalRules.cleanupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.cleanupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
             <h3 className="font-semibold text-[var(--color-ink)]">Photos</h3>
@@ -480,10 +574,12 @@ export default function CreateListingPage() {
                 <option value="strict">Strict (20% refund)</option>
               </select>
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={formData.operationalRules.isByobAllowed} onChange={(e) => handleInputChange("operationalRules.isByobAllowed", e.target.checked)} className="rounded border border-[var(--color-border)]" />
-              <span className="text-[var(--color-ink)]">Allow BYOB (Bring Your Own Bottle)</span>
-            </label>
+            {vertical === "venue" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={formData.operationalRules.isByobAllowed} onChange={(e) => handleInputChange("operationalRules.isByobAllowed", e.target.checked)} className="rounded border border-[var(--color-border)]" />
+                <span className="text-[var(--color-ink)]">Allow BYOB (Bring Your Own Bottle)</span>
+              </label>
+            )}
           </div>
 
           <button type="submit" disabled={submitting} className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2">
