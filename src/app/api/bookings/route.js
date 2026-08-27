@@ -3,6 +3,8 @@ import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
 import { computeCapacityPriceKobo } from "@/lib/bookings/pricing";
 import { validateCsrfOrigin } from "@/lib/csrf";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/db/audit";
 
 export async function GET(request) {
     try {
@@ -47,6 +49,9 @@ export async function POST(request) {
     try {
         const csrfFail = validateCsrfOrigin(request);
         if (csrfFail) return csrfFail;
+
+        const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 10 }, "create-booking");
+        if (rateLimited) return rateLimited;
 
         const userOrResponse = await requireAuthenticatedUser(request);
         if (userOrResponse instanceof Response) return userOrResponse;
@@ -99,6 +104,14 @@ export async function POST(request) {
             .single();
 
         await supabase.from("soft_holds").update({ booking_id: booking.id }).eq("id", softHold.id);
+
+        await logAudit({
+            actorId: user.id,
+            action: "booking.created",
+            resourceType: "booking",
+            resourceId: booking.id,
+            metadata: { listing_id: listing.id, total_amount_kobo: totalAmountKobo, booking_type: "capacity" },
+        });
 
         return ok({
             ok: true,

@@ -2,12 +2,17 @@ import crypto from "crypto";
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/db/audit";
 
 export async function POST(request) {
     try {
         const userOrResponse = await requireAuthenticatedUser(request);
         if (userOrResponse instanceof Response) return userOrResponse;
         const user = userOrResponse;
+
+        const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "initiate-payment");
+        if (rateLimited) return rateLimited;
 
         const payload = await request.json();
         const bookingId = payload?.bookingId;
@@ -19,6 +24,15 @@ export async function POST(request) {
         if (booking.status !== "awaiting_payment") return fail("Booking is not awaiting payment", 400);
 
         const reference = `hostme-${booking.id}-${crypto.randomUUID().slice(0, 8)}`;
+
+        await logAudit({
+            actorId: user.id,
+            action: "payment.initiated",
+            resourceType: "booking",
+            resourceId: booking.id,
+            metadata: { reference, amount_kobo: booking.total_amount_kobo },
+        });
+
         return ok({
             ok: true,
             data: {

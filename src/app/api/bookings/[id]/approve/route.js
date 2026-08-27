@@ -1,6 +1,7 @@
 import { requireHost } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { logAudit } from "@/lib/db/audit";
 
 export async function POST(request, { params }) {
     try {
@@ -25,6 +26,14 @@ export async function POST(request, { params }) {
             .eq("id", p.id)
             .select()
             .maybeSingle();
+
+        await logAudit({
+            actorId: user.id,
+            action: "booking.approved",
+            resourceType: "booking",
+            resourceId: p.id,
+            metadata: { guest_id: booking.guest_id, listing_id: booking.listing_id },
+        });
 
         return ok({ ok: true, data: toCamelCase(updated) });
     } catch (error) {

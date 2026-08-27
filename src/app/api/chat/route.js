@@ -46,10 +46,17 @@ export async function POST(request) {
       return Response.json({ error: "AI assistant is not configured" }, { status: 500 });
     }
 
+    // Sanitize history: only allow valid roles, truncate each message, limit count
+    const sanitizedHistory = (history || [])
+      .filter((m) => m && typeof m.content === "string" && (m.role === "user" || m.role === "assistant"))
+      .slice(-10)
+      .map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content.slice(0, 500) }],
+      }));
+
     const contents = [
-      ...(history || []).slice(-20).flatMap((m) => [
-        { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] },
-      ]),
+      ...sanitizedHistory,
       { role: "user", parts: [{ text: message }] },
     ];
 

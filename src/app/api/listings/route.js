@@ -4,6 +4,7 @@ import { validateListingCreate, validateListingFilter } from "@/lib/validation";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { logAudit } from "@/lib/db/audit";
 import { toCamelCase, cachedOk, fail, ok } from "@/lib/db/supabase-utils";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request) {
     try {
@@ -87,6 +88,9 @@ export async function POST(request) {
     try {
         const csrfFail = validateCsrfOrigin(request);
         if (csrfFail) return csrfFail;
+
+        const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "create-listing");
+        if (rateLimited) return rateLimited;
 
         const userOrResponse = await requireAuthenticatedUser(request);
         if (userOrResponse instanceof Response) return userOrResponse;

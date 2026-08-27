@@ -4,8 +4,7 @@ import { listListings } from "@/lib/db/supabase-queries";
 import { getWhatsAppConfig, verifyWhatsAppSignature, sendWhatsAppText, sendWhatsAppList, sendWhatsAppButtons, markWhatsAppRead } from "@/lib/whatsapp/client";
 import { handleMessage } from "@/lib/whatsapp/bot";
 import { generateReply } from "@/lib/whatsapp/gemini";
-
-const sessions = new Map();
+import { getSession, setSession, deleteSession } from "@/lib/whatsapp/sessions";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -94,12 +93,27 @@ export async function POST(request) {
       }
 
       try {
+        // Load session from Supabase (persistent across cold starts)
+        const existingState = await getSession(phone);
+        const sessionsMap = new Map();
+        if (existingState) sessionsMap.set(phone, existingState);
+
         const replies = await handleMessage({
           phone,
           text,
-          sessions,
+          sessions: sessionsMap,
           deps,
         });
+
+        // Persist session state back to Supabase
+        const newState = sessionsMap.get(phone);
+        if (newState) {
+          await setSession(phone, newState);
+        } else if (existingState) {
+          // Session was deleted (e.g. user sent "menu")
+          await deleteSession(phone);
+        }
+
         for (const reply of replies) {
           await sendDescriptor(phone, reply, config);
         }

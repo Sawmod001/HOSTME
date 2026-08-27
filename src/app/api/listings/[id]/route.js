@@ -61,6 +61,23 @@ export async function PATCH(request, { params }) {
         }
 
         const payload = await request.json();
+
+        // Reactivation: suspended/archived listings can be moved back to draft
+        if (payload.action === "reactivate") {
+            if (!["suspended", "archived"].includes(listing.status)) {
+                return fail("Only suspended or archived listings can be reactivated", 400);
+            }
+            const updated = await updateListing(p.id, { status: "draft" });
+            await logAudit({
+                actorId: user.id,
+                action: "listing.reactivated",
+                resourceType: "listing",
+                resourceId: p.id,
+                metadata: { from_status: listing.status, to_status: "draft" },
+            });
+            return ok(toCamelCase(updated || { ...listing, status: "draft" }));
+        }
+
         const validation = validateListingUpdate(payload);
         if (!validation.success) {
             const msg = validation.error.issues.map((i) => i.message).join("; ");
