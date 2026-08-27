@@ -1,6 +1,7 @@
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { ok, fail } from "@/lib/db/supabase-utils";
+import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
 /**

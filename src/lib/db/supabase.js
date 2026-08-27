@@ -56,6 +56,24 @@ class PgQuery {
     return this;
   }
 
+  or(conditions) {
+    if (!conditions) return this;
+    const parts = conditions.split(",");
+    const orFilters = [];
+    for (const part of parts) {
+      const match = part.trim().match(/^([a-zA-Z_][a-zA-Z0-9_]*\.?[a-zA-Z0-9_]*)\.(eq|neq|gt|lt|gte|lte|like|ilike)\.(.+)$/);
+      if (match) {
+        const [, key, op, rawValue] = match;
+        const value = rawValue === "null" ? null : rawValue;
+        orFilters.push({ key, op, value });
+      }
+    }
+    if (orFilters.length > 0) {
+      this._orFilters = orFilters;
+    }
+    return this;
+  }
+
   contains(key, values) {
     if (!values) return this;
     const arr = Array.isArray(values) ? values : [values];
@@ -168,8 +186,50 @@ class PgQuery {
       } else if (f.op === "contains") {
         idx++;
         clauses.push({ sql: `${this._mapColumn(f.key)} @> $${idx}::text[]`, params: [f.values] });
+      } else if (f.op === "like") {
+        idx++;
+        clauses.push({ sql: `${this._mapColumn(f.key)} LIKE $${idx}`, params: [f.value] });
+      } else if (f.op === "ilike") {
+        idx++;
+        clauses.push({ sql: `${this._mapColumn(f.key)} ILIKE $${idx}`, params: [f.value] });
+      } else if (f.op === "neq") {
+        idx++;
+        clauses.push({ sql: `${this._mapColumn(f.key)} != $${idx}`, params: [f.value] });
+      } else if (f.op === "lte") {
+        idx++;
+        clauses.push({ sql: `${this._mapColumn(f.key)} <= $${idx}`, params: [f.value] });
       }
     }
+
+    // Handle OR filters
+    if (this._orFilters && this._orFilters.length > 0) {
+      const orParts = [];
+      for (const f of this._orFilters) {
+        idx++;
+        if (f.op === "eq") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} = $${idx}`, params: [f.value] });
+        } else if (f.op === "ilike") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} ILIKE $${idx}`, params: [f.value] });
+        } else if (f.op === "like") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} LIKE $${idx}`, params: [f.value] });
+        } else if (f.op === "neq") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} != $${idx}`, params: [f.value] });
+        } else if (f.op === "gt") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} > $${idx}`, params: [f.value] });
+        } else if (f.op === "lt") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} < $${idx}`, params: [f.value] });
+        } else if (f.op === "gte") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} >= $${idx}`, params: [f.value] });
+        } else if (f.op === "lte") {
+          orParts.push({ sql: `${this._mapColumn(f.key)} <= $${idx}`, params: [f.value] });
+        }
+      }
+      if (orParts.length > 0) {
+        for (const p of orParts) params.push(...p.params);
+        clauses.push({ sql: `(${orParts.map((p) => p.sql).join(" OR ")})`, params: [] });
+      }
+    }
+
     for (const c of clauses) {
       params.push(...c.params);
     }

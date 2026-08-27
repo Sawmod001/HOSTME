@@ -4,6 +4,7 @@ import { ok, fail } from "@/lib/db/supabase-utils";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { EVENT_TYPES } from "@/lib/webhooks";
+import crypto from "crypto";
 
 /**
  * GET /api/settings/webhooks
@@ -70,7 +71,7 @@ export async function POST(request) {
     }
 
     // Generate a secret
-    const secret = "whsec_" + require("crypto").randomBytes(32).toString("hex");
+    const secret = "whsec_" + crypto.randomBytes(32).toString("hex");
 
     const { data: result } = await supabase
       .rpc("register_webhook", {

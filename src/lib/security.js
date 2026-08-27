@@ -3,6 +3,8 @@
  * Input sanitization, XSS prevention, SQL injection protection, CSP headers.
  */
 
+import { NextResponse } from "next/server";
+
 /**
  * Sanitize a string to prevent XSS attacks.
  * Strips HTML tags and encodes special characters.

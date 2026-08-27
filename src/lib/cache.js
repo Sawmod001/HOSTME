@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 /**
  * Cache control header presets.
@@ -110,7 +111,6 @@ export function withCacheHandler(handler, preset = CACHE_PRESETS.noStore) {
  * Generate ETag from content.
  */
 export function generateETag(content) {
-  const crypto = require("crypto");
   return crypto
     .createHash("md5")
     .update(typeof content === "string" ? content : JSON.stringify(content))
