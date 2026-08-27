@@ -60,9 +60,9 @@ export async function POST(request) {
     });
     if (!durationCheck.valid) return fail(durationCheck.error, 400);
 
-    // === 2. CHECK AVAILABILITY ===
+    // === 2. CHECK AVAILABILITY (tenancy-aware) ===
     const { data: avail } = await supabase
-      .rpc("check_housing_availability", {
+      .rpc("check_housing_availability_with_tenancy", {
         p_listing_id: listingId,
         p_check_in: checkIn,
         p_check_out: checkOut,
@@ -70,7 +70,7 @@ export async function POST(request) {
       .single();
 
     if (avail && !avail.available) {
-      return fail("Some dates are not available", 409);
+      return fail(avail.detail || "Some dates are not available", 409);
     }
 
     // Check for overlapping bookings
@@ -87,9 +87,22 @@ export async function POST(request) {
     }
 
     // === 3. SERVER-SIDE PRICING ===
+    // Check for tenancy period rate override
+    const { data: tenancyPeriod } = await supabase
+      .from("tenancy_periods")
+      .select("nightly_rate_override_kobo")
+      .eq("listing_id", listingId)
+      .eq("status", "available")
+      .lte("start_date", checkIn)
+      .gte("end_date", checkOut)
+      .maybeSingle();
+
     const pricing = listing.data.pricing || {};
+    const effectiveNightlyRate = tenancyPeriod?.nightly_rate_override_kobo
+      || Number(pricing.nightlyRate) || 0;
+
     const priceResult = computeHousingPriceKobo({
-      nightlyRateKobo: Number(pricing.nightlyRate) || 0,
+      nightlyRateKobo: effectiveNightlyRate,
       weeklyRateKobo: Number(pricing.weeklyRate) || 0,
       cleaningFeeKobo: Number(pricing.cleaningFee) || 0,
       nights,
@@ -100,10 +113,12 @@ export async function POST(request) {
 
     // === 4. CREATE BOOKING ===
     const pricingSnapshot = {
-      nightlyRate: Number(pricing.nightlyRate) || 0,
+      nightlyRate: effectiveNightlyRate,
+      originalNightlyRate: Number(pricing.nightlyRate) || 0,
       weeklyRate: Number(pricing.weeklyRate) || 0,
       cleaningFee: Number(pricing.cleaningFee) || 0,
       nights,
+      tenancyOverride: !!tenancyPeriod?.nightly_rate_override_kobo,
       ...priceResult,
     };
 
