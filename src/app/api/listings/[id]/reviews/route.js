@@ -1,7 +1,10 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
+import { supabase } from "@/lib/db/supabase";
 import { listReviews, createReview, findBookingById, findReviewByBooking, findListingById } from "@/lib/db/supabase-queries";
-import { toCamelCase, ok, cachedOk, fail, unauthorised, notFound, forbidden } from "@/lib/db/supabase-utils";
+import { toCamelCase, ok, cachedOk, fail, notFound, forbidden } from "@/lib/db/supabase-utils";
+import { logAudit } from "@/lib/db/audit";
+import { validateCsrfOrigin } from "@/lib/csrf";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request, { params }) {
   try {
@@ -16,20 +19,23 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   try {
+    const csrfFail = validateCsrfOrigin(request);
+    if (csrfFail) return csrfFail;
+
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "create-review");
+    if (rateLimited) return rateLimited;
+
+    const userOrResponse = await requireAuthenticatedUser(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
+
     const p = await params;
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) return unauthorised("Invalid session");
-
-    const user = await getUser(sessionInfo.userId);
-    if (!user) return unauthorised("User not found");
-
     const body = await request.json();
     const { bookingId, rating, reviewText } = body;
 
     if (!bookingId || !rating) return fail("Missing bookingId or rating", 400);
     if (rating < 1 || rating > 5) return fail("Rating must be between 1 and 5", 400);
+    if (reviewText && reviewText.length > 2000) return fail("Review text must be 2000 characters or fewer", 400);
 
     const booking = await findBookingById(bookingId);
     if (!booking) return notFound("Booking not found");
@@ -50,6 +56,14 @@ export async function POST(request, { params }) {
       booking_id: bookingId,
       rating,
       review_text: reviewText || "",
+    });
+
+    await logAudit({
+      actorId: user.id,
+      action: "review.created",
+      resourceType: "review",
+      resourceId: review.id,
+      metadata: { listing_id: p.id, booking_id: bookingId, rating },
     });
 
     return ok(toCamelCase(review), 201);
