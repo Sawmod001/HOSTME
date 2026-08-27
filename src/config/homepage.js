@@ -9,9 +9,9 @@ export const SITE = {
 
 export const HERO = {
   badge: "Nigeria's premier space marketplace",
-  titleLead: "Discover unique spaces",
-  titleAccent: "in Ilorin",
-  titleAccentNote: "Ilorin",
+  titleLead: "Everything You Need",
+  titleAccent: "to Book",
+  titleAccentNote: "to Book",
   subtitle: BRAND.subtitle,
   primaryCta: { label: "Browse spaces", href: "/listings" },
   secondaryCta: { label: "List your space", href: "/sign-up" },
