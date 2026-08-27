@@ -87,6 +87,23 @@ export async function POST(request) {
         });
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
+        // Price snapshot: what the guest agreed to at booking time
+        const pricingSnapshot = {
+            baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
+            headcount: softHold.headcount,
+            hours: Math.max(1, (new Date(slot.event_end) - new Date(slot.event_start)) / (1000 * 60 * 60)),
+            addOns: addOns.map((a) => ({ id: a.id, name: a.name, price: a.priceInKobo || 0 })),
+            totalAmountKobo,
+            commissionKobo,
+        };
+
+        const termsSnapshot = {
+            bookingType: "capacity",
+            eventStart: slot.event_start,
+            eventEnd: slot.event_end,
+            headcount: softHold.headcount,
+        };
+
         const { data: booking } = await supabase
             .from("bookings")
             .insert({
@@ -99,11 +116,14 @@ export async function POST(request) {
                 status: "awaiting_payment",
                 total_amount_kobo: totalAmountKobo,
                 commission_kobo: commissionKobo,
+                pricing_snapshot: pricingSnapshot,
+                terms_snapshot: termsSnapshot,
+                expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             })
             .select()
             .single();
 
-        await supabase.from("soft_holds").update({ booking_id: booking.id }).eq("id", softHold.id);
+        await supabase.from("soft_holds").update({ booking_id: booking.id, state: "converted", released_at: new Date().toISOString() }).eq("id", softHold.id);
 
         await logAudit({
             actorId: user.id,

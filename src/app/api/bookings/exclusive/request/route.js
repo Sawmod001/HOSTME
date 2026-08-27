@@ -1,9 +1,14 @@
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
+import { logAudit } from "@/lib/db/audit";
+import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function POST(request) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const userOrResponse = await requireAuthenticatedUser(request);
         if (userOrResponse instanceof Response) return userOrResponse;
         const user = userOrResponse;
@@ -29,7 +34,6 @@ export async function POST(request) {
             .select()
             .eq("id", lockId)
             .eq("listing_id", listingId)
-            .eq("event_start", new Date(eventStart).toISOString())
             .eq("status", "open")
             .maybeSingle();
 
@@ -41,6 +45,21 @@ export async function POST(request) {
         const totalAmountKobo = Math.round(Number(listing.pricing?.baseRatePerHour || 0) * hours);
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
+        // Price snapshot: what the guest agreed to at booking time
+        const pricingSnapshot = {
+            baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
+            hours,
+            totalAmountKobo,
+            commissionKobo,
+        };
+
+        const termsSnapshot = {
+            bookingType: "exclusive",
+            eventStart,
+            eventEnd,
+            headcount: parsedHeadcount,
+        };
+
         const { data: booking } = await supabase
             .from("bookings")
             .insert({
@@ -50,12 +69,29 @@ export async function POST(request) {
                 event_start: new Date(eventStart).toISOString(),
                 event_end: new Date(eventEnd).toISOString(),
                 headcount: parsedHeadcount,
-                status: "pending",
+                status: "awaiting_payment",
                 total_amount_kobo: totalAmountKobo,
                 commission_kobo: commissionKobo,
+                pricing_snapshot: pricingSnapshot,
+                terms_snapshot: termsSnapshot,
+                exclusive_lock_id: lockId,
+                expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             })
             .select()
             .single();
+
+        await supabase
+            .from("exclusive_locks")
+            .update({ status: "reserved", booking_id: booking.id, reserved_by: user.id, reserved_at: new Date().toISOString() })
+            .eq("id", lockId);
+
+        await logAudit({
+            actorId: user.id,
+            action: "exclusive_lock.reserved",
+            resourceType: "listing",
+            resourceId: listingId,
+            metadata: { bookingId: booking.id, lockId, totalAmountKobo, hours },
+        });
 
         return ok({
             ok: true,
