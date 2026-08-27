@@ -1,24 +1,19 @@
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
-import { findListingById, updateListing, findUserByClerkId } from "@/lib/db/supabase-queries";
+import { requireAdmin } from "@/lib/auth/helpers";
+import { findListingById, updateListing } from "@/lib/db/supabase-queries";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
-import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { toCamelCase, ok, fail, notFound, parseId } from "@/lib/db/supabase-utils";
 
 export async function POST(request, { params }) {
   try {
     const csrfFail = validateCsrfOrigin(request);
     if (csrfFail) return csrfFail;
 
+    const adminOrResponse = await requireAdmin(request);
+    if (adminOrResponse instanceof Response) return adminOrResponse;
+    const admin = adminOrResponse;
+
     const p = await params;
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) return unauthorised("Invalid session");
-
-    const clerkUser = await getClerkUser(sessionInfo.userId);
-    if (!clerkUser) return unauthorised("Clerk user not found");
-    if (clerkUser.role !== "admin") return forbidden("Admin role required");
-
     if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
     const listing = await findListingById(p.id);
@@ -27,9 +22,8 @@ export async function POST(request, { params }) {
 
     const updated = await updateListing(p.id, { status: "suspended" });
 
-    const adminUser = await findUserByClerkId(sessionInfo.userId);
     await logAudit({
-      actorId: adminUser?.id || null,
+      actorId: admin.id,
       action: "listing.suspended",
       resourceType: "listing",
       resourceId: p.id,
