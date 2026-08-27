@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 export default function AdminSetupPage() {
-  const [email, setEmail] = useState("admin@hostme.com");
+  const [email, setEmail] = useState("admin@clockhost.com");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("Admin");
   const [status, setStatus] = useState("");

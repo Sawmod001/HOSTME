@@ -143,7 +143,7 @@ export default function ExclusiveRequestPage({ params }) {
                         </span>
                         <h1 className="text-xl font-semibold text-[var(--color-ink)]">Sign in to book</h1>
                         <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--color-ink-muted)]">
-                            Create a free HostMe account to submit your request for this space.
+                            Create a free ClockHost account to submit your request for this space.
                         </p>
                         <Link href="/sign-up" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
                             <Lock size={16} /> Sign in / Create account

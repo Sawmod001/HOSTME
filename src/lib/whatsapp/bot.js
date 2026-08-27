@@ -34,9 +34,9 @@ const COMPARISON_HINTS = [
 
 // Free-form questions with a fixed answer — no AI call needed.
 const ABOUT_HINTS = [
-  "what is hostme", "about hostme", "about the app", "what do you do", "who are you",
-  "how does hostme work", "what is host me", "whats hostme", "what's hostme",
-  "what's host me", "what is the app", "tell me about hostme", "tell me about the app",
+  "what is clockhost", "about clockhost", "about the app", "what do you do", "who are you",
+  "how does clockhost work", "what is clock host", "whats clockhost", "what's clockhost",
+  "what's host me", "what is the app", "tell me about clockhost", "tell me about the app",
 ];
 
 const GROUP_BOOKING_HINTS = [
@@ -46,7 +46,7 @@ const GROUP_BOOKING_HINTS = [
 ];
 
 export const MENU_TEXT = [
-  "HostMe WhatsApp desk is on. Try:",
+  "ClockHost WhatsApp desk is on. Try:",
   '"find a venue in Ikeja"',
   '"search spaces in Lagos"',
   '"show venues in Lekki"',
@@ -56,7 +56,7 @@ export const MENU_TEXT = [
 
 export const MENU_MESSAGE = {
   kind: "buttons",
-  body: "HostMe WhatsApp desk is on.\n\nTap below or just type something like:\n\"find a venue in Ikeja\" or \"cheapest place for 50 people\"",
+  body: "ClockHost WhatsApp desk is on.\n\nTap below or just type something like:\n\"find a venue in Ikeja\" or \"cheapest place for 50 people\"",
   buttons: [
     { id: "find_venue", title: "Find a venue" },
     { id: "group_booking", title: "Group booking" },
@@ -64,7 +64,7 @@ export const MENU_MESSAGE = {
   ],
 };
 
-export const ABOUT_TEXT = `HostMe is a Nigerian marketplace for booking event venues and spaces.
+export const ABOUT_TEXT = `ClockHost is a Nigerian marketplace for booking event venues and spaces.
 
 You can search by area (like Ikeja or Lekki), see live availability and prices, and book by the hour. Hosts manage their own listings and availability.
 
@@ -74,10 +74,10 @@ export function groupBookingText({ venue, link }) {
   return [
     `Group booking for ${venue}`,
     "",
-    "HostMe lets a group split one venue booking: one person starts the plan, shares a link, and each friend pays their own share in Naira.",
+    "ClockHost lets a group split one venue booking: one person starts the plan, shares a link, and each friend pays their own share in Naira.",
     "",
     `Create the plan here and share the link: ${link}`,
-    "Each friend signs in with their HostMe account to join and pay their share.",
+    "Each friend signs in with their ClockHost account to join and pay their share.",
     "",
     "The plan auto-finalizes when the group fills up. If it doesn't fill by the close date, it cancels and everyone is refunded.",
     "",

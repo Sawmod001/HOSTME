@@ -1,5 +1,5 @@
 -- =============================================================================
--- HostMe Supabase Migration — Batch 1: Auth + Authorization + Account Model
+-- ClockHost (formerly HostMe) Supabase Migration — Batch 1: Auth + Authorization + Account Model
 -- =============================================================================
 -- IMPORTANT: Run this in a transaction. If anything fails, nothing is applied.
 -- Migration order: ADD → BACKFILL → VALIDATE → SWITCH READS → SWITCH WRITES → REMOVE LEGACY

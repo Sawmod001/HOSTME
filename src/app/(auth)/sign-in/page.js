@@ -88,7 +88,7 @@ function SignInForm() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-lg shadow-black/[0.03]">
           <div className="mb-6">
             <h1 className="text-xl font-semibold" style={{ color: "var(--color-ink)" }}>Welcome back</h1>
-            <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>Sign in to your HostMe account</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>Sign in to your ClockHost account</p>
           </div>
 
           {banner && (

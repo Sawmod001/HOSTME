@@ -4,13 +4,13 @@ import { validateCsrfOrigin } from "@/lib/csrf";
 
 const FALLBACK_REPLIES = [
   "I can help you find venues, understand booking types, or navigate your dashboard. What would you like to know?",
-  "HostMe lets you browse venues, check availability, and book spaces. Try the Discover page to get started.",
+  "ClockHost lets you browse venues, check availability, and book spaces. Try the Discover page to get started.",
   "You can sign up as a guest to book spaces, or as a host to list your venue. Hosts and agents can list different types of spaces.",
   "Capacity bookings let you reserve a slot in a shared space. Exclusive bookings give you the whole venue.",
   "Payments are processed in Nigerian Naira. Your booking is held temporarily while you complete payment.",
 ];
 
-const SYSTEM_PROMPT = `You are HostMe AI, a helpful assistant for the HostMe platform. HostMe is a Nigerian marketplace for booking event spaces, venues, and experiences.
+const SYSTEM_PROMPT = `You are ClockHost AI, a helpful assistant for the ClockHost platform. ClockHost is a Nigerian marketplace for booking event spaces, venues, and experiences.
 
 Key features:
 - Browse listings across verticals: venues, housing

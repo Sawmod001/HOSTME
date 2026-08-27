@@ -29,7 +29,7 @@ export default function Faq() {
         <SectionHeading
           eyebrow="Support"
           title="Frequently asked questions"
-          subtitle="Everything you need to know about using HostMe."
+          subtitle="Everything you need to know about using ClockHost."
         />
 
         <div className="grid gap-4 lg:grid-cols-2">

@@ -18,7 +18,7 @@ export default function Testimonials() {
       <SectionContainer className="py-16 sm:py-24">
         <SectionHeading
           eyebrow="Loved by guests and hosts"
-          title="What people say about HostMe"
+          title="What people say about ClockHost"
           subtitle="Real experiences from people who found their space or hosted one."
         />
 

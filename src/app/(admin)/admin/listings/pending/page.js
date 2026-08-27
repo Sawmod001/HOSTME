@@ -191,7 +191,7 @@ export default function AdminPendingListingsPage() {
                                                     <p className="text-[var(--color-ink-muted)]">{contactHost.profile.businessName}</p>
                                                 )}
                                                 <a
-                                                    href={`mailto:${contactHost.email}?subject=${encodeURIComponent("Your HostMe listing: " + listing.title)}`}
+                                                    href={`mailto:${contactHost.email}?subject=${encodeURIComponent("Your ClockHost listing: " + listing.title)}`}
                                                     className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)]"
                                                 >
                                                     <Mail size={14} />

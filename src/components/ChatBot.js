@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Loader2, Bot, AlertCircle, RefreshCw } from "lucide-react";
 
-const WELCOME = "Hi! I'm HostMe AI. Ask me anything about finding venues, booking spaces or using the platform.";
+const WELCOME = "Hi! I'm ClockHost AI. Ask me anything about finding venues, booking spaces or using the platform.";
 const HIDDEN_PATHS = ["/sign-in", "/sign-up", "/complete-profile", "/admin", "/admin/listings"];
 
 export default function ChatBot() {
@@ -94,7 +94,7 @@ export default function ChatBot() {
                   <Bot size={16} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold leading-tight">HostMe AI</p>
+                  <p className="text-sm font-semibold leading-tight">ClockHost AI</p>
                   <p className="text-[11px] leading-tight opacity-80">Ask anything about the platform</p>
                 </div>
               </div>
@@ -154,7 +154,7 @@ export default function ChatBot() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     maxLength={2000}
-                    placeholder="Ask about HostMe..."
+                    placeholder="Ask about ClockHost..."
                     disabled={loading}
                     className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3.5 py-2.5 pr-10 text-sm outline-none transition-colors focus:border-[var(--color-primary)] disabled:opacity-50" />
                   {input.length > 0 && (

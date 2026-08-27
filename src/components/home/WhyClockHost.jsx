@@ -1,19 +1,19 @@
 import { SectionContainer, SectionHeading } from "./Section";
 import Reveal from "./Reveal";
-import { WHY_HOSTME } from "@/config/homepage";
+import { WHY_CLOCKHOST } from "@/config/homepage";
 
-export default function WhyHostMe() {
+export default function WhyClockHost() {
   return (
     <section className="border-t border-[var(--color-night-border-soft)] bg-[var(--color-night-soft)]">
       <SectionContainer className="py-16 sm:py-24">
         <SectionHeading
-          eyebrow="Why HostMe"
+          eyebrow="Why ClockHost"
           title="Built for hosts and guests alike"
           subtitle="We removed the friction from booking spaces, so everyone enjoys the moment."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {WHY_HOSTME.map((item, i) => {
+          {WHY_CLOCKHOST.map((item, i) => {
             const Icon = item.icon;
             return (
               <Reveal key={item.title} delay={i * 80} className="h-full">

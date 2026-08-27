@@ -261,7 +261,7 @@ export default function GroupPlanPage() {
             <h2 className="text-lg font-semibold text-[var(--color-ink)]">Join this plan</h2>
             {authChecked && !isAuthenticated ? (
               <>
-                <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Sign in with your HostMe account to join and pay your share.</p>
+                <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Sign in with your ClockHost account to join and pay your share.</p>
                 <Link
                   href="/sign-up"
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white"

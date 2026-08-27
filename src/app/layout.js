@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import ChatBot from "@/components/ChatBot";
+import { BRAND } from "@/config/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,20 +23,18 @@ const fraunces = Fraunces({
 export const metadata = {
   metadataBase: new URL("https://hostme-xbhx.vercel.app"),
   title: {
-    default: "HostMe | Find and book spaces in Ilorin",
-    template: "%s | HostMe",
+    default: BRAND.title,
+    template: `%s | ${BRAND.name}`,
   },
-  description:
-    "Discover venues, karaoke bars, event centers and shortlets in Ilorin. Book instantly, split costs with group booking and pay securely with Paystack.",
-  keywords: ["HostMe", "Ilorin", "spaces", "event centers", "karaoke", "shortlets", "group booking", "Nigeria"],
+  description: BRAND.description,
+  keywords: BRAND.keywords,
   openGraph: {
     type: "website",
     locale: "en_NG",
     url: "https://hostme-xbhx.vercel.app",
-    siteName: "HostMe",
-    title: "HostMe | Find and book spaces in Ilorin",
-    description:
-      "Discover venues, karaoke bars, event centers and shortlets in Ilorin. Book instantly and split costs with group booking.",
+    siteName: BRAND.siteName,
+    title: BRAND.title,
+    description: BRAND.description,
     images: [
       {
         url: "https://images.pexels.com/photos/29692582/pexels-photo-29692582.jpeg?auto=compress&cs=tinysrgb&w=1200",
@@ -47,9 +46,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "HostMe | Find and book spaces in Ilorin",
-    description:
-      "Discover venues, karaoke bars, event centers and shortlets in Ilorin. Book instantly and split costs with group booking.",
+    title: BRAND.title,
+    description: BRAND.description,
   },
   robots: { index: true, follow: true },
 };

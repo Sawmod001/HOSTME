@@ -154,7 +154,7 @@ export default function NewGroupPlanPage() {
             </span>
             <h1 className="text-xl font-semibold text-[var(--color-ink)]">Sign in to start a group booking</h1>
             <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--color-ink-muted)]">
-              You need a free HostMe account to create a plan and share the invite link.
+              You need a free ClockHost account to create a plan and share the invite link.
             </p>
             <Link href="/sign-up" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 font-semibold text-white">
               <Lock size={16} /> Sign in / Create account

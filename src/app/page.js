@@ -9,7 +9,7 @@ import FeaturedSpaces from "@/components/home/FeaturedSpaces";
 import TwoWaysToBook from "@/components/home/TwoWaysToBook";
 import HowItWorks from "@/components/home/HowItWorks";
 import OneAccountTwoRoles from "@/components/home/OneAccountTwoRoles";
-import WhyHostMe from "@/components/home/WhyHostMe";
+import WhyClockHost from "@/components/home/WhyClockHost";
 import Locations from "@/components/home/Locations";
 import Testimonials from "@/components/home/Testimonials";
 import HostCta from "@/components/home/HostCta";
@@ -65,7 +65,7 @@ export default function HomePage() {
         <TwoWaysToBook gate={gate} />
         <HowItWorks gate={gate} />
         <OneAccountTwoRoles gate={gate} />
-        <WhyHostMe />
+        <WhyClockHost />
         <Locations gate={gate} />
         <Testimonials />
         <HostCta gate={gate} />

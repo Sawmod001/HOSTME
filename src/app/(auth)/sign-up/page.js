@@ -85,7 +85,7 @@ function SignUpForm() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-lg shadow-black/[0.03]">
           <div className="mb-6">
             <h1 className="text-xl font-semibold" style={{ color: "var(--color-ink)" }}>Create your account</h1>
-            <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>Join HostMe and discover amazing spaces</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--color-ink-muted)" }}>Join ClockHost and discover amazing spaces</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

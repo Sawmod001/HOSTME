@@ -1,8 +1,9 @@
 import { Cake, Star, Mic2, Gamepad2, Home, ShieldCheck, Zap, Users, Wallet, MapPin, CheckCircle2 } from "lucide-react";
+import { BRAND } from "@/config/brand";
 
 export const SITE = {
-  name: "HostMe",
-  tagline: "Nigeria's space marketplace",
+  name: BRAND.name,
+  tagline: BRAND.subtitle,
   baseUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://hostme-xbhx.vercel.app",
 };
 
@@ -11,8 +12,7 @@ export const HERO = {
   titleLead: "Discover unique spaces",
   titleAccent: "in Ilorin",
   titleAccentNote: "Ilorin",
-  subtitle:
-    "From lively karaoke bars and elegant event centers to shortlet apartments, find and book the perfect space for any occasion in minutes.",
+  subtitle: BRAND.subtitle,
   primaryCta: { label: "Browse spaces", href: "/listings" },
   secondaryCta: { label: "List your space", href: "/sign-up" },
   images: {
@@ -81,11 +81,11 @@ export const GROUP_BOOKING = {
   cta: { label: "Find a group-friendly venue", href: "/listings?vertical=venue" },
 };
 
-export const WHY_HOSTME = [
+export const WHY_CLOCKHOST = [
   {
     icon: ShieldCheck,
     title: "Verified spaces",
-    desc: "Every listing is reviewed and approved by the HostMe team before it goes live.",
+    desc: `Every listing is reviewed and approved by the ${BRAND.name} team before it goes live.`,
   },
   {
     icon: Zap,
@@ -130,7 +130,7 @@ export const TESTIMONIALS = [
   },
   {
     quote:
-      "We needed a private hall for our graduation photos. HostMe handled the reservation and deposit, then confirmed everything for us.",
+      `We needed a private hall for our graduation photos. ${BRAND.name} handled the reservation and deposit, then confirmed everything for us.`,
     name: "Amina K.",
     role: "Guest from University of Ilorin",
   },
@@ -140,7 +140,7 @@ export const BOOKING_TYPES = {
   eyebrow: "Two ways to book",
   title: "Shared seat or the whole space",
   subtitle:
-    "Every space on HostMe uses one of two booking models. Pick the one that fits how you like to book.",
+    `Every space on ${BRAND.name} uses one of two booking models. Pick the one that fits how you like to book.`,
   columns: [
     {
       key: "capacity",
@@ -187,7 +187,7 @@ export const ROLES = {
   eyebrow: "One account, multiple roles",
   title: "Book spaces or list your own",
   subtitle:
-    "Your HostMe account works for both sides of the market. Sign up as a guest to book, or as a host to list your space.",
+    `Your ${BRAND.name} account works for both sides of the market. Sign up as a guest to book, or as a host to list your space.`,
   guest: {
     label: "Book as a guest",
     icon: "search",
@@ -213,7 +213,7 @@ export const ROLES = {
 };
 
 export const HOST_CTA = {
-  title: "Own a space? Start earning with HostMe.",
+  title: `Own a space? Start earning with ${BRAND.name}.`,
   subtitle:
     "List your venue, apartment or shortlet in minutes. Reach thousands of local guests and get paid securely through Paystack.",
   primaryCta: { label: "List your space", href: "/sign-up" },
@@ -228,8 +228,8 @@ export const HOST_CTA = {
 
 export const FAQS = [
   {
-    q: "What is HostMe?",
-    a: "HostMe is Nigeria's marketplace for discovering and booking unique spaces. From lively karaoke bars and elegant event centers to shortlet apartments, we connect you with the perfect space for every occasion.",
+    q: `What is ${BRAND.name}?`,
+    a: `${BRAND.name} is Nigeria's marketplace for discovering and booking unique spaces. From lively karaoke bars and elegant event centers to shortlet apartments, we connect you with the perfect space for every occasion.`,
   },
   {
     q: "How do I book a space?",
@@ -237,11 +237,11 @@ export const FAQS = [
   },
   {
     q: "What is group booking?",
-    a: "Group booking lets you split the cost of a venue with friends. One person starts the plan and shares the link. Each friend joins with their HostMe account and pays their own share in Naira. The plan auto-confirms once the group fills up, or cancels with refunds if it does not by the close date. A free account is needed to start or join.",
+    a: `Group booking lets you split the cost of a venue with friends. One person starts the plan and shares the link. Each friend joins with their ${BRAND.name} account and pays their own share in Naira. The plan auto-confirms once the group fills up, or cancels with refunds if it does not by the close date. A free account is needed to start or join.`,
   },
   {
     q: "What types of spaces are available?",
-    a: "We offer two verticals: Venues (karaoke bars, event centers, party halls and exclusive spaces) and Housing (shortlets and apartments). Each listing clearly shows its category, pricing and available add-ons.",
+    a: "We offer two categories: Venues (karaoke bars, event centers, party halls and exclusive spaces) and Housing (shortlets and apartments). Each listing clearly shows its category, pricing and available add-ons.",
   },
   {
     q: "How do payments work?",
@@ -253,14 +253,14 @@ export const FAQS = [
   },
   {
     q: "Can I be both a host and a guest?",
-    a: "Yes. One HostMe account supports both sides. Sign up as a guest to book spaces first, then add the host side from your profile to start listing your own space. You can switch between them anytime.",
+    a: `Yes. One ${BRAND.name} account supports both sides. Sign up as a guest to book spaces first, then add the host side from your profile to start listing your own space. You can switch between them anytime.`,
   },
   {
     q: "What is the difference between capacity and exclusive booking?",
     a: "Capacity booking works like event tickets. You reserve a spot in a shared experience, like a karaoke session. Exclusive booking gives you full private access to a space for a specific time window, like renting an entire event center.",
   },
   {
-    q: "Is HostMe available outside Ilorin?",
+    q: `Is ${BRAND.name} available outside Ilorin?`,
     a: "We currently operate in Ilorin, Kwara State. Expansion to other Nigerian cities is on the roadmap. Follow us for announcements about new locations.",
   },
   {

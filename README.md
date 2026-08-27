@@ -1,4 +1,4 @@
-# HostMe App
+# ClockHost App
 
 Multi-vertical marketplace for Nigerian hospitality and real estate. Hosts list commercial spaces (venues, short-let housing) and guests book them by the hour. Built for the App Router, server-rendered, with two distinct booking engines.
 
@@ -116,7 +116,7 @@ Required vars:
 | `WHATSAPP_PHONE_NUMBER_ID` | business WhatsApp number id |
 | `WHATSAPP_VERIFY_TOKEN` | webhook verification echo |
 | `WHATSAPP_APP_SECRET` | HMAC-verifies WhatsApp webhooks |
-| `HOSTME_BASE_URL` | public base URL for shareable links |
+| `CLOCKHOST_BASE_URL` | public base URL for shareable links |
 | `DEBUG_SECRET` | (production only) token for `GET/POST /api/debug/db` |
 
 `DEBUG_SECRET` only matters in production: the `/api/debug/db` diagnostic is open in local dev but returns `401` in production unless the request carries `x-debug-token: <DEBUG_SECRET>`.

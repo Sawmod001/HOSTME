@@ -55,7 +55,7 @@ export async function POST(request) {
     }
 
     const deps = {
-      baseUrl: process.env.HOSTME_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+      baseUrl: process.env.CLOCKHOST_BASE_URL || process.env.HOSTME_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
       listActiveListings: async ({ area } = {}) => {
         const active = await listListings({ status: "active" });
         if (!area) return active;
@@ -107,7 +107,7 @@ export async function POST(request) {
         console.error("[whatsapp] handler error:", error);
         await sendWhatsAppText(
           phone,
-          "HostMe is having trouble reaching its venues right now. Try again in a moment.",
+          "ClockHost is having trouble reaching its venues right now. Try again in a moment.",
           config
         );
       }
@@ -135,7 +135,7 @@ function interactiveToText(message) {
       const id = String(iv.button_reply?.id ?? "").trim();
       if (id === "find_venue") return "find a venue";
       if (id === "group_booking") return "group booking";
-      if (id === "about") return "about hostme";
+      if (id === "about") return "about clockhost";
       if (id === "help") return "menu";
       return id;
     }

@@ -81,7 +81,7 @@ export default function CompleteProfilePage() {
     }
 
     if (isProvider && !termsAccepted) {
-      setStatus("You must accept HostMe's terms and conditions.");
+      setStatus("You must accept ClockHost's terms and conditions.");
       return;
     }
 
@@ -294,7 +294,7 @@ export default function CompleteProfilePage() {
                 className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)]"
               />
               <span className="text-[var(--color-ink-muted)]">
-                I have read and agree to HostMe&apos;s{" "}
+                I have read and agree to ClockHost&apos;s{" "}
                 <span className="font-semibold text-[var(--color-ink)]">Terms and Conditions</span>{" "}
                 and{" "}
                 <span className="font-semibold text-[var(--color-ink)]">Provider Guidelines</span>. I

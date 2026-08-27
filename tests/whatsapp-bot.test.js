@@ -74,7 +74,7 @@ test("parseIntent: unrelated text falls back to menu", () => {
 });
 
 test("parseIntent: about phrases produce an about intent", () => {
-  for (const phrase of ["what is hostme", "about hostme", "who are you", "what do you do"]) {
+  for (const phrase of ["what is clockhost", "about clockhost", "who are you", "what do you do"]) {
     assert.deepEqual(parseIntent(phrase, null), { intent: "about" }, phrase);
   }
 });
@@ -175,7 +175,7 @@ test("handleMessage: menu resets an in-progress selection", async () => {
   const replies = await handleMessage({ phone: "+2348123456789", text: "menu", sessions, deps });
   assert.equal(sessions.size, 0);
   assert.equal(replies[0].kind, "buttons");
-  assert.match(replies[0].body, /HostMe WhatsApp desk is on/);
+  assert.match(replies[0].body, /ClockHost WhatsApp desk is on/);
 });
 
 test("handleMessage: no venues produces a friendly empty state", async () => {
@@ -190,7 +190,7 @@ test("shouldUseGemini: never for reset/select/plain area searches/about/group bo
   assert.equal(shouldUseGemini("2", { intent: "select" }), false);
   assert.equal(shouldUseGemini("find a venue in Ikeja", { intent: "search" }), false);
   assert.equal(shouldUseGemini("thanks", { intent: "menu" }), false);
-  assert.equal(shouldUseGemini("what is hostme", { intent: "about" }), false);
+  assert.equal(shouldUseGemini("what is clockhost", { intent: "about" }), false);
   assert.equal(shouldUseGemini("group booking", { intent: "group_booking" }), false);
 });
 
@@ -216,10 +216,10 @@ test("handleMessage: free-form question uses generateReply and keeps session", a
   assert.equal(sessions.size, 1);
 });
 
-test("handleMessage: about intent returns the HostMe explainer", async () => {
+test("handleMessage: about intent returns the ClockHost explainer", async () => {
   const replies = await handleMessage({
     phone: "+2348123456789",
-    text: "what is hostme",
+    text: "what is clockhost",
     sessions: new Map(),
     deps: fakeDeps([]),
   });
@@ -243,7 +243,7 @@ test("handleMessage: group booking after selecting a venue returns a prefilled p
   const sessions = new Map();
   const deps = {
     ...fakeDeps([listing], { [listing.id]: [makeSlot()] }),
-    baseUrl: "https://hostme.example",
+    baseUrl: "https://clockhost.example",
   };
 
   await handleMessage({ phone: "+2348123456789", text: "find a venue in Ikeja", sessions, deps });
@@ -253,7 +253,7 @@ test("handleMessage: group booking after selecting a venue returns a prefilled p
   const replies = await handleMessage({ phone: "+2348123456789", text: "group booking", sessions, deps });
   assert.equal(replies.length, 1);
   assert.match(replies[0].text, /Group booking for Orca Lounge/);
-  assert.match(replies[0].text, /https:\/\/hostme\.example\/group-plans\/new\?listingId=/);
+  assert.match(replies[0].text, /https:\/\/clockhost\.example\/group-plans\/new\?listingId=/);
 });
 
 test("handleMessage: falls back to interactive list when generateReply throws", async () => {
@@ -277,5 +277,5 @@ test("handleMessage: free-form question without AI returns the menu", async () =
   const replies = await handleMessage({ phone: "+2348123456789", text: "how much for a wedding", sessions, deps: fakeDeps([]) });
   assert.equal(replies.length, 1);
   assert.equal(replies[0].kind, "buttons");
-  assert.match(replies[0].body, /HostMe WhatsApp desk is on/);
+  assert.match(replies[0].body, /ClockHost WhatsApp desk is on/);
 });
