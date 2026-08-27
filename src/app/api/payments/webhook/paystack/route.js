@@ -115,6 +115,46 @@ export async function POST(request) {
             paid_at: new Date().toISOString(),
         }).eq("id", booking.id);
 
+        // Update or create payment record
+        const { data: existingPayment } = await supabase
+            .from("payment_records")
+            .select("id")
+            .eq("booking_id", booking.id)
+            .eq("gateway_transaction_ref", txRef)
+            .maybeSingle();
+
+        if (existingPayment) {
+            await supabase.from("payment_records").update({
+                status: "successful",
+                gateway_event_id: payload?.data?.id?.toString(),
+                updated_at: new Date().toISOString(),
+            }).eq("id", existingPayment.id);
+        } else {
+            await supabase.from("payment_records").insert({
+                booking_id: booking.id,
+                amount_kobo: booking.total_amount_kobo,
+                currency: "NGN",
+                gateway: "paystack",
+                gateway_transaction_ref: txRef,
+                gateway_event_id: payload?.data?.id?.toString(),
+                status: "successful",
+                metadata: {
+                    paid_amount: paidAmount,
+                    webhook_event: payload?.event,
+                },
+            });
+        }
+
+        // Send confirmation notification to guest
+        await supabase.from("notifications").insert({
+            user_id: booking.guest_id,
+            type: "payment_confirmed",
+            title: "Payment Confirmed",
+            body: `Your payment of ₦${(booking.total_amount_kobo / 100).toFixed(2)} has been confirmed.`,
+            link: `/bookings/${booking.id}`,
+            metadata: { booking_id: booking.id, reference: txRef },
+        });
+
         return ok({ received: true });
     } catch (error) {
         console.error("POST /api/payments/webhook/paystack error:", error);
