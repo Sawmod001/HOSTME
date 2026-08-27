@@ -1,4 +1,4 @@
-# HostMe — Restructuring & Rebuilding Guide
+# ClockHost — Restructuring & Rebuilding Guide
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@
 
 ## Executive Summary
 
-HostMe has a solid foundation: PostgreSQL with PostGIS, atomic booking functions, two distinct booking engines, and a modern Next.js frontend. However, the codebase has accumulated complexity that makes it hard to maintain and extend. This guide provides a phased approach to restructuring for global standards.
+ClockHost has a solid foundation: PostgreSQL with PostGIS, atomic booking functions, two distinct booking engines, and a modern Next.js frontend. However, the codebase has accumulated complexity that makes it hard to maintain and extend. This guide provides a phased approach to restructuring for global standards.
 
 **Key principle**: Simplify first, then build. Don't add features on top of a complex foundation.
 
@@ -257,7 +257,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // On booking confirmed
 await resend.emails.send({
-  from: "HostMe <bookings@hostme.ng>",
+  from: "ClockHost <bookings@clockhost.ng>",
   to: guest.email,
   subject: "Booking Confirmed",
   template: "booking-confirmed",
@@ -404,7 +404,7 @@ SENTRY_DSN=...
 
 ### How Peerspace Does It
 
-| Aspect | Peerspace | HostMe (Current) | HostMe (Proposed) |
+| Aspect | Peerspace | ClockHost (Current) | ClockHost (Proposed) |
 |--------|-----------|-------------------|-------------------|
 | Booking flow | Single "Request to Book" | Two separate flows | Single unified flow |
 | Payment | Stripe (pre-authorization) | Paystack (webhook) | Paystack (webhook) |
@@ -416,7 +416,7 @@ SENTRY_DSN=...
 
 ### How Airbnb Does It
 
-| Aspect | Airbnb | HostMe (Current) | HostMe (Proposed) |
+| Aspect | Airbnb | ClockHost (Current) | ClockHost (Proposed) |
 |--------|--------|-------------------|-------------------|
 | Instant book | Yes (for some listings) | No | Optional |
 | Pricing | Dynamic (seasonal, demand) | Fixed hourly | Fixed hourly (Phase 4: dynamic) |
@@ -425,7 +425,7 @@ SENTRY_DSN=...
 
 ### How Tagvenue Does It
 
-| Aspect | Tagvenue | HostMe (Current) | HostMe (Proposed) |
+| Aspect | Tagvenue | ClockHost (Current) | ClockHost (Proposed) |
 |--------|----------|-------------------|-------------------|
 | Venue types | 40+ sub-types | 4 sub-verticals | Expandable |
 | Booking types | Shared + Private | Capacity + Exclusive | Unified |

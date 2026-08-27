@@ -4,7 +4,7 @@ import { BRAND } from "@/config/brand";
 export const SITE = {
   name: BRAND.name,
   tagline: BRAND.subtitle,
-  baseUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://hostme-xbhx.vercel.app",
+  baseUrl: process.env.CLOCKHOST_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
 };
 
 export const HERO = {

@@ -1,6 +1,5 @@
 import crypto from "crypto";
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { resolveExclusiveLock } from "@/lib/bookings/exclusive";
 import { ok, fail, notFound, forbidden } from "@/lib/db/supabase-utils";
@@ -10,13 +9,9 @@ export async function POST(request) {
     if (process.env.NODE_ENV === "production") {
       return fail("Payments are not available yet in production", 503);
     }
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) return fail("Unauthorized", 401);
-
-    const user = await getUser(sessionInfo.userId);
-    if (!user) return fail("User not found", 404);
+    const userOrResponse = await requireAuthenticatedUser(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     const { bookingId } = await request.json();
     if (!bookingId) return fail("Booking ID is required", 400);

@@ -1,6 +1,5 @@
 import { joinGroupPlan } from "@/lib/bookings/group-booking";
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { rateLimitOk, clientIp } from "@/lib/rate-limit";
 import { ok, fail, parseId } from "@/lib/db/supabase-utils";
 
@@ -10,13 +9,9 @@ export async function POST(request, { params }) {
             return fail("Too many attempts. Try again later.", 429);
         }
 
-        const sessionInfo = parseSessionToken(request);
-        if (!sessionInfo?.userId) return fail("Sign in to join this plan", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Sign in to join this plan", 401);
-
-        const user = await getUser(sessionInfo.userId);
-        if (!user) return fail("User not found", 404);
+        const userOrResponse = await requireAuthenticatedUser(request);
+        if (userOrResponse instanceof Response) return userOrResponse;
+        const user = userOrResponse;
 
         const p = await params;
         if (!parseId(p.id)) return fail("Invalid plan ID", 400);

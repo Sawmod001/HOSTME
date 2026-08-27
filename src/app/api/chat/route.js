@@ -1,4 +1,4 @@
-import { parseSessionToken } from "@/lib/auth/getSessionUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
@@ -27,10 +27,8 @@ export async function POST(request) {
     const csrfFail = validateCsrfOrigin(request);
     if (csrfFail) return csrfFail;
 
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return Response.json({ error: "Sign in to use the AI assistant." }, { status: 401 });
-    }
+    const userOrResponse = await requireAuthenticatedUser(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
 
     const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 20 }, "chat");
     if (rateLimited) return rateLimited;

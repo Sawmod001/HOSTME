@@ -142,13 +142,13 @@ export default function DiscoveryPage() {
                     </div>
                     <div className="sm:flex sm:gap-3 space-y-3 sm:space-y-0">
                     <div className="flex-1">
-                        <label className="text-xs font-semibold text-[var(--color-ink)] block mb-2">Vertical</label>
+                        <label className="text-xs font-semibold text-[var(--color-ink)] block mb-2">Category</label>
                         <select
                             value={filters.vertical}
                             onChange={(e) => handleFilterChange("vertical", e.target.value)}
                             className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                         >
-                            <option value="">All Verticals</option>
+                            <option value="">All Categories</option>
                             <option value="venue">Venues</option>
                             <option value="housing">Housing</option>
                         </select>

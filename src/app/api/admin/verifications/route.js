@@ -1,23 +1,13 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
-import { findUserByClerkId, listPendingVerifications, countPendingVerifications } from "@/lib/db/supabase-queries";
+import { requireAdmin } from "@/lib/auth/helpers";
+import { listPendingVerifications, countPendingVerifications } from "@/lib/db/supabase-queries";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function GET(request) {
   try {
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const user = await findUserByClerkId(sessionInfo.userId);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
+    const userOrResponse = await requireAdmin(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);

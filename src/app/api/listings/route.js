@@ -1,5 +1,4 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { createListing, listListings, countListings, findProviderProfileById } from "@/lib/db/supabase-queries";
 import { validateListingCreate, validateListingFilter } from "@/lib/validation";
 import { validateCsrfOrigin } from "@/lib/csrf";
@@ -32,12 +31,8 @@ export async function GET(request) {
         }
 
         // Resolve caller for access control
-        const sessionInfo = parseSessionToken(request);
-        let caller = null;
-        if (sessionInfo?.userId) {
-            const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-            if (isValid) caller = await getUser(sessionInfo.userId);
-        }
+        const userOrResponse = await requireAuthenticatedUser(request);
+        const caller = userOrResponse instanceof Response ? null : userOrResponse;
 
         const isAdmin = caller ? caller.role === "admin" : false;
 
@@ -93,13 +88,9 @@ export async function POST(request) {
         const csrfFail = validateCsrfOrigin(request);
         if (csrfFail) return csrfFail;
 
-        const sessionInfo = parseSessionToken(request);
-        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Unauthorized", 401);
-
-        const user = await getUser(sessionInfo.userId);
-        if (!user) return fail("User not found", 404);
+        const userOrResponse = await requireAuthenticatedUser(request);
+        if (userOrResponse instanceof Response) return userOrResponse;
+        const user = userOrResponse;
 
         // Only providers may create listings
         if (user.role !== "venue_host" && user.role !== "housing_agent") {

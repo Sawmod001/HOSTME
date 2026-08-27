@@ -1,5 +1,4 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { findListingById, updateListing } from "@/lib/db/supabase-queries";
 import { supabase } from "@/lib/db/supabase";
 import { validateListingUpdate } from "@/lib/validation";
@@ -19,12 +18,8 @@ export async function GET(request, { params }) {
 
             // Only active listings are public. Owner and admins may view non-active.
             if (listing.status !== "active") {
-                const sessionInfo = parseSessionToken(request);
-                let caller = null;
-                if (sessionInfo?.userId) {
-                    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-                    if (isValid) caller = await getUser(sessionInfo.userId);
-                }
+                const userOrResponse = await requireAuthenticatedUser(request);
+                const caller = userOrResponse instanceof Response ? null : userOrResponse;
                 const isAdmin = caller ? caller.role === "admin" : false;
                 const isOwner = caller?.providerProfile?.id === listing.provider_profile_id;
                 if (!isAdmin && !isOwner) return notFound("Listing not found");
@@ -47,13 +42,9 @@ export async function PATCH(request, { params }) {
         if (csrfFail) return csrfFail;
 
         const p = await params;
-        const sessionInfo = parseSessionToken(request);
-        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Unauthorized", 401);
-
-        const user = await getUser(sessionInfo.userId);
-        if (!user) return fail("User not found", 404);
+        const userOrResponse = await requireAuthenticatedUser(request);
+        if (userOrResponse instanceof Response) return userOrResponse;
+        const user = userOrResponse;
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
@@ -141,13 +132,9 @@ export async function DELETE(request, { params }) {
         if (csrfFail) return csrfFail;
 
         const p = await params;
-        const sessionInfo = parseSessionToken(request);
-        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Unauthorized", 401);
-
-        const user = await getUser(sessionInfo.userId);
-        if (!user) return fail("User not found", 404);
+        const userOrResponse = await requireAuthenticatedUser(request);
+        if (userOrResponse instanceof Response) return userOrResponse;
+        const user = userOrResponse;
 
         if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 

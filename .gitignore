@@ -47,5 +47,3 @@ dev-server.log
 
 # user uploads (not committed)
 public/uploads/
-.vercel
-.env*

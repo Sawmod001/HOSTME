@@ -21,7 +21,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://hostme-xbhx.vercel.app"),
+  metadataBase: new URL(process.env.CLOCKHOST_BASE_URL || "https://hostme-xbhx.vercel.app"),
   title: {
     default: BRAND.title,
     template: `%s | ${BRAND.name}`,
@@ -31,7 +31,7 @@ export const metadata = {
   openGraph: {
     type: "website",
     locale: "en_NG",
-    url: "https://hostme-xbhx.vercel.app",
+    url: process.env.CLOCKHOST_BASE_URL || "https://hostme-xbhx.vercel.app",
     siteName: BRAND.siteName,
     title: BRAND.title,
     description: BRAND.description,

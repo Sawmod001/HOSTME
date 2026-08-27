@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { findUserByClerkId, findProviderProfileByUserId, findListingById } from "@/lib/db/supabase-queries";
+import { requireHost } from "@/lib/auth/helpers";
+import { findProviderProfileByUserId, findListingById } from "@/lib/db/supabase-queries";
 import { supabase } from "@/lib/db/supabase";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
@@ -16,13 +16,12 @@ const UnblockDatesSchema = z.object({
 });
 
 async function verifyHostOwnership(request, listingId) {
-  const sessionInfo = parseSessionToken(request);
-  if (!sessionInfo?.userId) return { error: "Authentication required", status: 401 };
-  const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-  if (!isValid) return { error: "Authentication required", status: 401 };
-
-  const user = await findUserByClerkId(sessionInfo.userId);
-  if (!user) return { error: "User not found", status: 404 };
+  const userOrResponse = await requireHost(request);
+  if (userOrResponse instanceof Response) {
+    const body = await userOrResponse.clone().json().catch(() => ({ error: "Authentication required" }));
+    return { error: body.error || "Authentication required", status: userOrResponse.status };
+  }
+  const user = userOrResponse;
 
   const profile = await findProviderProfileByUserId(user.id);
   if (!profile) return { error: "Provider profile not found", status: 404 };

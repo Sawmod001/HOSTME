@@ -1,18 +1,13 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { getUser } from "@/lib/auth/getUser";
+import { requireHost } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
 
 export async function POST(request, { params }) {
     try {
-        const p = await params;
-        const sessionInfo = parseSessionToken(request);
-        if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Unauthorized", 401);
-
-        const user = await getUser(sessionInfo.userId);
-        if (!user) return fail("User not found", 404);
+    const p = await params;
+    const userOrResponse = await requireHost(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
         if (!parseId(p.id)) return fail("Invalid booking ID", 400);
 
         const { data: booking } = await supabase.from("bookings").select().eq("id", p.id).maybeSingle();

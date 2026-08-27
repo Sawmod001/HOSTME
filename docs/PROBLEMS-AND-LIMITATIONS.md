@@ -1,4 +1,4 @@
-# HostMe — Problems, Limitations & Improvement Areas
+# ClockHost — Problems, Limitations & Improvement Areas
 
 ## Table of Contents
 

@@ -1,9 +1,9 @@
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { requireAdmin } from "@/lib/auth/helpers";
 import { findListingById, updateListing, findUserByClerkId } from "@/lib/db/supabase-queries";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { z } from "zod";
-import { toCamelCase, ok, fail, notFound, unauthorised, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { toCamelCase, ok, fail, notFound, parseId } from "@/lib/db/supabase-utils";
 
 const RejectSchema = z.object({
   reason: z.string().min(5).max(500),
@@ -15,14 +15,10 @@ export async function POST(request, { params }) {
     if (csrfFail) return csrfFail;
 
     const p = await params;
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) return unauthorised("No session");
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) return unauthorised("Invalid session");
 
-    const clerkUser = await getClerkUser(sessionInfo.userId);
-    if (!clerkUser) return unauthorised("Clerk user not found");
-    if (clerkUser.role !== "admin") return forbidden("Admin role required");
+    const userOrResponse = await requireAdmin(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     if (!parseId(p.id)) return fail("Invalid listing ID", 400);
 
@@ -42,7 +38,7 @@ export async function POST(request, { params }) {
     });
     if (!updated) return fail("Failed to reject listing — update returned empty", 500);
 
-    const adminUser = await findUserByClerkId(sessionInfo.userId);
+    const adminUser = await findUserByClerkId(user.clerkId);
     await logAudit({
       actorId: adminUser?.id || null,
       action: "listing.rejected",

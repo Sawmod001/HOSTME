@@ -14,8 +14,7 @@
  */
 
 const ALLOWED_ORIGINS = [
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  "https://hostme-xbhx.vercel.app",
+  process.env.CLOCKHOST_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 ];
 
 /**
@@ -79,6 +78,10 @@ export function validateCsrfOrigin(request) {
     return null; // referer matched
   }
 
-  // Neither Origin nor Referer present — allow (some legitimate API clients).
-  return null;
+  // Neither Origin nor Referer present — reject (defense-in-depth).
+  // Legitimate browser requests always include one of these headers.
+  return new Response(
+    JSON.stringify({ error: "CSRF validation failed: missing origin and referer" }),
+    { status: 403, headers: { "Content-Type": "application/json" } }
+  );
 }

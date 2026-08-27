@@ -1,23 +1,12 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser.js";
+import { requireAdmin } from "@/lib/auth/helpers";
 import { listUsers } from "@/lib/db/supabase-queries.js";
 
 export async function GET(request) {
   try {
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userInfo = await getClerkUser(sessionInfo.userId);
-    if (userInfo?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const userOrResponse = await requireAdmin(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const userInfo = userOrResponse;
 
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get("page") || "1", 10);

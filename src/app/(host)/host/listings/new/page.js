@@ -353,7 +353,7 @@ export default function CreateListingPage() {
         <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-[var(--color-border)] bg-white p-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Vertical</label>
+              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Space Type</label>
               <select value={formData.vertical} onChange={(e) => handleVerticalChange(e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
                 <option value="venue">Venue</option>
                 <option value="housing">Housing</option>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
-import { findUserByClerkId, findVerificationById, updateVerification, findProviderProfileById, updateProviderProfile, listVerificationsByProviderProfile } from "@/lib/db/supabase-queries";
+import { requireAdmin } from "@/lib/auth/helpers";
+import { findVerificationById, updateVerification, findProviderProfileById, updateProviderProfile, listVerificationsByProviderProfile } from "@/lib/db/supabase-queries";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
@@ -9,19 +9,9 @@ export async function POST(request, { params }) {
     const csrfFail = validateCsrfOrigin(request);
     if (csrfFail) return csrfFail;
 
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const user = await findUserByClerkId(sessionInfo.userId);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
+    const userOrResponse = await requireAdmin(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     const { id } = await params;
     const verification = await findVerificationById(id);

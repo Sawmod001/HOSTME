@@ -324,7 +324,7 @@ export default function HostListingDetailPage() {
             <h1 className="text-2xl font-semibold text-[var(--color-ink)]">{listing.title}</h1>
             <div className="flex items-center gap-2">
               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusColors[listing.status] || statusColors.draft}`}>{listing.status === "draft" ? "Draft" : listing.status === "pending_review" ? "Pending Review" : listing.status === "active" ? "Active" : listing.status === "rejected" ? "Rejected" : listing.status}</span>
-              <span className="text-xs text-[var(--color-ink-muted)] capitalize">{listing.vertical}</span>
+              <span className="text-xs text-[var(--color-ink-muted)] capitalize">{listing.vertical === "venue" ? "Venue" : "Housing"}</span>
               {(Array.isArray(listing.subVertical) ? listing.subVertical : (listing.subVertical ? [listing.subVertical] : [])).map((sv) => (
                 <span key={sv} className="inline-flex rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">{subVerticalBadgeLabels[sv] || sv.replace(/_/g, " ")}</span>
               ))}

@@ -1,4 +1,4 @@
-# HostMe Booking Engine — Complete Architecture
+# ClockHost Booking Engine — Complete Architecture
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## System Overview
 
-HostMe is a Nigerian marketplace for booking event spaces, venues, and short-term stays. Hosts list commercial spaces and guests book them by the hour. The platform supports two distinct booking engines plus a group coordination layer.
+ClockHost is a Nigerian marketplace for booking event spaces, venues, and short-term stays. Hosts list commercial spaces and guests book them by the hour. The platform supports two distinct booking engines plus a group coordination layer.
 
 ### Core Concepts
 

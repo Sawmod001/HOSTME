@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
-import { findUserByClerkId, findProviderProfileByUserId, createVerification, listVerificationsByProviderProfile } from "@/lib/db/supabase-queries";
+import { requireAuthenticatedUser } from "@/lib/auth/helpers";
+import { findProviderProfileByUserId, createVerification, listVerificationsByProviderProfile } from "@/lib/db/supabase-queries";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -16,19 +16,9 @@ const SubmitVerificationSchema = z.object({
 
 export async function GET(request) {
   try {
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const user = await findUserByClerkId(sessionInfo.userId);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const userOrResponse = await requireAuthenticatedUser(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     const profile = await findProviderProfileByUserId(user.id);
     if (!profile) {
@@ -52,19 +42,9 @@ export async function POST(request) {
     const rateLimitResponse = checkRateLimit(request, { windowMs: 60_000, max: 5 }, "submit-verification");
     if (rateLimitResponse) return rateLimitResponse;
 
-    const sessionInfo = parseSessionToken(request);
-    if (!sessionInfo?.userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const user = await findUserByClerkId(sessionInfo.userId);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const userOrResponse = await requireAuthenticatedUser(request);
+    if (userOrResponse instanceof Response) return userOrResponse;
+    const user = userOrResponse;
 
     if (user.role !== "venue_host" && user.role !== "housing_agent") {
       return NextResponse.json({ error: "Only providers can submit verifications" }, { status: 403 });

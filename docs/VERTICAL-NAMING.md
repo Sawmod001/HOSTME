@@ -1,8 +1,8 @@
-# HostMe — Vertical Naming Strategy
+# ClockHost — Vertical Naming Strategy
 
 ## The Problem
 
-HostMe currently uses two vertical names for its listing categories:
+ClockHost currently uses two vertical names for its listing categories:
 
 | Current Name | What It Covers |
 |---|---|
@@ -10,8 +10,6 @@ HostMe currently uses two vertical names for its listing categories:
 | `housing` | Short-lets, apartments, short-term rentals |
 
 Both names are weak. "Venue" is generic and used by every competitor. "Housing" is wrong — it sounds like government policy or long-term residential, not a consumer booking platform.
-
-The goal is to find names that are:
 - **Immediately understood** by Nigerian users
 - **Memorable** and easy to spell
 - **Distinctive** from competitors
@@ -86,7 +84,7 @@ The goal is to find names that are:
 - Universally used by young Nigerians: "Where the spot dey tonight?"
 - Short, punchy, one syllable — extremely memorable
 - Works in both English and Pidgin
-- Feels casual, youthful, accessible — perfect for HostMe's target demographic
+- Feels casual, youthful, accessible — perfect for ClockHost's target demographic
 - No major Nigerian platform uses "Spot" as their primary category label
 - Pairing: "Find your **spot**" / "Browse **spots**"
 
@@ -100,7 +98,7 @@ The goal is to find names that are:
 - Works across all event types: weddings, corporate, birthday parties
 - Premium and professional enough for corporate use
 
-**Risk:** Very common; won't differentiate HostMe from competitors.
+**Risk:** Very common; won't differentiate ClockHost from competitors.
 
 ### Rank 3: **Space**
 
@@ -143,7 +141,7 @@ The goal is to find names that are:
 - Immediately understood by every Nigerian user
 - Pairing: "Find a **shortlet**" / "Browse **shortlets**"
 
-**Risk:** Very commonly used, so HostMe won't own the term. But as a category label, it is the clearest choice.
+**Risk:** Very commonly used, so ClockHost won't own the term. But as a category label, it is the clearest choice.
 
 **Critical note:** Your current term "housing" actively hurts the product. It sounds like government policy or long-term residential. Users searching for this are looking for "shortlets" — that is the word in their heads.
 
@@ -226,7 +224,7 @@ The goal is to find names that are:
 | Current | Recommended | Rationale |
 |---|---|---|
 | `exclusive_space` | `private_event` | Avoids confusion with booking type; matches industry term |
-| `group_night` | `hangout` | More natural Nigerian usage; "Group Night" is a HostMe invention |
+| `group_night` | `hangout` | More natural Nigerian usage; "Group Night" is a ClockHost invention |
 | `birthday` | `birthday` (no change) | Universal term |
 | `karaoke` | `karaoke` (no change) | Distinct activity type |
 
