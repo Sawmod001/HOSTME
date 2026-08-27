@@ -1,84 +1,54 @@
 import { NextResponse } from "next/server";
+import { SECURITY_HEADERS, generateCSP, detectAttacks } from "@/lib/security";
 
-function hasSession(request) {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").filter(Boolean).map((c) => {
-      const [k, ...v] = c.trim().split("=");
-      return [k.trim(), v.join("=")];
-    })
-  );
-  return !!cookies["__session"];
-}
+/**
+ * Security middleware for Next.js.
+ * Applies security headers and basic threat detection.
+ */
+export function middleware(request) {
+  const response = NextResponse.next();
 
-function unauthorized(request) {
-  if (request.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Apply security headers
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
   }
-  return NextResponse.redirect(new URL("/sign-in", request.url));
-}
 
-const PUBLIC_EXACT = new Set([
-  "/", "/sign-in", "/sign-up",
-  "/complete-profile",
-]);
+  response.headers.set("Content-Security-Policy", generateCSP());
 
-const PUBLIC_API_EXACT = new Set([
-  "/api/auth/sign-in", "/api/auth/sign-up", "/api/auth/logout",
-  "/api/payments/webhook", "/api/payments/webhook/paystack",
-  "/api/whatsapp/webhook", "/api/cron/release-expired-holds",
-  "/api/cron/cancel-expired-group-plans",
-]);
-
-const PUBLIC_API_PREFIXES = ["/api/listings", "/api/debug", "/api/group-plans"];
-
-// Group-plan GETs (list + invite view) stay public; POST/PATCH/DELETE
-// (create/join/pay/finalize) require a Clerk session, enforced in middleware.
-
-export default function middleware(request) {
-  try {
-    const { pathname } = request.nextUrl;
-    const method = request.method;
-
-    // Exact public page matches
-    if (PUBLIC_EXACT.has(pathname)) return NextResponse.next();
-
-    // Block one-time setup page
-    if (pathname === "/admin-setup") return unauthorized(request);
-
-    // Exact public API matches
-    if (PUBLIC_API_EXACT.has(pathname)) return NextResponse.next();
-
-    // Public API prefixes — GET only, POST/PATCH/DELETE require auth
-    for (const prefix of PUBLIC_API_PREFIXES) {
-      if (pathname.startsWith(prefix)) {
-        if (method === "GET" || method === "HEAD") return NextResponse.next();
-        if (hasSession(request)) return NextResponse.next();
-        return unauthorized(request);
-      }
-    }
-
-    // Public page prefixes
-    if (pathname.startsWith("/listings")) return NextResponse.next();
-    // Group plan invite/list pages stay public, but starting a new plan
-    // requires an account — that's the page that actually books.
-    if (pathname === "/group-plans/new") {
-      if (hasSession(request)) return NextResponse.next();
-      return unauthorized(request);
-    }
-    if (pathname.startsWith("/group-plans")) return NextResponse.next();
-
-    // Everything else requires a session
-    if (!hasSession(request)) return unauthorized(request);
-  } catch (e) {
-    console.error("Middleware error:", e);
-    return unauthorized(request);
+  // Detect attacks in URL
+  const url = request.url;
+  const { safe: urlSafe, threats: urlThreats } = detectAttacks(url);
+  if (!urlSafe) {
+    console.warn(`[Security] Threat detected in URL: ${urlThreats.join(", ")}`);
+    return new NextResponse("Bad Request", { status: 400 });
   }
+
+  // Detect attacks in query parameters
+  const { searchParams } = new URL(url);
+  for (const [, value] of searchParams) {
+    const { safe, threats } = detectAttacks(value);
+    if (!safe) {
+      console.warn(`[Security] Threat detected in query param: ${threats.join(", ")}`);
+      return new NextResponse("Bad Request", { status: 400 });
+    }
+  }
+
+  // Rate limiting headers
+  const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+  response.headers.set("X-Request-ID", crypto.randomUUID());
+
+  return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next|.*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico (favicon)
+     * - public files (images, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
