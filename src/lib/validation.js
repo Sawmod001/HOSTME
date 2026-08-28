@@ -60,7 +60,7 @@ const HousingDetailsSchema = z.object({
 }).strict();
 
 export const ListingCreateSchema = z.object({
-  vertical: z.enum(["venue", "housing"]),
+  vertical: z.enum(["venue", "housing", "outdoor_space"]),
   subVertical: z.array(z.string()).optional(),
   bookingType: z.enum(["capacity", "exclusive"]),
   title: z.string().min(3).max(100),
@@ -77,6 +77,18 @@ export const ListingCreateSchema = z.object({
   pricing: z.object({
     baseRatePerHour: z.number().int().min(1).optional(),
     inspectionTransportFee: z.number().int().optional(),
+    commissionRatePercent: z.number().min(0).max(50).optional(),
+    exclusiveFlatFeeKobo: z.number().int().min(0).optional(),
+    multiGuestDiscountTiers: z.array(z.object({
+      minGuests: z.number().int().min(2),
+      percent: z.number().min(0).max(50),
+    })).optional(),
+    hourlyDiscountTiers: z.array(z.object({
+      minHours: z.number().int().min(1),
+      percent: z.number().min(0).max(50),
+    })).optional(),
+    venueSpendThresholdKobo: z.number().int().min(0).optional(),
+    venueSpendDiscountPercent: z.number().min(0).max(50).optional(),
   }),
   housingDetails: HousingDetailsSchema.optional(),
   operationalRules: z.object({
@@ -98,6 +110,12 @@ export const ListingCreateSchema = z.object({
     )
     .optional(),
   media: z.array(z.string()).max(15).optional(),
+  structuredDescription: z.object({
+    highlights: z.array(z.string()).optional(),
+    houseRules: z.array(z.string()).optional(),
+    idealFor: z.array(z.string()).optional(),
+    gettingAround: z.string().optional(),
+  }).optional(),
 }).refine(
   (data) => {
     if (data.vertical === "housing") {
@@ -109,7 +127,7 @@ export const ListingCreateSchema = z.object({
 );
 
 export const ListingUpdateSchema = z.object({
-  vertical: z.enum(["venue", "housing"]).optional(),
+  vertical: z.enum(["venue", "housing", "outdoor_space"]).optional(),
   subVertical: z.array(z.string()).optional(),
   bookingType: z.enum(["capacity", "exclusive"]).optional(),
   title: z.string().min(3).max(100).optional(),
@@ -126,6 +144,18 @@ export const ListingUpdateSchema = z.object({
   pricing: z.object({
     baseRatePerHour: z.number().int().min(1).optional(),
     inspectionTransportFee: z.number().int().optional(),
+    commissionRatePercent: z.number().min(0).max(50).optional(),
+    exclusiveFlatFeeKobo: z.number().int().min(0).optional(),
+    multiGuestDiscountTiers: z.array(z.object({
+      minGuests: z.number().int().min(2),
+      percent: z.number().min(0).max(50),
+    })).optional(),
+    hourlyDiscountTiers: z.array(z.object({
+      minHours: z.number().int().min(1),
+      percent: z.number().min(0).max(50),
+    })).optional(),
+    venueSpendThresholdKobo: z.number().int().min(0).optional(),
+    venueSpendDiscountPercent: z.number().min(0).max(50).optional(),
   }).optional(),
   housingDetails: HousingDetailsSchema.partial().optional(),
   operationalRules: z.object({
@@ -147,15 +177,21 @@ export const ListingUpdateSchema = z.object({
     )
     .optional(),
   media: z.array(z.string()).max(15).optional(),
-  status: z.enum(["draft", "pending_review"]).optional(),
+  structuredDescription: z.object({
+    highlights: z.array(z.string()).optional(),
+    houseRules: z.array(z.string()).optional(),
+    idealFor: z.array(z.string()).optional(),
+    gettingAround: z.string().optional(),
+  }).optional(),
+  status: z.enum(["draft", "submitted", "under_review"]).optional(),
 });
 
 export const ListingFilterSchema = z.object({
-  vertical: z.enum(["venue", "housing"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
+  vertical: z.enum(["venue", "housing", "outdoor_space"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   subVertical: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   cityArea: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   bookingType: z.enum(["capacity", "exclusive"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
-  status: z.enum(["draft", "pending_review", "active", "suspended", "rejected"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
+  status: z.enum(["draft", "submitted", "under_review", "active", "suspended", "rejected"]).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   providerProfileId: z.string().optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   keyword: z.string().min(1).max(100).optional().or(z.literal("")).transform((value) => (value === "" ? undefined : value)),
   limit: z.number().int().min(1).max(100).default(20),
