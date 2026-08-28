@@ -27,6 +27,8 @@ export default function CheckoutPage() {
         const offset = now.getTimezoneOffset();
         return new Date(now.getTime() - offset * 60000).toISOString().split("T")[0];
     });
+    const [serverPrice, setServerPrice] = useState(null);
+    const [priceValidating, setPriceValidating] = useState(false);
 
     const slot = useMemo(() => slots.find((s) => s.id === selectedSlotId) || null, [slots, selectedSlotId]);
 
@@ -88,6 +90,41 @@ export default function CheckoutPage() {
             current.includes(addonId) ? current.filter((value) => value !== addonId) : [...current, addonId]
         );
     };
+
+    useEffect(() => {
+        if (!listing || !slot) return;
+        let cancelled = false;
+        setPriceValidating(true);
+
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch("/api/pricing/preview", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        listingId,
+                        eventStart: slot.eventStart,
+                        eventEnd: slot.eventEnd,
+                        headcount,
+                        addOnIds: selectedAddOns,
+                    }),
+                });
+                if (cancelled) return;
+                if (res.ok) {
+                    const data = await res.json();
+                    setServerPrice(data.data);
+                } else {
+                    setServerPrice(null);
+                }
+            } catch {
+                if (!cancelled) setServerPrice(null);
+            } finally {
+                if (!cancelled) setPriceValidating(false);
+            }
+        }, 300);
+
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [listing, slot, headcount, selectedAddOns, listingId]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -267,12 +304,43 @@ export default function CheckoutPage() {
 
                     <div className="rounded-xl bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-ink)]">
                         <div className="flex items-center justify-between">
-                            <span>Estimated total</span>
+                            <span>Subtotal</span>
                             <span className="font-semibold">₦{(subtotal / 100).toLocaleString()}</span>
                         </div>
+                        {serverPrice && (
+                            <>
+                                {serverPrice.breakdown.multiGuestDiscountKobo > 0 && (
+                                    <div className="flex items-center justify-between text-xs text-green-700">
+                                        <span>Multi-guest discount ({serverPrice.breakdown.multiGuestDiscountPercent}%)</span>
+                                        <span>-₦{(serverPrice.breakdown.multiGuestDiscountKobo / 100).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {serverPrice.breakdown.hourlyDiscountKobo > 0 && (
+                                    <div className="flex items-center justify-between text-xs text-green-700">
+                                        <span>Long booking discount ({serverPrice.breakdown.hourlyDiscountPercent}%)</span>
+                                        <span>-₦{(serverPrice.breakdown.hourlyDiscountKobo / 100).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {serverPrice.breakdown.exclusiveFeeKobo > 0 && (
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span>Exclusive flat fee</span>
+                                        <span>+₦{(serverPrice.breakdown.exclusiveFeeKobo / 100).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-2 font-semibold">
+                                    <span>Total</span>
+                                    <span>₦{(serverPrice.totalAmountKobo / 100).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-[var(--color-ink-muted)]">
+                                    <span>Platform fee ({serverPrice.breakdown.commissionRate}%)</span>
+                                    <span>₦{(serverPrice.commissionKobo / 100).toLocaleString()}</span>
+                                </div>
+                            </>
+                        )}
                         {slot ? (
                             <div className="mt-2 text-xs text-[var(--color-ink-muted)]">
                                 {new Date(slot.eventStart).toLocaleTimeString()} – {new Date(slot.eventEnd).toLocaleTimeString()}
+                                {serverPrice && ` · ${serverPrice.breakdown.hours}h`}
                             </div>
                         ) : (
                             <div className="mt-2 text-xs text-[var(--color-ink-muted)]">Select a slot above.</div>

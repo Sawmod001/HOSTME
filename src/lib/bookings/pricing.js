@@ -130,3 +130,79 @@ export function computeExclusiveFeeKobo(listing) {
 export function computeCommissionKobo(totalAmountKobo, listing) {
   return computeCommission(totalAmountKobo, listing?.pricing);
 }
+
+/**
+ * Compute Paystack transaction fee.
+ * Local cards: 1.5% capped at ₦2,000
+ * International: 3.9% + ₦100
+ * By default, the platform absorbs the fee.
+ */
+export function computePaystackFeeKobo(amountKobo, isInternational = false) {
+  if (amountKobo <= 0) return 0;
+  const amountNaira = amountKobo / 100;
+
+  if (isInternational) {
+    const feeNaira = amountNaira * 0.039 + 100;
+    return Math.round(Math.min(feeNaira, 5000) * 100);
+  }
+
+  const feeNaira = amountNaira * 0.015;
+  const cappedNaira = Math.min(feeNaira, 2000);
+  return Math.round(cappedNaira * 100);
+}
+
+/**
+ * Compute full pricing breakdown for a booking.
+ * Returns all components needed for display and snapshot.
+ */
+export function computePricingBreakdown({ listing, eventStart, eventEnd, headcount, addOnIds = [], includeRequired = false }) {
+  const baseRatePerHour = Number(listing?.pricing?.baseRatePerHour) || 0;
+  const people = Math.max(1, Number(headcount) || 0);
+  const hours = hoursBetween(eventStart, eventEnd);
+  const baseKobo = baseRatePerHour * people * hours;
+
+  const menu = new Map((listing?.add_ons || []).map((a) => [a.id, addonPriceKobo(a)]));
+  let selectedAddOnsKobo = [...new Set(addOnIds || [])].reduce((sum, id) => sum + (menu.get(id) || 0), 0);
+  if (includeRequired) {
+    selectedAddOnsKobo += (listing?.add_ons || []).filter((a) => a.isRequired).reduce((sum, a) => sum + addonPriceKobo(a), 0);
+  }
+
+  let subtotal = baseKobo + selectedAddOnsKobo;
+
+  const multiGuestDiscountPercent = computeMultiGuestDiscount(people, listing?.pricing);
+  const multiGuestDiscountKobo = multiGuestDiscountPercent > 0 ? Math.round(baseKobo * multiGuestDiscountPercent / 100) : 0;
+  subtotal -= multiGuestDiscountKobo;
+
+  const hourlyDiscountPercent = computeHourlyDiscount(hours, listing?.pricing);
+  const hourlyDiscountKobo = hourlyDiscountPercent > 0 ? Math.round(baseKobo * hourlyDiscountPercent / 100) : 0;
+  subtotal -= hourlyDiscountKobo;
+
+  const venueSpendDiscountPercent = computeVenueSpendDiscount(subtotal, listing?.pricing);
+  const venueSpendDiscountKobo = venueSpendDiscountPercent > 0 ? Math.round(subtotal * venueSpendDiscountPercent / 100) : 0;
+  subtotal -= venueSpendDiscountKobo;
+
+  const totalAmountKobo = Math.max(0, Math.round(subtotal));
+  const commissionRate = listing?.pricing?.commissionRatePercent ?? 5;
+  const commissionKobo = computeCommission(totalAmountKobo, listing?.pricing);
+
+  const exclusiveFeeKobo = listing?.booking_type === "exclusive" ? computeExclusiveFeeKobo(listing) : 0;
+
+  return {
+    baseRatePerHour,
+    headcount: people,
+    hours,
+    baseKobo,
+    selectedAddOnsKobo,
+    multiGuestDiscountPercent,
+    multiGuestDiscountKobo,
+    hourlyDiscountPercent,
+    hourlyDiscountKobo,
+    venueSpendDiscountPercent,
+    venueSpendDiscountKobo,
+    exclusiveFeeKobo,
+    totalAmountKobo: totalAmountKobo + exclusiveFeeKobo,
+    commissionRate,
+    commissionKobo: computeCommission(totalAmountKobo + exclusiveFeeKobo, listing?.pricing),
+    paystackFeeKobo: computePaystackFeeKobo(totalAmountKobo + exclusiveFeeKobo),
+  };
+}

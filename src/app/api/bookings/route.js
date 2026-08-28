@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
-import { computeCapacityPriceKobo, computeCommissionKobo } from "@/lib/bookings/pricing";
+import { computeCapacityPriceKobo, computeCommissionKobo, computePricingBreakdown } from "@/lib/bookings/pricing";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/db/audit";
@@ -96,7 +96,7 @@ export async function POST(request) {
         if (!slot) return notFound("Slot not found");
         if (slot.listing_id !== listing.id) return fail("Listing does not match the reserved slot", 409);
 
-        const totalAmountKobo = computeCapacityPriceKobo({
+        const breakdown = computePricingBreakdown({
             listing,
             eventStart: slot.event_start,
             eventEnd: slot.event_end,
@@ -104,15 +104,28 @@ export async function POST(request) {
             addOnIds: addOns.map((a) => a.id),
             includeRequired: true,
         });
-        const commissionKobo = computeCommissionKobo(totalAmountKobo, listing);
+
+        const totalAmountKobo = breakdown.totalAmountKobo;
+        const commissionKobo = breakdown.commissionKobo;
 
         const pricingSnapshot = {
-            baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
-            headcount: softHold.headcount,
-            hours: Math.max(1, (new Date(slot.event_end) - new Date(slot.event_start)) / (1000 * 60 * 60)),
+            baseRatePerHour: breakdown.baseRatePerHour,
+            headcount: breakdown.headcount,
+            hours: breakdown.hours,
+            baseKobo: breakdown.baseKobo,
+            selectedAddOnsKobo: breakdown.selectedAddOnsKobo,
             addOns: addOns.map((a) => ({ id: a.id, name: a.name, price: a.priceInKobo || 0 })),
-            totalAmountKobo,
+            multiGuestDiscountPercent: breakdown.multiGuestDiscountPercent,
+            multiGuestDiscountKobo: breakdown.multiGuestDiscountKobo,
+            hourlyDiscountPercent: breakdown.hourlyDiscountPercent,
+            hourlyDiscountKobo: breakdown.hourlyDiscountKobo,
+            venueSpendDiscountPercent: breakdown.venueSpendDiscountPercent,
+            venueSpendDiscountKobo: breakdown.venueSpendDiscountKobo,
+            exclusiveFeeKobo: breakdown.exclusiveFeeKobo,
+            commissionRate: breakdown.commissionRate,
             commissionKobo,
+            paystackFeeKobo: breakdown.paystackFeeKobo,
+            totalAmountKobo,
         };
 
         const termsSnapshot = {
