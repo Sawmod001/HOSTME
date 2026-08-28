@@ -43,6 +43,17 @@ const VALID_TRANSITIONS = {
   checked_in: {
     completed: ["host"],
   },
+  // Viewing bookings: simpler flow
+  viewing_pending: {
+    viewing_confirmed: ["host"],
+    viewing_cancelled: ["host"],
+    cancelled_by_guest: ["guest"],
+  },
+  viewing_confirmed: {
+    completed: ["host"],
+    no_show: ["host", "system"],
+    viewing_cancelled: ["guest", "host"],
+  },
 };
 
 /**

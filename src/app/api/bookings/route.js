@@ -32,7 +32,7 @@ export async function GET(request) {
             query = query.eq("guest_id", user.id);
         }
 
-        if (statusFilter && ["pending_approval", "awaiting_payment", "payment_processing", "confirmed", "checked_in", "completed", "cancelled_by_guest", "cancelled_by_host", "cancelled_system", "expired", "rejected", "lost_race"].includes(statusFilter)) {
+        if (statusFilter && ["pending_approval", "awaiting_payment", "payment_processing", "confirmed", "checked_in", "completed", "cancelled_by_guest", "cancelled_by_host", "cancelled_system", "expired", "rejected", "lost_race", "viewing_pending", "viewing_confirmed", "viewing_cancelled"].includes(statusFilter)) {
             query = query.eq("status", statusFilter);
         }
 

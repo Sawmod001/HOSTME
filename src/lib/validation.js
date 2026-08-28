@@ -46,9 +46,11 @@ const HousingFeaturesSchema = z.object({
 const HousingDetailsSchema = z.object({
   nightlyRateKobo: z.number().int().min(100),
   weeklyRateKobo: z.number().int().min(0).optional(),
+  monthlyRateKobo: z.number().int().min(0).optional(),
   cleaningFeeKobo: z.number().int().min(0).optional(),
   minStayNights: z.number().int().min(1).max(365).optional().default(1),
   maxStayNights: z.number().int().min(1).max(365).optional(),
+  leaseDurationMonths: z.number().int().min(1).max(60).optional(),
   checkInTime: z.string().optional().default("14:00"),
   checkOutTime: z.string().optional().default("11:00"),
   maxGuests: z.number().int().min(1).max(50).optional().default(2),
@@ -57,12 +59,14 @@ const HousingDetailsSchema = z.object({
   allowsSmoking: z.boolean().optional().default(false),
   allowsParties: z.boolean().optional().default(false),
   houseRules: z.string().max(1000).optional(),
+  viewingFeeKobo: z.number().int().min(0).optional(),
+  viewingDurationMinutes: z.number().int().min(15).max(180).optional().default(30),
 }).strict();
 
 export const ListingCreateSchema = z.object({
   vertical: z.enum(["venue", "housing", "outdoor_space"]),
   subVertical: z.array(z.string()).optional(),
-  bookingType: z.enum(["capacity", "exclusive"]),
+  bookingType: z.enum(["capacity", "exclusive", "viewing"]),
   title: z.string().min(3).max(100),
   description: z.string().min(20).max(2000),
   location: z.object({
