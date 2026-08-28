@@ -101,11 +101,12 @@ export default function CreateListingPage() {
     description: "",
     location: { state: "", cityArea: "", address: "" },
     pricing: { baseRatePerHour: 0 },
-    housingDetails: { nightlyRateKobo: 0, weeklyRateKobo: 0, cleaningFeeKobo: 0, minStayNights: 1, maxStayNights: 0, checkInTime: "14:00", checkOutTime: "11:00", maxGuests: 2, selfCheckIn: false, houseRules: "" },
+    housingDetails: { nightlyRateKobo: 0, weeklyRateKobo: 0, monthlyRateKobo: 0, cleaningFeeKobo: 0, minStayNights: 1, maxStayNights: 0, leaseDurationMonths: 0, checkInTime: "14:00", checkOutTime: "11:00", maxGuests: 2, selfCheckIn: false, houseRules: "", viewingFeeKobo: 0, viewingDurationMinutes: 30 },
     operationalRules: { maxCapacity: 10, setupTimeMinutes: 30, cleanupTimeMinutes: 30, isByobAllowed: false, cancellationPolicy: "moderate" },
     addOns: [],
     media: [],
     features: {},
+    structuredDescription: { highlights: "", idealFor: "", houseRules: "", gettingAround: "" },
   });
 
   async function handleUploadFiles(files) {
@@ -197,12 +198,30 @@ export default function CreateListingPage() {
         }
       }
     }
+    // Convert structured description from textareas to arrays
+    if (p.structuredDescription) {
+      const sd = p.structuredDescription;
+      p.structuredDescription = {
+        highlights: sd.highlights ? sd.highlights.split("\n").map((s) => s.trim()).filter(Boolean) : [],
+        idealFor: sd.idealFor ? sd.idealFor.split("\n").map((s) => s.trim()).filter(Boolean) : [],
+        houseRules: sd.houseRules ? sd.houseRules.split("\n").map((s) => s.trim()).filter(Boolean) : [],
+        gettingAround: sd.gettingAround || "",
+      };
+      // Remove empty structured description
+      if (!sd.highlights && !sd.idealFor && !sd.houseRules && !sd.gettingAround) {
+        delete p.structuredDescription;
+      }
+    }
     // For housing: clean up empty optional fields
     if (p.vertical === "housing") {
       if (!p.housingDetails?.weeklyRateKobo) delete p.housingDetails?.weeklyRateKobo;
+      if (!p.housingDetails?.monthlyRateKobo) delete p.housingDetails?.monthlyRateKobo;
       if (!p.housingDetails?.cleaningFeeKobo) delete p.housingDetails?.cleaningFeeKobo;
       if (!p.housingDetails?.maxStayNights) delete p.housingDetails?.maxStayNights;
+      if (!p.housingDetails?.leaseDurationMonths) delete p.housingDetails?.leaseDurationMonths;
       if (!p.housingDetails?.houseRules) delete p.housingDetails?.houseRules;
+      if (!p.housingDetails?.viewingFeeKobo) delete p.housingDetails?.viewingFeeKobo;
+      if (!p.housingDetails?.viewingDurationMinutes) delete p.housingDetails?.viewingDurationMinutes;
       // Set maxCapacity from maxGuests for housing
       p.operationalRules.maxCapacity = p.housingDetails?.maxGuests || 2;
       // Remove venue-only fields
@@ -357,6 +376,7 @@ export default function CreateListingPage() {
               <select value={formData.vertical} onChange={(e) => handleVerticalChange(e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
                 <option value="venue">Venue</option>
                 <option value="housing">Housing</option>
+                <option value="outdoor_space">Outdoor Space</option>
               </select>
             </div>
             {vertical === "venue" && (
@@ -402,6 +422,26 @@ export default function CreateListingPage() {
           <div>
             <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Description</label>
             <textarea value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} placeholder="Describe your space, atmosphere, rules, etc." rows="4" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+          </div>
+
+          <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+            <h3 className="font-semibold text-[var(--color-ink)]">Structured Description <span className="text-[var(--color-ink-muted)] font-normal">optional — improves search visibility</span></h3>
+            <div>
+              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Highlights <span className="text-[var(--color-ink-muted)] font-normal">one per line</span></label>
+              <textarea value={formData.structuredDescription.highlights} onChange={(e) => handleInputChange("structuredDescription.highlights", e.target.value)} placeholder="e.g. Ocean view&#10;Private pool&#10;Free parking" rows="3" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Ideal For <span className="text-[var(--color-ink-muted)] font-normal">one per line</span></label>
+              <textarea value={formData.structuredDescription.idealFor} onChange={(e) => handleInputChange("structuredDescription.idealFor", e.target.value)} placeholder="e.g. Birthday parties&#10;Corporate events&#10;Date nights" rows="3" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">House Rules <span className="text-[var(--color-ink-muted)] font-normal">one per line</span></label>
+              <textarea value={formData.structuredDescription.houseRules} onChange={(e) => handleInputChange("structuredDescription.houseRules", e.target.value)} placeholder="e.g. No smoking indoors&#10;Quiet hours after 10pm&#10;No pets" rows="3" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Getting Around</label>
+              <textarea value={formData.structuredDescription.gettingAround} onChange={(e) => handleInputChange("structuredDescription.gettingAround", e.target.value)} placeholder="e.g. 5 min walk from Lekki Phase 1 bus stop. Uber and Bolt available." rows="2" className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+            </div>
           </div>
 
           <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
@@ -460,6 +500,13 @@ export default function CreateListingPage() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Monthly Rate (₦) <span className="text-[var(--color-ink-muted)] font-normal">optional</span></label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.housingDetails.monthlyRateKobo > 0 ? formData.housingDetails.monthlyRateKobo / 100 : ""} onChange={(e) => handleInputChange("housingDetails.monthlyRateKobo", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
                   <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Cleaning Fee (₦) <span className="text-[var(--color-ink-muted)] font-normal">optional</span></label>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
@@ -469,6 +516,23 @@ export default function CreateListingPage() {
                 <div>
                   <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Guests</label>
                   <input type="number" min="1" max="50" value={formData.housingDetails.maxGuests || ""} onChange={(e) => handleInputChange("housingDetails.maxGuests", parseInt(e.target.value) || 2)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Lease Duration (months) <span className="text-[var(--color-ink-muted)] font-normal">0 = no lease</span></label>
+                  <input type="number" min="0" max="60" value={formData.housingDetails.leaseDurationMonths || ""} onChange={(e) => handleInputChange("housingDetails.leaseDurationMonths", parseInt(e.target.value) || 0)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Viewing Fee (₦) <span className="text-[var(--color-ink-muted)] font-normal">0 = free</span></label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.housingDetails.viewingFeeKobo > 0 ? formData.housingDetails.viewingFeeKobo / 100 : ""} onChange={(e) => handleInputChange("housingDetails.viewingFeeKobo", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Viewing Duration (minutes)</label>
+                  <input type="number" min="15" max="180" value={formData.housingDetails.viewingDurationMinutes || ""} onChange={(e) => handleInputChange("housingDetails.viewingDurationMinutes", parseInt(e.target.value) || 30)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
                 </div>
               </div>
             </div>
