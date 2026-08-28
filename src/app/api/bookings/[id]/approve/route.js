@@ -1,6 +1,8 @@
 import { requireHost } from "@/lib/auth/helpers";
+import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, parseId } from "@/lib/db/supabase-utils";
 import { transitionBooking } from "@/lib/bookings/state-machine";
+import { notifyBookingDecision } from "@/lib/notifications";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function POST(request, { params }) {
@@ -22,6 +24,28 @@ export async function POST(request, { params }) {
         });
 
         if (!result.ok) return fail(result.error, 400);
+
+        // Notify guest
+        const { data: booking } = await supabase
+            .from("bookings")
+            .select("guest_id, listing_id")
+            .eq("id", p.id)
+            .maybeSingle();
+
+        if (booking) {
+            const { data: listing } = await supabase
+                .from("listings")
+                .select("title")
+                .eq("id", booking.listing_id)
+                .maybeSingle();
+
+            await notifyBookingDecision({
+                guestId: booking.guest_id,
+                listingTitle: listing?.title || "a listing",
+                bookingId: p.id,
+                decision: "approved",
+            });
+        }
 
         return ok({ ok: true, data: toCamelCase(result.booking) });
     } catch (error) {

@@ -39,6 +39,9 @@ export default function AdminSidebar({ activePage, onClose }) {
       <Link href="/admin/users" className={linkClass("users")}>
         Users
       </Link>
+      <Link href="/admin/audit" className={linkClass("audit")}>
+        Audit Trail
+      </Link>
 
       <div className="mt-auto pt-6">
         <button

@@ -3,6 +3,7 @@ import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
 import { computeCapacityPriceKobo, computeCommissionKobo, computePricingBreakdown } from "@/lib/bookings/pricing";
+import { notifyBookingCreated } from "@/lib/notifications";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/db/audit";
@@ -199,6 +200,16 @@ export async function POST(request) {
             resourceId: booking.id,
             metadata: { listing_id: listing.id, total_amount_kobo: totalAmountKobo, booking_type: "capacity" },
         });
+
+        // Notify host of new booking
+        if (profile?.user_id) {
+            await notifyBookingCreated({
+                hostId: profile.user_id,
+                guestName: user.full_name || "A guest",
+                listingTitle: listing.title || "a listing",
+                bookingId: booking.id,
+            });
+        }
 
         return ok({
             ok: true,

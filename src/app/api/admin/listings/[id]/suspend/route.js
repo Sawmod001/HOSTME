@@ -4,6 +4,13 @@ import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { toCamelCase, ok, fail, notFound, parseId } from "@/lib/db/supabase-utils";
 
+/**
+ * POST /api/admin/listings/[id]/suspend
+ * Admin-only: suspend an active listing with a reason.
+ *
+ * Body:
+ *   { reason?: string }
+ */
 export async function POST(request, { params }) {
   try {
     const csrfFail = validateCsrfOrigin(request);
@@ -20,6 +27,9 @@ export async function POST(request, { params }) {
     if (!listing) return notFound("Listing not found");
     if (listing.status !== "active") return fail("Only active listings can be suspended", 400);
 
+    const body = await request.json().catch(() => ({}));
+    const reason = body?.reason?.trim() || null;
+
     const updated = await updateListing(p.id, { status: "suspended" });
 
     await logAudit({
@@ -27,7 +37,7 @@ export async function POST(request, { params }) {
       action: "listing.suspended",
       resourceType: "listing",
       resourceId: p.id,
-      metadata: { previousStatus: "active", listingTitle: listing.title },
+      metadata: { previousStatus: "active", listingTitle: listing.title, reason },
     });
 
     return ok(toCamelCase(updated));

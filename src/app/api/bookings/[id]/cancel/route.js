@@ -1,6 +1,7 @@
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { toCamelCase, ok, fail, parseId } from "@/lib/db/supabase-utils";
 import { transitionBooking } from "@/lib/bookings/state-machine";
+import { notifyBookingCancelled } from "@/lib/notifications";
 import { supabase } from "@/lib/db/supabase";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
@@ -70,7 +71,7 @@ export async function POST(request, { params }) {
 
     if (!result.ok) return fail(result.error, 400);
 
-    // Send notification to the other party using host_id column
+    // Send notification to the other party
     const notifyUserId = actorRole === "guest" ? booking.host_id : booking.guest_id;
     if (notifyUserId) {
       const actorName = user.full_name || "Someone";
@@ -80,13 +81,12 @@ export async function POST(request, { params }) {
         .eq("id", booking.listing_id)
         .maybeSingle();
 
-      await supabase.from("notifications").insert({
-        user_id: notifyUserId,
-        type: "booking_cancelled",
-        title: "Booking Cancelled",
-        body: `${actorName} cancelled the booking for "${listing?.title || "a listing"}".${reason ? ` Reason: ${reason}` : ""}`,
-        link: actorRole === "guest" ? "/host/bookings" : "/dashboard",
-        metadata: { booking_id: p.id },
+      await notifyBookingCancelled({
+        recipientId: notifyUserId,
+        actorName,
+        listingTitle: listing?.title || "a listing",
+        bookingId: p.id,
+        reason,
       });
     }
 

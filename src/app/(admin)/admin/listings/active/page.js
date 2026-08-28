@@ -10,6 +10,8 @@ export default function AdminActiveListingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [suspendingId, setSuspendingId] = useState(null);
+  const [suspendReason, setSuspendReason] = useState("");
 
   const fetchListings = async () => {
     try {
@@ -30,10 +32,16 @@ export default function AdminActiveListingsPage() {
   const handleSuspend = async (listingId) => {
     setActionLoading(listingId);
     try {
-      const res = await fetch(`/api/admin/listings/${listingId}/suspend`, { method: "POST" });
+      const res = await fetch(`/api/admin/listings/${listingId}/suspend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: suspendReason || undefined }),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to suspend");
       setListings((prev) => prev.filter((l) => l.id !== listingId));
+      setSuspendingId(null);
+      setSuspendReason("");
     } catch (err) {
       alert("Error: " + err.message);
     } finally {
@@ -84,14 +92,42 @@ export default function AdminActiveListingsPage() {
                       <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[#DCFCE7] px-2 py-1 text-xs font-semibold text-[#166534]">Active</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleSuspend(listing.id)}
-                    disabled={actionLoading === listing.id}
-                    className="flex items-center gap-2 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50"
-                  >
-                    {actionLoading === listing.id ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}
-                    Suspend
-                  </button>
+                  {suspendingId === listing.id ? (
+                    <div className="w-full space-y-2">
+                      <textarea
+                        value={suspendReason}
+                        onChange={(e) => setSuspendReason(e.target.value)}
+                        placeholder="Reason for suspension (optional)"
+                        rows="2"
+                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSuspend(listing.id)}
+                          disabled={actionLoading === listing.id}
+                          className="flex items-center gap-2 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50"
+                        >
+                          {actionLoading === listing.id ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}
+                          Confirm Suspend
+                        </button>
+                        <button
+                          onClick={() => { setSuspendingId(null); setSuspendReason(""); }}
+                          className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink-muted)]"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setSuspendingId(listing.id)}
+                      disabled={actionLoading === listing.id}
+                      className="flex items-center gap-2 rounded-xl bg-[#B91C1C] px-4 py-2 text-white font-semibold disabled:opacity-50"
+                    >
+                      <Ban size={16} />
+                      Suspend
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
