@@ -29,7 +29,7 @@ export async function POST(request, { params }) {
 
         if (listing.status !== "draft") return fail("Listing is not in draft status", 400);
 
-        const updated = await updateListing(p.id, { status: "pending_review" });
+        const updated = await updateListing(p.id, { status: "submitted" });
 
         await logAudit({
             actorId: user.id,

@@ -19,7 +19,7 @@ export async function POST(request, { params }) {
 
     const listing = await findListingById(p.id);
     if (!listing) return notFound("Listing not found");
-    if (listing.status !== "pending_review") return fail("Listing is not pending review", 400);
+    if (!["submitted", "under_review"].includes(listing.status)) return fail("Listing is not submitted for review", 400);
 
     const updated = await updateListing(p.id, { status: "active" });
     if (!updated) return fail("Failed to approve listing — update returned empty", 500);
@@ -30,7 +30,7 @@ export async function POST(request, { params }) {
       action: "listing.approved",
       resourceType: "listing",
       resourceId: p.id,
-      metadata: { previousStatus: "pending_review", listingTitle: listing.title },
+      metadata: { previousStatus: listing.status, listingTitle: listing.title },
     });
 
     return ok(toCamelCase(updated));

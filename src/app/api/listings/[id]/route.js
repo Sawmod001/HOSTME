@@ -56,7 +56,7 @@ export async function PATCH(request, { params }) {
         const isAdmin = user.role === "admin";
         if (!isOwner && !isAdmin) return forbidden();
 
-        if (listing.status === "pending_review") {
+        if (["submitted", "under_review"].includes(listing.status)) {
             return fail("Cannot edit listing while under review", 400);
         }
 
