@@ -2,6 +2,7 @@ import { supabase } from "@/lib/db/supabase";
 import { resolveExclusiveLock } from "@/lib/bookings/exclusive";
 import { finalizeGroupPlan } from "@/lib/bookings/group-booking";
 import { verifyPaystackSignature } from "@/lib/payments/verifyWebhookSignature";
+import { verifyTransaction } from "@/lib/payments/paystack";
 import { ok, fail } from "@/lib/db/supabase-utils";
 
 // Refs come in the shape "<prefix>-<uuid>-<rand>"; the uuid contains dashes,
@@ -71,6 +72,16 @@ export async function POST(request) {
 
         const bookingId = extractIdFromRef("hostme", txRef);
         if (!bookingId) return fail("Invalid reference format", 400);
+
+        // Server-side verification: confirm with Paystack that the transaction is real
+        const verification = await verifyTransaction(txRef);
+        if (verification.error) {
+            console.error("Paystack verification failed:", verification.error);
+            return fail("Transaction verification failed", 402);
+        }
+        if (verification.status !== "success") {
+            return ok({ received: true, ignored: true, verification_status: verification.status });
+        }
 
         const { data: booking } = await supabase.from("bookings").select().eq("id", bookingId).maybeSingle();
         if (!booking) return fail("Booking not found", 404);

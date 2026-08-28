@@ -1,9 +1,13 @@
 import { requireHost } from "@/lib/auth/helpers";
 import { toCamelCase, ok, fail, parseId } from "@/lib/db/supabase-utils";
 import { transitionBooking } from "@/lib/bookings/state-machine";
+import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function POST(request, { params }) {
     try {
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
         const p = await params;
         const userOrResponse = await requireHost(request);
         if (userOrResponse instanceof Response) return userOrResponse;

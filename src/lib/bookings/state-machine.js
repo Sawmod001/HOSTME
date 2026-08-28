@@ -17,17 +17,31 @@ import { logAudit } from "@/lib/db/audit";
  */
 
 const VALID_TRANSITIONS = {
-  pending: {
+  pending_approval: {
     awaiting_payment: ["host"],
     rejected: ["host"],
-    cancelled: ["system"],
+    cancelled_system: ["system"],
   },
   awaiting_payment: {
-    cancelled: ["guest", "system"],
+    payment_processing: ["system"],
+    cancelled_by_guest: ["guest"],
+    cancelled_by_host: ["host"],
+    cancelled_system: ["system"],
+    expired: ["system"],
+  },
+  payment_processing: {
+    confirmed: ["system"],
+    cancelled_system: ["system"],
   },
   confirmed: {
+    checked_in: ["guest", "host"],
     completed: ["host"],
-    cancelled: ["guest", "host"],
+    cancelled_by_guest: ["guest"],
+    cancelled_by_host: ["host"],
+    no_show: ["host", "system"],
+  },
+  checked_in: {
+    completed: ["host"],
   },
 };
 
@@ -112,7 +126,7 @@ export async function transitionBooking({ bookingId, toStatus, actorId, actorRol
   }
 
   // 5. Side effects for cancellation
-  if (toStatus === "cancelled") {
+  if (toStatus.startsWith("cancelled_") || toStatus === "expired" || toStatus === "no_show") {
     await handleCancellation(booking, actorId);
   }
 

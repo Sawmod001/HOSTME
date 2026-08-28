@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
     // Determine actor role
     const { data: booking } = await supabase
       .from("bookings")
-      .select("id, guest_id, listing_id")
+      .select("id, guest_id, listing_id, host_id")
       .eq("id", p.id)
       .maybeSingle();
 
@@ -42,23 +42,27 @@ export async function POST(request, { params }) {
 
     let actorRole = "guest";
     if (booking.guest_id !== user.id) {
-      // Check if user is the host
-      const { data: listing } = await supabase
-        .from("listings")
-        .select("provider_profile_id")
-        .eq("id", booking.listing_id)
-        .maybeSingle();
-
-      if (listing && user.providerProfile?.id === listing.provider_profile_id) {
+      // Check if user is the host — use host_id column if available, else join
+      if (booking.host_id && booking.host_id === user.id) {
         actorRole = "host";
       } else {
-        return fail("Not authorized to cancel this booking", 403);
+        const { data: listing } = await supabase
+          .from("listings")
+          .select("provider_profile_id")
+          .eq("id", booking.listing_id)
+          .maybeSingle();
+
+        if (listing && user.providerProfile?.id === listing.provider_profile_id) {
+          actorRole = "host";
+        } else {
+          return fail("Not authorized to cancel this booking", 403);
+        }
       }
     }
 
     const result = await transitionBooking({
       bookingId: p.id,
-      toStatus: "cancelled",
+      toStatus: actorRole === "host" ? "cancelled_by_host" : "cancelled_by_guest",
       actorId: user.id,
       actorRole,
       reason,
@@ -66,7 +70,7 @@ export async function POST(request, { params }) {
 
     if (!result.ok) return fail(result.error, 400);
 
-    // Send notification to the other party
+    // Send notification to the other party using host_id column
     const notifyUserId = actorRole === "guest" ? booking.host_id : booking.guest_id;
     if (notifyUserId) {
       const actorName = user.full_name || "Someone";

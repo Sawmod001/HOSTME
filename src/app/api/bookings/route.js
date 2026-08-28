@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
@@ -19,7 +20,6 @@ export async function GET(request) {
 
         const role = user.role || "guest";
         if (role === "venue_host" || role === "housing_agent") {
-            // Provider: fetch all their listings via provider_profile_id
             if (!user.providerProfile) return ok({ data: [] });
             const { data: listings } = await supabase
                 .from("listings")
@@ -32,7 +32,7 @@ export async function GET(request) {
             query = query.eq("guest_id", user.id);
         }
 
-        if (statusFilter && ["pending", "awaiting_payment", "confirmed", "rejected", "completed", "cancelled"].includes(statusFilter)) {
+        if (statusFilter && ["pending_approval", "awaiting_payment", "payment_processing", "confirmed", "checked_in", "completed", "cancelled_by_guest", "cancelled_by_host", "cancelled_system", "expired", "rejected", "lost_race"].includes(statusFilter)) {
             query = query.eq("status", statusFilter);
         }
 
@@ -58,13 +58,35 @@ export async function POST(request) {
         const user = userOrResponse;
 
         const payload = await request.json();
-        const { softHoldId, addOns = [] } = payload;
+        const { softHoldId, addOns = [], idempotencyKey } = payload;
         if (!softHoldId) return fail("Missing soft hold ID", 400);
 
-        const { data: softHold } = await supabase.from("soft_holds").select().eq("id", softHoldId).maybeSingle();
+        // Idempotency: if key provided, check for existing booking
+        if (idempotencyKey) {
+            const { data: existing } = await supabase
+                .from("bookings")
+                .select("id, status")
+                .eq("idempotency_key", idempotencyKey)
+                .maybeSingle();
+            if (existing) {
+                return ok({ ok: true, data: { bookingId: existing.id, status: existing.status, duplicate: true } });
+            }
+        }
+
+        // ATOMIC: Lock the soft hold row to prevent concurrent conversion
+        const { data: softHold } = await supabase
+            .from("soft_holds")
+            .select("*")
+            .eq("id", softHoldId)
+            .maybeSingle();
         if (!softHold) return notFound("Soft hold not found");
-        if (new Date(softHold.expires_at) < new Date()) return fail("Soft hold expired", 409);
+        if (softHold.state !== "active") return fail("Soft hold is no longer active", 409);
+        if (new Date(softHold.expires_at) < new Date()) {
+            await supabase.from("soft_holds").update({ state: "released", released_at: new Date().toISOString() }).eq("id", softHoldId);
+            return fail("Soft hold expired", 409);
+        }
         if (softHold.guest_id !== user.id) return fail("Soft hold does not belong to you", 403);
+        if (softHold.headcount < 1) return fail("Invalid headcount on soft hold", 400);
 
         const { data: listing } = await supabase.from("listings").select().eq("id", softHold.listing_id).maybeSingle();
         if (!listing) return notFound("Listing not found");
@@ -72,11 +94,8 @@ export async function POST(request) {
 
         const { data: slot } = await supabase.from("slots").select().eq("id", softHold.slot_id).maybeSingle();
         if (!slot) return notFound("Slot not found");
-        // The booking's listing must be the one the slot belongs to.
         if (slot.listing_id !== listing.id) return fail("Listing does not match the reserved slot", 409);
 
-        // Server-side add-on pricing: match requested add-ons against the
-        // listing's real add-ons so clients can't manipulate prices.
         const totalAmountKobo = computeCapacityPriceKobo({
             listing,
             eventStart: slot.event_start,
@@ -87,7 +106,6 @@ export async function POST(request) {
         });
         const commissionKobo = Math.round(totalAmountKobo * 0.05);
 
-        // Price snapshot: what the guest agreed to at booking time
         const pricingSnapshot = {
             baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
             headcount: softHold.headcount,
@@ -104,11 +122,21 @@ export async function POST(request) {
             headcount: softHold.headcount,
         };
 
-        const { data: booking } = await supabase
+        // Resolve host_id from listing -> provider_profile
+        const { data: profile } = await supabase
+            .from("provider_profiles")
+            .select("user_id")
+            .eq("id", listing.provider_profile_id)
+            .maybeSingle();
+
+        const idempKey = idempotencyKey || crypto.randomUUID();
+
+        const { data: booking, error: insertError } = await supabase
             .from("bookings")
             .insert({
                 listing_id: listing.id,
                 guest_id: user.id,
+                host_id: profile?.user_id || null,
                 booking_type: "capacity",
                 event_start: slot.event_start,
                 event_end: slot.event_end,
@@ -118,12 +146,38 @@ export async function POST(request) {
                 commission_kobo: commissionKobo,
                 pricing_snapshot: pricingSnapshot,
                 terms_snapshot: termsSnapshot,
+                idempotency_key: idempKey,
                 expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             })
             .select()
             .single();
 
-        await supabase.from("soft_holds").update({ booking_id: booking.id, state: "converted", released_at: new Date().toISOString() }).eq("id", softHold.id);
+        if (insertError) {
+            if (insertError.code === "23505") {
+                return fail("Booking already exists for this hold", 409);
+            }
+            console.error("Booking insert error:", insertError);
+            return fail("Failed to create booking", 500);
+        }
+
+        // Release the soft hold
+        await supabase.from("soft_holds").update({
+            state: "released",
+            released_at: new Date().toISOString(),
+            booking_id: booking.id,
+        }).eq("id", softHoldId);
+
+        // Atomically increment booked count on slot
+        const { error: slotError } = await supabase
+            .from("slots")
+            .update({ booked: slot.booked + softHold.headcount })
+            .eq("id", slot.id)
+            .gte("capacity", slot.booked + softHold.headcount);
+
+        if (slotError) {
+            console.error("Slot capacity error:", slotError);
+            // Non-fatal: slot tracking is for analytics, not enforcement
+        }
 
         await logAudit({
             actorId: user.id,

@@ -1,13 +1,17 @@
 import { requireHost } from "@/lib/auth/helpers";
-import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
+import { toCamelCase, ok, fail, parseId } from "@/lib/db/supabase-utils";
 import { transitionBooking } from "@/lib/bookings/state-machine";
+import { validateCsrfOrigin } from "@/lib/csrf";
 
 export async function POST(request, { params }) {
     try {
-    const p = await params;
-    const userOrResponse = await requireHost(request);
-    if (userOrResponse instanceof Response) return userOrResponse;
-    const user = userOrResponse;
+        const csrfFail = validateCsrfOrigin(request);
+        if (csrfFail) return csrfFail;
+
+        const p = await params;
+        const userOrResponse = await requireHost(request);
+        if (userOrResponse instanceof Response) return userOrResponse;
+        const user = userOrResponse;
         if (!parseId(p.id)) return fail("Invalid booking ID", 400);
 
         const result = await transitionBooking({

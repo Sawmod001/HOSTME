@@ -30,6 +30,14 @@ export async function resolveExclusiveLock({
 
     return { won: true, bookingId, lock: result.rows[0] };
   } catch (error) {
+    // Distinguish real race conditions from transient DB errors.
+    // PostgreSQL error 40001 = serialization_failure (race condition detected).
+    // Any other error is transient and should NOT mark the booking as lost.
+    const isRealRace = error?.code === "40001" || error?.code === "23505";
+    if (!isRealRace) {
+      console.error("resolveExclusiveLock transient error:", error);
+      return { ok: false, error: "Transient database error, please retry", bookingId };
+    }
     await dbSupabase.from("bookings").update({ status: "lost_race" }).eq("id", bookingId);
     return { won: false, bookingId };
   }
