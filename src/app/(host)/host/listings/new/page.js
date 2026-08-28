@@ -19,6 +19,7 @@ const FEATURE_DEFAULTS = {
   karaoke: { microphoneCount: 1, songGenres: "", privateRoom: false, hasStage: false, soundSystem: "" },
   groupNight: { gameTypes: "", hasPoolTable: false, hasVideoGames: false, hasBoardGames: false, maxGroupSize: 0, hasBar: false },
   housing: { propertyType: "apartment", bedrooms: 1, bathrooms: 1, hasWifi: false, hasParking: false, hasAC: false, furnished: false, petFriendly: false },
+  outdoor: { terrain: "garden", hasShelter: false, hasParking: false, hasRestrooms: false, hasPower: false, allowsAlcohol: false, noiseLimit: "moderate" },
 };
 
 const SUB_VERTICAL_KEY_MAP = {
@@ -66,6 +67,15 @@ const FEATURE_FIELD_CONFIG = {
     { key: "furnished", label: "Furnished", type: "checkbox" },
     { key: "petFriendly", label: "Pet friendly", type: "checkbox" },
   ],
+  outdoor: [
+    { key: "terrain", label: "Terrain", type: "select", options: [{ value: "garden", label: "Garden" }, { value: "rooftop", label: "Rooftop" }, { value: "beach", label: "Beach" }, { value: "field", label: "Field" }, { value: "patio", label: "Patio/Deck" }, { value: "other", label: "Other" }] },
+    { key: "hasShelter", label: "Has shelter/canopy", type: "checkbox" },
+    { key: "hasParking", label: "Has parking", type: "checkbox" },
+    { key: "hasRestrooms", label: "Has restrooms", type: "checkbox" },
+    { key: "hasPower", label: "Has power supply", type: "checkbox" },
+    { key: "allowsAlcohol", label: "Allows alcohol", type: "checkbox" },
+    { key: "noiseLimit", label: "Noise level", type: "select", options: [{ value: "quiet", label: "Quiet" }, { value: "moderate", label: "Moderate" }, { value: "loud", label: "Loud (events)" }] },
+  ],
 };
 
 const FEATURE_SECTION_LABELS = {
@@ -74,6 +84,7 @@ const FEATURE_SECTION_LABELS = {
   karaoke: "Karaoke Features",
   groupNight: "Group Night Features",
   housing: "Housing Features",
+  outdoor: "Outdoor Space Features",
 };
 
 function getDefaultFeatures(vertical, subVerticals) {
@@ -158,12 +169,14 @@ export default function CreateListingPage() {
   };
 
   const handleVerticalChange = (value) => {
-    const features = value === "venue" ? getDefaultFeatures(value, ["birthday"]) : getDefaultFeatures(value, []);
+    const features = value === "venue" ? getDefaultFeatures(value, ["birthday"]) :
+                     value === "outdoor_space" ? { outdoor: { ...FEATURE_DEFAULTS.outdoor } } :
+                     getDefaultFeatures(value, []);
     setFormData((prev) => ({
       ...prev,
       vertical: value,
       subVertical: value === "venue" ? ["birthday"] : [],
-      bookingType: value === "housing" ? "exclusive" : prev.bookingType,
+      bookingType: (value === "housing" || value === "outdoor_space") ? "exclusive" : prev.bookingType,
       features,
     }));
   };
@@ -198,7 +211,6 @@ export default function CreateListingPage() {
         }
       }
     }
-    // Convert structured description from textareas to arrays
     if (p.structuredDescription) {
       const sd = p.structuredDescription;
       p.structuredDescription = {
@@ -207,12 +219,16 @@ export default function CreateListingPage() {
         houseRules: sd.houseRules ? sd.houseRules.split("\n").map((s) => s.trim()).filter(Boolean) : [],
         gettingAround: sd.gettingAround || "",
       };
-      // Remove empty structured description
       if (!sd.highlights && !sd.idealFor && !sd.houseRules && !sd.gettingAround) {
         delete p.structuredDescription;
       }
     }
-    // For housing: clean up empty optional fields
+    if (p.availabilityRules) {
+      p.availabilityRules = Object.fromEntries(
+        Object.entries(p.availabilityRules).filter(([, v]) => v && v.enabled !== false)
+      );
+      if (Object.keys(p.availabilityRules).length === 0) delete p.availabilityRules;
+    }
     if (p.vertical === "housing") {
       if (!p.housingDetails?.weeklyRateKobo) delete p.housingDetails?.weeklyRateKobo;
       if (!p.housingDetails?.monthlyRateKobo) delete p.housingDetails?.monthlyRateKobo;
@@ -222,12 +238,13 @@ export default function CreateListingPage() {
       if (!p.housingDetails?.houseRules) delete p.housingDetails?.houseRules;
       if (!p.housingDetails?.viewingFeeKobo) delete p.housingDetails?.viewingFeeKobo;
       if (!p.housingDetails?.viewingDurationMinutes) delete p.housingDetails?.viewingDurationMinutes;
-      // Set maxCapacity from maxGuests for housing
       p.operationalRules.maxCapacity = p.housingDetails?.maxGuests || 2;
-      // Remove venue-only fields
       delete p.pricing?.baseRatePerHour;
       delete p.operationalRules?.setupTimeMinutes;
       delete p.operationalRules?.cleanupTimeMinutes;
+      delete p.operationalRules?.isByobAllowed;
+    }
+    if (p.vertical === "outdoor_space") {
       delete p.operationalRules?.isByobAllowed;
     }
     return p;
@@ -395,6 +412,13 @@ export default function CreateListingPage() {
                 </span>
               </div>
             )}
+            {vertical === "outdoor_space" && (
+              <div className="flex items-end">
+                <span className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-ink-muted)]">
+                  Booking type: Exclusive (entire space)
+                </span>
+              </div>
+            )}
           </div>
 
           {vertical === "venue" && (
@@ -538,6 +562,26 @@ export default function CreateListingPage() {
             </div>
           )}
 
+          {vertical === "outdoor_space" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Outdoor Space Pricing</h3>
+              <p className="text-xs text-[var(--color-ink-muted)]">Outdoor spaces are exclusive-only. You set the flat hourly rate.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Hourly Rate (₦)</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-muted)]">₦</span>
+                    <input type="number" min="0" step="100" value={formData.pricing.baseRatePerHour > 0 ? formData.pricing.baseRatePerHour / 100 : ""} onChange={(e) => handleInputChange("pricing.baseRatePerHour", (parseInt(e.target.value) || 0) * 100)} onFocus={(e) => e.target.select()} placeholder="0" className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-3 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-2">Max Guests</label>
+                  <input type="number" min="1" value={formData.operationalRules.maxCapacity || ""} onChange={(e) => handleInputChange("operationalRules.maxCapacity", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {vertical === "venue" && (
             <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
               <h3 className="font-semibold text-[var(--color-ink)]">Time Allowances</h3>
@@ -555,6 +599,65 @@ export default function CreateListingPage() {
               </div>
             </div>
           )}
+
+          {vertical === "outdoor_space" && (
+            <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+              <h3 className="font-semibold text-[var(--color-ink)]">Time Allowances</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Setup time (minutes)</label>
+                  <input type="number" value={formData.operationalRules.setupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.setupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-ink)] block mb-1">Cleanup time (minutes)</label>
+                  <input type="number" value={formData.operationalRules.cleanupTimeMinutes || ""} onChange={(e) => handleInputChange("operationalRules.cleanupTimeMinutes", parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+            <h3 className="font-semibold text-[var(--color-ink)]">Availability Rules</h3>
+            <p className="text-xs text-[var(--color-ink-muted)]">Set your regular opening hours. Guests can only book during these times.</p>
+            <div className="space-y-2">
+              {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => {
+                const rules = formData.availabilityRules || {};
+                const dayRule = rules[day] || { enabled: day !== "sunday", open: "09:00", close: "22:00" };
+                return (
+                  <div key={day} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] p-3">
+                    <label className="flex items-center gap-2 w-28">
+                      <input
+                        type="checkbox"
+                        checked={dayRule.enabled !== false}
+                        onChange={(e) => handleInputChange(`availabilityRules.${day}`, { ...dayRule, enabled: e.target.checked })}
+                        className="rounded border"
+                      />
+                      <span className="text-sm font-semibold capitalize">{day}</span>
+                    </label>
+                    {dayRule.enabled !== false ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="time"
+                          value={dayRule.open || "09:00"}
+                          onChange={(e) => handleInputChange(`availabilityRules.${day}`, { ...dayRule, open: e.target.value })}
+                          className="rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-sm"
+                        />
+                        <span className="text-sm text-[var(--color-ink-muted)]">to</span>
+                        <input
+                          type="time"
+                          value={dayRule.close || "22:00"}
+                          onChange={(e) => handleInputChange(`availabilityRules.${day}`, { ...dayRule, close: e.target.value })}
+                          className="rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-sm text-[var(--color-ink-muted)]">Closed</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {vertical === "housing" && (
             <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
