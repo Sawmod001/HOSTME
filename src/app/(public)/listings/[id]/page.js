@@ -330,6 +330,50 @@ export default function ListingDetailPage({ params }) {
             <p className="text-sm text-[var(--color-ink-muted)] leading-6">{listing.description}</p>
           </div>
 
+          {listing.structuredDescription && (
+            <div className="border-t pt-4 space-y-4">
+              {listing.structuredDescription.highlights?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Highlights</p>
+                  <ul className="space-y-1">
+                    {listing.structuredDescription.highlights.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-[var(--color-ink-muted)]">
+                        <Star size={14} className="mt-0.5 shrink-0 text-[var(--color-gold)]" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {listing.structuredDescription.idealFor?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Ideal For</p>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.structuredDescription.idealFor.map((item, i) => (
+                      <span key={i} className="rounded-full bg-[var(--color-surface-alt)] px-3 py-1 text-xs font-medium">{item}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {listing.structuredDescription.houseRules?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">House Rules</p>
+                  <ul className="space-y-1 text-sm text-[var(--color-ink-muted)]">
+                    {listing.structuredDescription.houseRules.map((rule, i) => (
+                      <li key={i}>• {rule}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {listing.structuredDescription.gettingAround && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Getting Around</p>
+                  <p className="text-sm text-[var(--color-ink-muted)] leading-6">{listing.structuredDescription.gettingAround}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-3">Details</p>
             {listing.vertical === "housing" ? (
