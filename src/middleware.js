@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SECURITY_HEADERS, generateCSP, detectAttacks } from "@/lib/security";
+import { SECURITY_HEADERS, generateCSP } from "@/lib/security";
 import { parseSessionToken } from "@/lib/auth/getSessionUser";
 
 const PUBLIC_PATHS = [
@@ -101,48 +101,32 @@ function profileIncompleteResponse(request, pathname) {
   return NextResponse.redirect(new URL("/complete-profile", request.url));
 }
 
-function roleBlockedResponse(request, pathname, userRole) {
-  const isApi = pathname.startsWith("/api/");
-  if (isApi) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const redirectPath = ROLE_REDIRECT[userRole] || "/dashboard";
-  return NextResponse.redirect(new URL(redirectPath, request.url));
-}
-
 /**
- * Security + Auth middleware for Next.js.
- * Applies security headers, threat detection, and route protection.
+ * Lightweight auth middleware for Next.js.
+ * Only does session validation + security headers on page/API responses.
+ * Skips RSC navigation fetches entirely to prevent breaking client-side routing.
  */
 export function middleware(request) {
-  const response = NextResponse.next();
   const { pathname } = new URL(request.url);
   const { method } = request;
 
-  // Apply security headers
+  // Skip middleware entirely for Next.js internal RSC/navigation fetches.
+  // These are client-side data requests that must not be redirected or modified.
+  const rscHeader = request.headers.get("rsc");
+  const nextRouterStateTree = request.headers.get("next-router-state-tree");
+  if (rscHeader || nextRouterStateTree) {
+  return response;
+  }
+
+  const response = NextResponse.next();
+
+  // Apply security headers to page/API responses (not RSC)
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
   }
   response.headers.set("Content-Security-Policy", generateCSP());
 
-  // Detect attacks in URL
-  const { safe: urlSafe, threats: urlThreats } = detectAttacks(request.url);
-  if (!urlSafe) {
-    console.warn(`[Security] Threat detected in URL: ${urlThreats.join(", ")}`);
-    return new NextResponse("Bad Request", { status: 400 });
-  }
-
-  // Detect attacks in query parameters
-  const { searchParams } = new URL(request.url);
-  for (const [, value] of searchParams) {
-    const { safe, threats } = detectAttacks(value);
-    if (!safe) {
-      console.warn(`[Security] Threat detected in query param: ${threats.join(", ")}`);
-      return new NextResponse("Bad Request", { status: 400 });
-    }
-  }
-
-  // CSRF defense-in-depth for state-changing payment/booking routes
+  // CSRF defense for state-changing payment/booking routes
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     if (pathname.startsWith("/api/payments/") || pathname.startsWith("/api/bookings/")) {
       const origin = request.headers.get("origin");
@@ -152,9 +136,6 @@ export function middleware(request) {
       }
     }
   }
-
-  // Request ID
-  response.headers.set("X-Request-ID", crypto.randomUUID());
 
   // === AUTH CHECKS ===
   const sessionInfo = parseSessionToken(request);
@@ -177,7 +158,6 @@ export function middleware(request) {
 
   // Onboarding enforcement: authenticated user on protected page without completed profile
   if (isAuthenticated && isProtectedPath(pathname) && pathname !== "/complete-profile") {
-    // Parse profileCompleted from JWT — avoids a DB call in middleware
     try {
       const cookieHeader = request.headers.get("cookie") || "";
       const cookies = Object.fromEntries(
@@ -199,7 +179,7 @@ export function middleware(request) {
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
