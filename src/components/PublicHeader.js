@@ -4,7 +4,7 @@ import Logo from "@/components/Logo";
 const DASHBOARD_BY_ROLE = {
   guest: "/dashboard",
   venue_host: "/host/dashboard",
-  housing_agent: "/host/dashboard",
+  shortlet_host: "/host/dashboard",
   admin: "/admin",
 };
 

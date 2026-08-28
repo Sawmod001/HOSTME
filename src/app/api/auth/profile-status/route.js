@@ -5,7 +5,7 @@ import { findUserByClerkId } from "@/lib/db/supabase-queries";
 const REDIRECTS = {
   guest: "/dashboard",
   venue_host: "/host/dashboard",
-  housing_agent: "/host/dashboard",
+  shortlet_host: "/host/dashboard",
   admin: "/admin",
 };
 

@@ -28,7 +28,7 @@ export async function GET(request) {
     `);
 
     const role = user.role || "guest";
-    if (role === "venue_host" || role === "housing_agent") {
+    if (role === "venue_host" || role === "shortlet_host") {
       // Host: viewings for their listings
       if (!user.providerProfile) return NextResponse.json({ ok: true, data: [] });
       const { data: listings } = await supabase

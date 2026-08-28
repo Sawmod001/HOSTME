@@ -20,7 +20,7 @@ export async function getUser(clerkUserId) {
     if (dbUser) {
       // Fetch provider profile if user is a provider
       let providerProfile = null;
-      if (dbUser.role === "venue_host" || dbUser.role === "housing_agent") {
+      if (dbUser.role === "venue_host" || dbUser.role === "shortlet_host") {
         providerProfile = await findProviderProfileByUserId(dbUser.id);
       }
 
@@ -44,7 +44,7 @@ export async function getUser(clerkUserId) {
       const existing = await findUserByEmail(clerkUser.email);
       if (existing) {
         let providerProfile = null;
-        if (existing.role === "venue_host" || existing.role === "housing_agent") {
+        if (existing.role === "venue_host" || existing.role === "shortlet_host") {
           providerProfile = await findProviderProfileByUserId(existing.id);
         }
 

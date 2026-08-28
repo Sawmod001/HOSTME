@@ -46,7 +46,7 @@ export async function POST(request) {
     if (userOrResponse instanceof Response) return userOrResponse;
     const user = userOrResponse;
 
-    if (user.role !== "venue_host" && user.role !== "housing_agent") {
+    if (user.role !== "venue_host" && user.role !== "shortlet_host") {
       return NextResponse.json({ error: "Only providers can submit verifications" }, { status: 403 });
     }
 

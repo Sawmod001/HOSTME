@@ -11,7 +11,7 @@ import { validateCsrfOrigin } from "@/lib/csrf";
  * Body:
  *   { role, reason? }
  *
- * Valid roles: guest, venue_host, housing_agent, admin
+ * Valid roles: guest, venue_host, shortlet_host, admin
  */
 export async function PATCH(request, { params }) {
   try {
@@ -30,7 +30,7 @@ export async function PATCH(request, { params }) {
 
     if (!role) return fail("role required", 400);
 
-    const validRoles = ["guest", "venue_host", "housing_agent", "admin"];
+    const validRoles = ["guest", "venue_host", "shortlet_host", "admin"];
     if (!validRoles.includes(role)) {
       return fail(`role must be one of: ${validRoles.join(", ")}`, 400);
     }

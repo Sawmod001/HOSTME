@@ -69,7 +69,7 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[var(--color-surface-alt)] px-4 py-6">
       <div className="mx-auto max-w-lg space-y-6">
-        <PublicHeader backHref={profile?.role === "venue_host" || profile?.role === "housing_agent" ? "/host/dashboard" : "/dashboard"} role={profile?.role} />
+        <PublicHeader backHref={profile?.role === "venue_host" || profile?.role === "shortlet_host" ? "/host/dashboard" : "/dashboard"} role={profile?.role} />
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 space-y-6">
           <div>
