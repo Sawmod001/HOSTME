@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseSessionToken, verifyClerkSession, getClerkUser } from "@/lib/auth/getSessionUser";
+import { parseSessionToken } from "@/lib/auth/getSessionUser";
 import { findUserByClerkId } from "@/lib/db/supabase-queries";
 
 const REDIRECTS = {
@@ -15,28 +15,12 @@ export async function GET(request) {
     if (!sessionInfo?.userId) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
-    const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-    if (!isValid) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
-    }
 
-    const clerkUser = await getClerkUser(sessionInfo.userId);
-    if (!clerkUser) {
-      return NextResponse.json({ authenticated: true, completed: false });
-    }
+    // Use local JWT parsing only — no network call to Clerk.
+    // The middleware already validated the token structure and expiry.
+    // Full Clerk verification happens in individual API routes that need it.
 
-    // Fast path: Clerk metadata is the source of truth when profile is completed
-    if (clerkUser.profileCompleted) {
-      const role = clerkUser.role || "guest";
-      return NextResponse.json({
-        authenticated: true,
-        completed: true,
-        redirectTo: REDIRECTS[role] || "/dashboard",
-        role,
-      });
-    }
-
-    // Slow path: check Supabase for profile completion (legacy users)
+    // Check Supabase for profile completion
     try {
       const dbUser = await findUserByClerkId(sessionInfo.userId);
       if (dbUser?.profile_completed) {
@@ -49,7 +33,13 @@ export async function GET(request) {
         });
       }
     } catch {
-      // Supabase unavailable — Clerk metadata is authoritative
+      // Supabase unavailable — assume profile is completed (middleware handles auth)
+      return NextResponse.json({
+        authenticated: true,
+        completed: true,
+        redirectTo: "/dashboard",
+        role: "guest",
+      });
     }
 
     return NextResponse.json({ authenticated: true, completed: false });

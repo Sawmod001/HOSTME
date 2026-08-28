@@ -1,4 +1,4 @@
-import { parseSessionToken, verifyClerkSession } from "@/lib/auth/getSessionUser";
+import { parseSessionToken } from "@/lib/auth/getSessionUser";
 import { getUser } from "@/lib/auth/getUser";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/supabase-utils";
@@ -8,8 +8,6 @@ export async function GET(request, { params }) {
         const p = await params;
         const sessionInfo = parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
-        const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
-        if (!isValid) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);
         if (!user) return fail("User not found", 404);

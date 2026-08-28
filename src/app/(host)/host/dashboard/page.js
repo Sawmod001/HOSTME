@@ -17,10 +17,14 @@ export default function HostDashboardPage() {
 
   useEffect(() => {
     fetch("/api/auth/profile-status")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.authenticated) setProfile(data);
+      .then((res) => {
+        if (res.status === 401) return null;
+        return res.json();
       })
+      .then((data) => {
+        if (data?.authenticated) setProfile(data);
+      })
+      .catch(() => {})
       .finally(() => setIsLoaded(true));
   }, []);
 

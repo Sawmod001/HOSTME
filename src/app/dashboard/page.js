@@ -16,10 +16,14 @@ export default function GuestDashboardPage() {
 
   useEffect(() => {
     fetch("/api/auth/profile-status")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.authenticated) setProfile(data);
+      .then((res) => {
+        if (res.status === 401) return null;
+        return res.json();
       })
+      .then((data) => {
+        if (data?.authenticated) setProfile(data);
+      })
+      .catch(() => {})
       .finally(() => setIsLoaded(true));
   }, []);
 
@@ -31,12 +35,23 @@ export default function GuestDashboardPage() {
   async function fetchBookings() {
     try {
       const res = await fetch("/api/bookings");
+      if (res.status === 401) {
+        setBookings([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error("Failed to load bookings");
       const data = await res.json();
       setBookings(data.data || []);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      if (err.name === "TypeError" && err.message === "Failed to fetch") {
+        setBookings([]);
+        setError(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
