@@ -14,21 +14,32 @@ const SERVICE_FEE_PERCENT = 5;
  * @param {object} params
  * @param {number} params.nightlyRateKobo - Nightly rate in kobo
  * @param {number} [params.weeklyRateKobo] - Weekly rate in kobo (discount)
+ * @param {number} [params.monthlyRateKobo] - Monthly rate in kobo (discount)
  * @param {number} [params.cleaningFeeKobo] - One-time cleaning fee in kobo
  * @param {number} params.nights - Number of nights
- * @returns {{ nightlyTotal: number, weeklyDiscount: number, cleaningFee: number, subtotal: number, serviceFee: number, total: number }}
+ * @returns {{ nightlyTotal: number, weeklyDiscount: number, monthlyDiscount: number, cleaningFee: number, subtotal: number, serviceFee: number, total: number }}
  */
 export function computeHousingPriceKobo({
   nightlyRateKobo,
   weeklyRateKobo,
+  monthlyRateKobo,
   cleaningFeeKobo = 0,
   nights,
 }) {
   let nightlyTotal = nightlyRateKobo * nights;
   let weeklyDiscount = 0;
+  let monthlyDiscount = 0;
 
-  // Apply weekly discount if applicable
-  if (weeklyRateKobo && weeklyRateKobo > 0 && nights >= 7) {
+  // Apply monthly discount if applicable (>= 30 nights)
+  if (monthlyRateKobo && monthlyRateKobo > 0 && nights >= 30) {
+    const fullMonths = Math.floor(nights / 30);
+    const remainingNights = nights % 30;
+    const monthlyPrice = monthlyRateKobo * fullMonths;
+    const nightlyPriceForRemainder = nightlyRateKobo * remainingNights;
+    const monthlyBasedTotal = monthlyPrice + nightlyPriceForRemainder;
+    monthlyDiscount = nightlyTotal - monthlyBasedTotal;
+    nightlyTotal = monthlyBasedTotal;
+  } else if (weeklyRateKobo && weeklyRateKobo > 0 && nights >= 7) {
     const fullWeeks = Math.floor(nights / 7);
     const remainingNights = nights % 7;
     const weeklyPrice = weeklyRateKobo * fullWeeks;
@@ -45,6 +56,7 @@ export function computeHousingPriceKobo({
   return {
     nightlyTotal,
     weeklyDiscount,
+    monthlyDiscount,
     cleaningFee: cleaningFeeKobo,
     subtotal,
     serviceFee,

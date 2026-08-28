@@ -104,6 +104,7 @@ export async function POST(request) {
     const priceResult = computeHousingPriceKobo({
       nightlyRateKobo: effectiveNightlyRate,
       weeklyRateKobo: Number(pricing.weeklyRate) || 0,
+      monthlyRateKobo: Number(pricing.monthlyRate) || 0,
       cleaningFeeKobo: Number(pricing.cleaningFee) || 0,
       nights,
     });
@@ -116,6 +117,7 @@ export async function POST(request) {
       nightlyRate: effectiveNightlyRate,
       originalNightlyRate: Number(pricing.nightlyRate) || 0,
       weeklyRate: Number(pricing.weeklyRate) || 0,
+      monthlyRate: Number(pricing.monthlyRate) || 0,
       cleaningFee: Number(pricing.cleaningFee) || 0,
       nights,
       tenancyOverride: !!tenancyPeriod?.nightly_rate_override_kobo,
