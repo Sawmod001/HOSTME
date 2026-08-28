@@ -97,7 +97,7 @@ export async function POST(request) {
         const user = userOrResponse;
 
         // Only providers may create listings
-        if (user.role !== "venue_host" && user.role !== "housing_agent") {
+        if (user.role !== "venue_host" && user.role !== "shortlet_host") {
             return fail("Only providers can create listings", 403);
         }
 

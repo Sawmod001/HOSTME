@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 const REDIRECT_MAP = {
   guest: "/dashboard",
   venue_host: "/host/dashboard",
-  housing_agent: "/host/dashboard",
+  shortlet_host: "/host/dashboard",
   admin: "/admin",
 };
 

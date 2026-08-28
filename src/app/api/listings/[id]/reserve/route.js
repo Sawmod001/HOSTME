@@ -5,6 +5,7 @@ import { supabase } from "@/lib/db/supabase";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { computeCapacityPriceKobo, computeExclusiveFeeKobo, computeCommissionKobo } from "@/lib/bookings/pricing";
 
 /**
  * POST /api/listings/[id]/reserve
@@ -68,43 +69,49 @@ export async function POST(request, { params }) {
     }
 
     // === 2. CALCULATE SERVER-SIDE PRICING ===
-    const hours = Math.max(1, (endMs - startMs) / (1000 * 60 * 60));
-    const baseRate = Number(listing.pricing?.baseRatePerHour) || 0;
-
     let totalAmountKobo;
     let priceBreakdown;
 
     if (listing.booking_type === "capacity") {
-      totalAmountKobo = baseRate * parsedHeadcount * hours;
-
-      // Add-ons
-      const menu = new Map((listing.add_ons || []).map((a) => [a.id, Number(a.priceInKobo || a.price_in_kobo || 0)]));
-      const addOnTotal = addOns.reduce((sum, a) => sum + (menu.get(a.id) || 0), 0);
-      totalAmountKobo += addOnTotal;
+      totalAmountKobo = computeCapacityPriceKobo({
+        listing,
+        eventStart,
+        eventEnd,
+        headcount: parsedHeadcount,
+        addOnIds: addOns.map((a) => a.id),
+        includeRequired: true,
+      });
 
       priceBreakdown = {
         type: "capacity",
-        baseRatePerHour: baseRate,
+        baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
         headcount: parsedHeadcount,
-        hours,
-        baseTotal: baseRate * parsedHeadcount * hours,
-        addOnTotal,
-        serviceFee: Math.round(totalAmountKobo * 0.05),
+        hours: Math.max(1, (endMs - startMs) / (1000 * 60 * 60)),
+        totalAmountKobo,
       };
     } else {
-      // Exclusive
-      totalAmountKobo = baseRate * hours;
+      const baseTotal = computeCapacityPriceKobo({
+        listing,
+        eventStart,
+        eventEnd,
+        headcount: 1,
+        addOnIds: [],
+        includeRequired: false,
+      });
+      const exclusiveFee = computeExclusiveFeeKobo(listing);
+      totalAmountKobo = baseTotal + exclusiveFee;
+
       priceBreakdown = {
         type: "exclusive",
-        baseRatePerHour: baseRate,
-        hours,
-        baseTotal: baseRate * hours,
-        serviceFee: Math.round(totalAmountKobo * 0.05),
+        baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,
+        hours: Math.max(1, (endMs - startMs) / (1000 * 60 * 60)),
+        baseTotal,
+        exclusiveFee,
+        totalAmountKobo,
       };
     }
 
-    const commissionKobo = Math.round(totalAmountKobo * 0.05);
-    totalAmountKobo += priceBreakdown.serviceFee;
+    const commissionKobo = computeCommissionKobo(totalAmountKobo, listing);
 
     // === 3. CREATE HOLD OR LOCK ===
     const holdMinutes = 10;

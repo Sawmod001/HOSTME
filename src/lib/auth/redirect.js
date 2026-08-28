@@ -5,6 +5,6 @@ export function getRedirectPath(meta = {}) {
   if (!meta.profileCompleted) return "/complete-profile";
 
   if (role === "venue_host") return "/host/dashboard";
-  if (role === "housing_agent") return "/host/dashboard";
+  if (role === "shortlet_host") return "/host/dashboard";
   return "/dashboard";
 }

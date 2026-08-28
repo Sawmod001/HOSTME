@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { requireAuthenticatedUser } from "@/lib/auth/helpers";
 import { supabase } from "@/lib/db/supabase";
 import { toCamelCase, ok, fail, notFound } from "@/lib/db/supabase-utils";
-import { computeCapacityPriceKobo } from "@/lib/bookings/pricing";
+import { computeCapacityPriceKobo, computeCommissionKobo } from "@/lib/bookings/pricing";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/db/audit";
@@ -104,7 +104,7 @@ export async function POST(request) {
             addOnIds: addOns.map((a) => a.id),
             includeRequired: true,
         });
-        const commissionKobo = Math.round(totalAmountKobo * 0.05);
+        const commissionKobo = computeCommissionKobo(totalAmountKobo, listing);
 
         const pricingSnapshot = {
             baseRatePerHour: Number(listing.pricing?.baseRatePerHour) || 0,

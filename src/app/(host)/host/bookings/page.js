@@ -8,19 +8,22 @@ import HostSidebar from "@/components/sidebar/HostSidebar";
 
 const TABS = [
   { key: "", label: "All" },
-  { key: "pending", label: "Pending" },
+  { key: "pending_approval", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
   { key: "completed", label: "Completed" },
   { key: "rejected", label: "Rejected" },
 ];
 
 const STATUS_STYLES = {
-  pending: "bg-[#FEF3C7] text-[#B45309]",
+  pending_approval: "bg-[#FEF3C7] text-[#B45309]",
   awaiting_payment: "bg-[#DBEAFE] text-[#1E40AF]",
   confirmed: "bg-[#DCFCE7] text-[#166534]",
   rejected: "bg-[#FEE2E2] text-[#991B1B]",
   completed: "bg-[#F3F4F6] text-[#6B7280]",
-  cancelled: "bg-[#F3F4F6] text-[#6B7280]",
+  cancelled_by_guest: "bg-[#F3F4F6] text-[#6B7280]",
+  cancelled_by_host: "bg-[#F3F4F6] text-[#6B7280]",
+  cancelled_system: "bg-[#F3F4F6] text-[#6B7280]",
+  expired: "bg-[#F3F4F6] text-[#6B7280]",
 };
 
 export default function HostBookingsPage() {
@@ -126,7 +129,7 @@ export default function HostBookingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-[var(--color-ink)]">{booking.bookingType === "exclusive" ? "Exclusive" : "Capacity"}</p>
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[booking.status] || "bg-[#F3F4F6] text-[#6B7280]"}`}>
-                        {booking.status.replace("_", " ")}
+                        {booking.status.replace(/_/g, " ")}
                       </span>
                     </div>
                     <p className="text-xs text-[var(--color-ink-muted)]">
@@ -144,7 +147,7 @@ export default function HostBookingsPage() {
                   </div>
                 </Link>
 
-                {booking.status === "pending" && (
+                {booking.status === "pending_approval" && (
                   <div className="mt-4 border-t border-[var(--color-border)] pt-4">
                     {rejectingId === booking.id ? (
                       <div className="space-y-3">

@@ -43,13 +43,13 @@ export default function GuestDashboardPage() {
   }
 
   const upcomingCount = bookings.filter((b) => b.status === "confirmed").length;
-  const pendingCount = bookings.filter((b) => b.status === "pending" || b.status === "awaiting_payment").length;
-  const pastCount = bookings.filter((b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected").length;
+  const pendingCount = bookings.filter((b) => b.status === "pending_approval" || b.status === "awaiting_payment").length;
+  const pastCount = bookings.filter((b) => b.status === "completed" || b.status === "cancelled_by_guest" || b.status === "cancelled_by_host" || b.status === "cancelled_system" || b.status === "rejected" || b.status === "expired").length;
 
   const filteredBookings = bookings.filter((b) => {
     if (tab === "upcoming") return b.status === "confirmed";
-    if (tab === "pending") return b.status === "pending" || b.status === "awaiting_payment";
-    if (tab === "past") return b.status === "completed" || b.status === "cancelled" || b.status === "rejected";
+    if (tab === "pending") return b.status === "pending_approval" || b.status === "awaiting_payment";
+    if (tab === "past") return b.status === "completed" || b.status === "cancelled_by_guest" || b.status === "cancelled_by_host" || b.status === "cancelled_system" || b.status === "rejected" || b.status === "expired";
     return true;
   });
 
@@ -178,10 +178,10 @@ export default function GuestDashboardPage() {
                       <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                         booking.status === "confirmed" ? "bg-[#DCFCE7] text-[#166534]"
                         : booking.status === "awaiting_payment" ? "bg-[#FEF3C7] text-[#B45309]"
-                        : booking.status === "pending" ? "bg-[#DBEAFE] text-[#1E40AF]"
+                        : booking.status === "pending_approval" ? "bg-[#DBEAFE] text-[#1E40AF]"
                         : "bg-[#F3F4F6] text-[#6B7280]"
                       }`}>
-                        {booking.status.replace("_", " ")}
+                        {booking.status.replace(/_/g, " ")}
                       </span>
                       <p className="text-sm font-semibold text-[var(--color-ink)]">
                         ₦{(booking.totalAmountKobo / 100).toLocaleString()}
