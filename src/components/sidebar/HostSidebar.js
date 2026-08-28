@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, X, Shield, Calendar, Star, Wallet, BarChart3, MessageSquare, Bell, Settings } from "lucide-react";
+import { LogOut, X, Shield } from "lucide-react";
 import Logo from "@/components/Logo";
 
 export default function HostSidebar({ activePage, onClose }) {
@@ -27,55 +27,13 @@ export default function HostSidebar({ activePage, onClose }) {
       <Link href="/host/listings" className={linkClass("listings")}>
         My Listing
       </Link>
-      <Link href="/host/calendar" className={linkClass("calendar")}>
-        <span className="flex items-center gap-2">
-          <Calendar size={16} />
-          Calendar
-        </span>
-      </Link>
       <Link href="/host/bookings" className={linkClass("bookings")}>
         Reservations
-      </Link>
-      <Link href="/host/reviews" className={linkClass("reviews")}>
-        <span className="flex items-center gap-2">
-          <Star size={16} />
-          Reviews
-        </span>
-      </Link>
-      <Link href="/host/earnings" className={linkClass("earnings")}>
-        <span className="flex items-center gap-2">
-          <Wallet size={16} />
-          Earnings
-        </span>
-      </Link>
-      <Link href="/host/analytics" className={linkClass("analytics")}>
-        <span className="flex items-center gap-2">
-          <BarChart3 size={16} />
-          Analytics
-        </span>
-      </Link>
-      <Link href="/host/messages" className={linkClass("messages")}>
-        <span className="flex items-center gap-2">
-          <MessageSquare size={16} />
-          Messages
-        </span>
-      </Link>
-      <Link href="/host/notifications" className={linkClass("notifications")}>
-        <span className="flex items-center gap-2">
-          <Bell size={16} />
-          Notifications
-        </span>
       </Link>
       <Link href="/host/verification" className={linkClass("verification")}>
         <span className="flex items-center gap-2">
           <Shield size={16} />
           Verification
-        </span>
-      </Link>
-      <Link href="/host/settings" className={linkClass("settings")}>
-        <span className="flex items-center gap-2">
-          <Settings size={16} />
-          Settings
         </span>
       </Link>
 
