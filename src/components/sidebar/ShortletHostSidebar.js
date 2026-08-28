@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, X, Shield, Calendar, Star, DollarSign, Bell, Settings } from "lucide-react";
+import { LogOut, X, Shield, Calendar, Star, DollarSign, Bell, Settings, Home } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export default function HostSidebar({ activePage, onClose }) {
+export default function ShortletHostSidebar({ activePage, onClose }) {
   const linkClass = (page) =>
     `rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
       activePage === page
@@ -22,7 +22,9 @@ export default function HostSidebar({ activePage, onClose }) {
       </div>
 
       <Link href="/host/dashboard" className={linkClass("dashboard")}>Dashboard</Link>
-      <Link href="/host/listings" className={linkClass("listings")}>My Listings</Link>
+      <Link href="/host/properties" className={linkClass("properties")}>
+        <span className="flex items-center gap-2"><Home size={16} /> My Properties</span>
+      </Link>
       <Link href="/host/bookings" className={linkClass("bookings")}>Reservations</Link>
       <Link href="/host/calendar" className={linkClass("calendar")}>
         <span className="flex items-center gap-2"><Calendar size={16} /> Calendar</span>

@@ -79,7 +79,7 @@ export default function HostDashboardPage() {
     );
   }
 
-  const pendingCount = bookings.filter((b) => b.status === "pending").length;
+  const pendingCount = bookings.filter((b) => b.status === "pending_approval").length;
   const confirmedCount = bookings.filter((b) => b.status === "confirmed").length;
 
   return (
@@ -219,7 +219,7 @@ export default function HostDashboardPage() {
                 </div>
                 <div className="space-y-2">
                   {bookings
-                    .filter((b) => b.status === "pending")
+                    .filter((b) => b.status === "pending_approval")
                     .slice(0, 3)
                     .map((booking) => (
                       <div key={booking.id} className="flex items-center justify-between rounded-xl bg-[var(--color-surface-alt)] p-3">
