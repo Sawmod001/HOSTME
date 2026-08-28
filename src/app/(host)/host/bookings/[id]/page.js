@@ -8,12 +8,14 @@ import DashboardLayout from "@/components/sidebar/DashboardLayout";
 import HostSidebar from "@/components/sidebar/HostSidebar";
 
 const STATUS_STYLES = {
-  pending: "bg-[#FEF3C7] text-[#B45309]",
+  pending_approval: "bg-[#FEF3C7] text-[#B45309]",
   awaiting_payment: "bg-[#DBEAFE] text-[#1E40AF]",
   confirmed: "bg-[#DCFCE7] text-[#166534]",
   rejected: "bg-[#FEE2E2] text-[#991B1B]",
   completed: "bg-[#F3F4F6] text-[#6B7280]",
-  cancelled: "bg-[#F3F4F6] text-[#6B7280]",
+  cancelled_by_guest: "bg-[#F3F4F6] text-[#6B7280]",
+  cancelled_by_host: "bg-[#F3F4F6] text-[#6B7280]",
+  expired: "bg-[#F3F4F6] text-[#6B7280]",
 };
 
 export default function HostBookingDetailPage() {
@@ -96,7 +98,7 @@ export default function HostBookingDetailPage() {
               <div>
                 <h1 className="text-2xl font-semibold">{listing?.title || "Booking Details"}</h1>
                 <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[booking.status] || "bg-[#F3F4F6] text-[#6B7280]"}`}>
-                  {booking.status.replace("_", " ")}
+                  {booking.status.replace(/_/g, " ")}
                 </span>
               </div>
               <p className="text-xl font-bold">₦{(booking.totalAmountKobo / 100).toLocaleString()}</p>
@@ -134,7 +136,7 @@ export default function HostBookingDetailPage() {
             </button>
           )}
 
-          {booking.status === "pending" && (
+          {booking.status === "pending_approval" && (
             <div className="rounded-xl bg-[#FEF3C7] p-4 text-sm text-[#92400E]">
               This booking is pending your approval. Go to <Link href="/host/bookings" className="font-semibold underline">Booking Inbox</Link> to approve or reject.
             </div>
