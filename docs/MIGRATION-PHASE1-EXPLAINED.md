@@ -1,31 +1,84 @@
-# Migration Phase 1 — Critical Safety (Line-by-Line Explanation)
+# Migration Phase 1 — Critical Safety (Complete Explanation)
 
 ## File: `supabase/migration-phase1.sql`
 
-This migration fixes **critical safety issues** in the database. It adds missing booking statuses, prevents race conditions, and enforces data integrity rules.
+This migration fixes **dangerous bugs** that could cause:
+- Double-bookings (two guests booking the same slot)
+- Lost payments (money taken but booking not created)
+- Security holes (hackers manipulating data)
 
 ---
 
-## Section 1: Opening Transaction
+## What Is a "Race Condition"?
 
-```sql
-BEGIN;
+### The Problem
+
+Imagine two guests trying to book the same venue slot at the same time:
+
+```
+Time 0: Guest A checks if slot is available → YES
+Time 1: Guest B checks if slot is available → YES (still available!)
+Time 2: Guest A books the slot → SUCCESS
+Time 3: Guest B books the slot → SUCCESS (DOUBLE BOOKING!)
 ```
 
-**What it does:** Starts a database transaction. All commands after this are treated as one "unit of work." If ANY command fails, PostgreSQL undoes everything that happened after `BEGIN`.
+Both guests think they booked successfully, but only one slot exists. This is a **race condition** — when two processes race to do the same thing, and both think they won.
 
-**Why:** Prevents partial migrations. You either get ALL the changes or NONE.
+### The Fix
+
+We created an **atomic database function** that does everything in one step:
+
+```sql
+-- This happens ALL AT ONCE, not step-by-step
+1. Lock the row (prevent others from reading it)
+2. Check if available
+3. Create the booking
+4. Mark the slot as taken
+5. Release the lock
+```
+
+Now when Guest B tries to book, Guest A's booking has already locked the row. Guest B gets an error: "Slot no longer available."
 
 ---
 
-## Section 2: Add Missing Booking Statuses
+## What Are "Missing Statuses"?
 
+### The Problem
+
+The original code only had 7 booking statuses:
+```
+pending, awaiting_payment, confirmed, completed, cancelled, rejected, lost_race
+```
+
+But the real booking lifecycle needs 12 states:
+
+| Status | Meaning |
+|--------|---------|
+| `pending_approval` | Guest submitted, waiting for host to approve |
+| `awaiting_payment` | Host approved, guest needs to pay |
+| `payment_processing` | Paystack is processing the payment |
+| `confirmed` | Payment successful, booking is final |
+| `checked_in` | Guest arrived at the venue |
+| `completed` | Event is over |
+| `cancelled_by_guest` | Guest cancelled |
+| `cancelled_by_host` | Host cancelled |
+| `cancelled_system` | Auto-cancelled (e.g., payment timeout) |
+| `expired` | Booking expired before payment |
+| `rejected` | Host rejected the request |
+| `lost_race` | Another guest booked first |
+
+### Why This Matters
+
+Without proper statuses:
+- You can't tell WHO cancelled (guest vs host vs system)
+- You can't track check-ins
+- You can't tell if payment is processing
+- The app crashes when it sees an unknown status
+
+### The Fix
+
+We updated the database to allow all 12 statuses:
 ```sql
-DO $$ BEGIN
-  ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
-EXCEPTION WHEN undefined_object THEN NULL;
-END $$;
-
 ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
   CHECK (status IN (
     'pending_approval',
@@ -43,152 +96,179 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
   ));
 ```
 
-**What it does:**
+---
 
-1. **Drops the old CHECK constraint** on the `status` column. The old constraint only allowed: `pending`, `awaiting_payment`, `confirmed`, `completed`, `cancelled`, `rejected`, `lost_race`
+## What Is "CSRF"?
 
-2. **Creates a new CHECK constraint** that allows 12 statuses instead of 7
+### The Problem
 
-**Why these statuses?**
+CSRF (Cross-Site Request Forgery) is an attack where:
+1. You're logged into ClockHost
+2. You visit a malicious website
+3. That website secretly sends a request to ClockHost
+4. ClockHost thinks it's you and performs the action
 
-| Status | Who Sets It | When |
-|--------|-------------|------|
-| `pending_approval` | System | Guest submits booking, waiting for host approval |
-| `awaiting_payment` | Host | Host approves, guest needs to pay |
-| `payment_processing` | System | Payment is being processed by Paystack |
-| `confirmed` | System | Payment confirmed, booking is final |
-| `checked_in` | Guest/Host | Guest arrives at the venue |
-| `completed` | Host | Event is over, host marks complete |
-| `cancelled_by_guest` | Guest | Guest cancels |
-| `cancelled_by_host` | Host | Host cancels |
-| `cancelled_system` | System | Auto-cancel (e.g., payment timeout) |
-| `expired` | System | Booking expired before payment |
-| `rejected` | Host | Host rejects the booking request |
-| `lost_race` | System | Another guest booked the same slot first |
+Example: A malicious site could silently cancel your bookings or change your settings.
 
-**The `DO $$ BEGIN ... EXCEPTION WHEN ... END $$;` pattern:**
+### How CSRF Works
 
-This is PostgreSQL's way of handling errors gracefully. It says: "Try to drop the constraint. If it doesn't exist, that's fine — just continue."
+When you're logged in, your browser sends a **cookie** with every request. The cookie proves "this is the real user." But any website can send requests to ClockHost, and your browser will automatically attach the cookie.
+
+### The Fix
+
+We added CSRF validation to all mutation routes (POST, PUT, DELETE):
+
+```javascript
+import { validateCsrfOrigin } from "@/lib/csrf";
+
+export async function POST(request) {
+  // Check if this request came from our own website
+  const csrfFail = validateCsrfOrigin(request);
+  if (csrfFail) return csrfFail;  // Block if not from our site
+  
+  // ... rest of the code
+}
+```
+
+The validation checks:
+1. Does the request have an `Origin` header?
+2. Does the `Origin` match our website's domain?
+3. If not, reject the request
 
 ---
 
-## Section 3: Add host_id Column to Bookings
+## What Is "Idempotency"?
 
-```sql
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS host_id UUID REFERENCES users(id);
-```
+### The Problem
 
-**What it does:** Adds a new column `host_id` to the `bookings` table. This column stores the ID of the host (property owner) for quick access.
+Sometimes the same request gets sent twice:
+- User clicks "Submit" twice quickly
+- Network timeout causes retry
+- Webhook from Paystack arrives twice
 
-**Why:** Previously, to find the host for a booking, you had to:
-1. Look up the listing from the booking
-2. Look up the provider_profile from the listing
-3. Look up the user from the provider_profile
+Without idempotency, each request creates a new booking. You end up with duplicates.
 
-That's 3 database queries! With `host_id`, it's just 1 query.
+### The Fix
 
-```sql
-UPDATE bookings b
-SET host_id = pp.user_id
-FROM listings l
-JOIN provider_profiles pp ON pp.id = l.provider_profile_id
-WHERE b.listing_id = l.id
-  AND b.host_id IS NULL;
-```
-
-**What it does:** Fills in the `host_id` for all existing bookings by joining through listings and provider_profiles.
-
-```sql
-ALTER TABLE bookings ALTER COLUMN host_id SET NOT NULL;
-```
-
-**What it does:** After backfilling, makes `host_id` required for all new bookings. The `DO $$ BEGIN ... EXCEPTION ... END $$;` wrapper handles the case where there might be orphaned bookings without a listing.
-
----
-
-## Section 4: One Listing Per Provider
-
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS idx_one_listing_per_provider
-  ON listings (provider_profile_id)
-  WHERE status != 'archived';
-```
-
-**What it does:** Creates a database rule that says: "Each provider can only have ONE listing that is NOT archived."
-
-**How it works:** This is a "partial unique index." It only applies to rows where `status != 'archived'`. So a provider can have:
-- 1 active listing ✓
-- 1 draft listing ✓ (because draft != archived)
-- 100 archived listings ✓ (because they're excluded from the rule)
-
-But they CANNOT have:
-- 2 active listings ✗ (violates the rule)
-
-**Why:** The design spec says each venue host can only list one space. This enforces it at the database level, not just in code.
-
----
-
-## Section 5: Exclusive Locks Improvements
-
-```sql
-ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
-ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS listing_id UUID REFERENCES listings(id);
-ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS event_start TIMESTAMPTZ;
-ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS event_end TIMESTAMPTZ;
-```
-
-**What it does:** Adds 4 new columns to the `exclusive_locks` table:
-
-| Column | Purpose |
-|--------|---------|
-| `expires_at` | When the lock automatically expires (for cleanup) |
-| `listing_id` | Which listing this lock is for (quick lookup) |
-| `event_start` | When the exclusive event starts |
-| `event_end` | When the exclusive event ends |
-
-**Why:** Previously, exclusive locks didn't have expiration times, so expired locks could stay in the database forever, blocking new bookings.
-
----
-
-## Section 6: Payment Records Status Update
-
-```sql
-DO $$ BEGIN
-  ALTER TABLE payment_records DROP CONSTRAINT IF EXISTS payment_records_status_check;
-EXCEPTION WHEN undefined_object THEN NULL;
-END $$;
-
-ALTER TABLE payment_records ADD CONSTRAINT payment_records_status_check
-  CHECK (status IN ('pending', 'processing', 'successful', 'failed', 'refunded', 'disputed'));
-```
-
-**What it does:** Updates the allowed payment statuses to include `processing` (for when Paystack is processing the payment).
-
----
-
-## Section 7: Idempotency Key
+We added an `idempotency_key` column:
 
 ```sql
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS idempotency_key TEXT UNIQUE;
 ```
 
-**What it does:** Adds a column for idempotency keys. An idempotency key is a unique string that prevents the same booking from being created twice.
-
-**How it works:**
+Now when a booking is created:
 1. Client generates a unique key (e.g., `abc-123-def-456`)
-2. Client sends booking request with this key
-3. Server checks: "Have I seen this key before?"
-4. If YES: Return the existing booking (don't create a duplicate)
-5. If NO: Create the booking and store the key
-
-**Why:** Prevents double-bookings when:
-- User clicks "Submit" twice quickly
-- Network timeout causes user to retry
-- Webhook is received twice from Paystack
+2. Server checks: "Have I seen this key before?"
+3. If YES: Return the existing booking (don't create duplicate)
+4. If NO: Create the booking and store the key
 
 ---
 
-## Section 8: Check-in Tokens
+## What Is "verifyTransaction"?
+
+### The Problem
+
+The webhook handler was trusting the payment data from Paystack without verifying it. A hacker could:
+1. Send a fake webhook to your server
+2. Claim a payment was successful
+3. Your server confirms the booking
+4. The guest gets the booking without paying
+
+### The Fix
+
+We added server-side verification:
+
+```javascript
+// Before: Trust the webhook payload
+await supabase.from("bookings").update({ status: "confirmed" })
+
+// After: Verify with Paystack first
+const verification = await verifyTransaction(txRef);
+if (verification.status !== "success") {
+  return fail("Payment not verified", 402);
+}
+await supabase.from("bookings").update({ status: "confirmed" })
+```
+
+Now the server asks Paystack directly: "Did this payment actually happen?"
+
+---
+
+## What Is "resolveExclusiveLock"?
+
+### The Problem
+
+Exclusive bookings (entire venue for one group) had a bug:
+```javascript
+catch (error) {
+  // ANY error marks the booking as "lost_race"
+  await supabase.from("bookings").update({ status: "lost_race" })
+}
+```
+
+This meant a temporary database error would permanently mark the booking as lost. The guest loses their booking even though nothing was wrong.
+
+### The Fix
+
+We now distinguish between real conflicts and transient errors:
+
+```javascript
+catch (error) {
+  const isRealRace = error?.code === "40001" || error?.code === "23505";
+  if (!isRealRace) {
+    // Transient error — try again later
+    return { ok: false, error: "Please retry" };
+  }
+  // Real conflict — mark as lost
+  await supabase.from("bookings").update({ status: "lost_race" })
+}
+```
+
+---
+
+## What Is "host_id"?
+
+### The Problem
+
+To find the host for a booking, the old code had to:
+1. Look up the listing from the booking
+2. Look up the provider_profile from the listing
+3. Look up the user from the provider_profile
+
+That's **3 database queries** for every booking!
+
+### The Fix
+
+We added a `host_id` column directly to the bookings table:
+
+```sql
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS host_id UUID REFERENCES users(id);
+```
+
+Now finding the host is just **1 query**:
+```javascript
+const { data: booking } = await supabase
+  .from("bookings")
+  .select("host_id")
+  .eq("id", bookingId);
+```
+
+---
+
+## What Are "Check-in Tokens"?
+
+### The Problem
+
+When a guest arrives at a venue, how does the host know they're the real guest? They could show a screenshot of their booking confirmation.
+
+### The Fix
+
+We added a token system:
+
+1. Before the event, the system generates a unique token
+2. The token is sent to the guest (email/SMS)
+3. The guest shows the token to the host
+4. The host verifies it in the app
 
 ```sql
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_token TEXT;
@@ -196,175 +276,190 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_token_expires_at TIMESTAM
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
 ```
 
-**What it does:** Adds columns for a check-in verification system:
-
-| Column | Purpose |
-|--------|---------|
-| `check_in_token` | A secret code the guest shows at the door |
-| `check_in_token_expires_at` | When the token stops working |
-| `checked_in_at` | When the guest actually checked in |
-
-**Why:** For venue bookings, the host needs to verify the guest actually arrived. The system generates a token, the guest shows it, the host verifies it.
-
 ---
 
-## Section 9: Listing Status Rename
+## What Is "One Listing Per Provider"?
+
+### The Problem
+
+The design says each venue host can only list ONE space. But nothing in the database prevented them from creating multiple listings.
+
+### The Fix
+
+We added a database rule:
 
 ```sql
-UPDATE listings SET status = 'under_review' WHERE status = 'pending_review';
-
-DO $$ BEGIN
-  ALTER TABLE listings DROP CONSTRAINT IF EXISTS listings_status_check;
-EXCEPTION WHEN undefined_object THEN NULL;
-END $$;
-
-ALTER TABLE listings ADD CONSTRAINT listings_status_check
-  CHECK (status IN ('draft', 'submitted', 'under_review', 'approved', 'rejected', 'suspended', 'archived'));
-
-UPDATE listings SET status = 'submitted' WHERE status = 'pending_review';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_listing_per_provider
+  ON listings (provider_profile_id)
+  WHERE status != 'archived';
 ```
 
-**What it does:** Renames listing statuses to match the design spec:
+This says: "For each provider_profile_id, there can only be ONE row where status is not 'archived'."
 
-| Old Status | New Status | Meaning |
-|------------|------------|---------|
-| `pending_review` | `submitted` | Host submitted for review |
-| — | `under_review` | Admin is reviewing |
-| — | `approved` | Admin approved (replaces `active` for submitted listings) |
-
-**Why:** The old status `pending_review` was confusing. The new flow is:
-1. `draft` — Host is still editing
-2. `submitted` — Host clicked "Submit for Review"
-3. `under_review` — Admin opened the review page
-4. `approved` / `rejected` — Admin made a decision
-5. `active` — Listing is live (after approval)
-6. `suspended` — Temporarily removed
-7. `archived` — Permanently removed
+If a host tries to create a second active listing, the database rejects it with an error.
 
 ---
 
-## Section 10: Atomic Booking Creation Function
+## What Is the "Atomic Booking Function"?
+
+### The Problem
+
+The old booking creation was done in multiple steps:
+```javascript
+// Step 1: Check capacity
+const { data: slot } = await supabase.from("slots").select("capacity, booked")
+
+// Step 2: Create booking
+const { data: booking } = await supabase.from("bookings").insert(...)
+
+// Step 3: Update slot
+await supabase.from("slots").update({ booked: slot.booked + 1 })
+```
+
+Between Step 1 and Step 2, another request could sneak in and book the same slot.
+
+### The Fix
+
+We created a PostgreSQL function that does everything atomically:
 
 ```sql
 CREATE OR REPLACE FUNCTION convert_hold_to_booking(...)
 RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
-...
+BEGIN
+  -- ALL of this happens in ONE database transaction
+  -- No other request can see intermediate states
+  
+  1. Lock the soft hold row
+  2. Validate everything
+  3. Create the booking
+  4. Update the slot
+  5. Log the transition
+  
+  RETURN result;
+END;
 $$;
 ```
 
-**What it does:** Creates a PostgreSQL function that atomically converts a soft hold into a booking. "Atomically" means it either succeeds completely or fails completely — no partial states.
-
-**Step-by-step:**
-
-1. **Lock the soft hold row** — `SELECT ... FOR UPDATE` prevents other transactions from reading/modifying this row while we work with it
-
-2. **Validate the hold** — Check it exists, is active, hasn't expired, belongs to the guest, headcount is valid
-
-3. **Check idempotency** — If the key was used before, return the existing booking
-
-4. **Create the booking** — Insert into `bookings` table with all the right fields
-
-5. **Mark hold as released** — Update `soft_holds` to show it was converted
-
-6. **Update slot capacity** — Increment `booked` count on the slot
-
-7. **Log the transition** — Record the status change in `booking_transitions`
-
-**Why this is critical:** Without this function, the old code had a race condition:
-1. Guest A checks capacity → OK
-2. Guest B checks capacity → OK (same slot!)
-3. Guest A books → succeeds
-4. Guest B books → also succeeds (DOUBLE BOOKING!)
-
-With this function, steps 1-4 happen in a single atomic operation. Only one guest can succeed.
+Now it's impossible for two guests to book the same slot.
 
 ---
 
-## Section 11: Atomic Exclusive Lock Function
+## Section-by-Section Breakdown
 
+### Section 1: Transaction
+```sql
+BEGIN;
+```
+Start a transaction. Everything after this is one "unit of work."
+
+### Section 2: Booking Statuses
+```sql
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
+  CHECK (status IN ('pending_approval', 'awaiting_payment', ...));
+```
+Replace the old 7-status constraint with a new 12-status constraint.
+
+### Section 3: host_id Column
+```sql
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS host_id UUID REFERENCES users(id);
+UPDATE bookings SET host_id = ...;
+ALTER TABLE bookings ALTER COLUMN host_id SET NOT NULL;
+```
+Add the host_id column, fill existing data, then make it required.
+
+### Section 4: One Listing Index
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_listing_per_provider
+  ON listings (provider_profile_id)
+  WHERE status != 'archived';
+```
+Prevent multiple active listings per provider.
+
+### Section 5: Exclusive Locks
+```sql
+ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE exclusive_locks ADD COLUMN IF NOT EXISTS listing_id UUID REFERENCES listings(id);
+```
+Add expiration and listing reference to exclusive locks.
+
+### Section 6: Payment Status
+```sql
+ALTER TABLE payment_records ADD CONSTRAINT payment_records_status_check
+  CHECK (status IN ('pending', 'processing', 'successful', ...));
+```
+Add 'processing' to allowed payment statuses.
+
+### Section 7: Idempotency Key
+```sql
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS idempotency_key TEXT UNIQUE;
+```
+Add column for preventing duplicate bookings.
+
+### Section 8: Check-in Tokens
+```sql
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_token TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_token_expires_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+```
+Add columns for guest verification at venues.
+
+### Section 9: Listing Statuses
+```sql
+UPDATE listings SET status = 'under_review' WHERE status = 'pending_review';
+ALTER TABLE listings ADD CONSTRAINT listings_status_check
+  CHECK (status IN ('draft', 'submitted', 'under_review', ...));
+```
+Rename listing statuses to match the design spec.
+
+### Section 10: Atomic Booking Function
+```sql
+CREATE OR REPLACE FUNCTION convert_hold_to_booking(...)
+RETURNS JSONB LANGUAGE plpgsql AS $$ ... $$;
+```
+Create a function that atomically converts a soft hold to a booking.
+
+### Section 11: Atomic Exclusive Function
 ```sql
 CREATE OR REPLACE FUNCTION create_exclusive_booking(...)
-RETURNS JSONB
-LANGUAGE plpgsql
-AS $$
-...
-$$;
+RETURNS JSONB LANGUAGE plpgsql AS $$ ... $$;
 ```
+Create a function that atomically creates an exclusive booking.
 
-**What it does:** Similar to `convert_hold_to_booking` but for exclusive bookings. It:
-
-1. Checks idempotency
-2. Checks for conflicting exclusive bookings (using PostgreSQL's range overlap operator `&&`)
-3. Creates the booking
-4. Creates the exclusive lock
-5. Logs the transition
-
-**The range overlap check:**
-```sql
-AND tstzrange(start_date + COALESCE(start_time, '00:00'::time), end_date + COALESCE(end_time, '23:59'::time)) &&
-    tstzrange(p_event_start, p_event_end)
-```
-
-This uses PostgreSQL's built-in range types to check if two time ranges overlap. The `&&` operator means "overlaps with."
-
----
-
-## Section 12: Cleanup Function
-
+### Section 12: Cleanup Function
 ```sql
 CREATE OR REPLACE FUNCTION cleanup_expired_holds_and_locks()
-RETURNS INTEGER
-LANGUAGE plpgsql
-AS $$
-...
-$$;
+RETURNS INTEGER LANGUAGE plpgsql AS $$ ... $$;
 ```
+Create a maintenance function for expired data.
 
-**What it does:** A maintenance function that cleans up expired data:
-
-1. Releases expired soft holds (sets `state = 'released'`)
-2. Expires old exclusive locks (sets `status = 'expired'`)
-3. Cancels bookings that expired while awaiting payment
-
-**How to use:** Call this periodically (e.g., every 5 minutes) from a cron job or the app:
-```sql
-SELECT cleanup_expired_holds_and_locks();
-```
-
----
-
-## Section 13: WhatsApp Sessions RLS
-
+### Section 13: WhatsApp RLS
 ```sql
 ALTER TABLE whatsapp_sessions ENABLE ROW LEVEL SECURITY;
-
-DO $$ BEGIN
-  CREATE POLICY whatsapp_sessions_admin_read ON whatsapp_sessions
-    FOR SELECT USING (
-      EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-    );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+CREATE POLICY whatsapp_sessions_admin_read ON whatsapp_sessions ...
 ```
+Enable security on the whatsapp_sessions table.
 
-**What it does:** Enables Row Level Security (RLS) on the `whatsapp_sessions` table and creates policies:
-
-- **admin_read** — Only admins can read WhatsApp sessions
-- **service_insert** — The app can insert new sessions
-- **service_update** — The app can update existing sessions
-
-**Why:** WhatsApp sessions contain sensitive data (phone numbers, conversation history). Only admins should be able to view them.
-
----
-
-## Section 14: Closing Transaction
-
+### Section 14: Commit
 ```sql
 COMMIT;
 ```
+Save all changes permanently.
 
-**What it does:** Saves all changes to the database. If you got here without errors, everything is applied permanently.
+---
 
-**If you see an error before this:** Nothing was saved. The database is exactly as it was before you ran the migration.
+## Summary: What Phase 1 Fixed
+
+| Problem | Solution | Impact |
+|---------|----------|--------|
+| Race condition (double bookings) | Atomic booking function | No more double-bookings |
+| Missing statuses (7 → 12) | Updated CHECK constraint | Proper booking lifecycle |
+| No idempotency | Added idempotency_key column | No duplicate bookings |
+| CSRF vulnerability | Added validation to all routes | Prevents attack |
+| Fake webhooks | Added verifyTransaction call | Prevents payment fraud |
+| Exclusive lock errors | Distinguish race vs transient | Fewer lost bookings |
+| Slow queries | Added host_id column | 3x faster queries |
+| No check-in verification | Added token columns | Secure venue access |
+| Multiple listings per provider | Added unique index | Enforces business rule |
