@@ -17,7 +17,7 @@ export default function AdminPendingListingsPage() {
 
     const fetchListings = async () => {
         try {
-            const response = await fetch("/api/listings?status=pending_review");
+            const response = await fetch("/api/listings?status=submitted");
             if (!response.ok) throw new Error("Failed to fetch listings");
             const data = await response.json();
             setListings(data.data || []);
@@ -141,15 +141,37 @@ export default function AdminPendingListingsPage() {
                                     <p className="text-sm text-[var(--color-ink-muted)]">{listing.description}</p>
                                     <div className="flex flex-wrap gap-2 pt-1">
                                         <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
-                                            {listing.vertical}
+                                            {listing.vertical === "outdoor_space" ? "Outdoor Space" : listing.vertical}
                                         </span>
                                         <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
-                                            {listing.bookingType === "capacity" ? "Capacity" : "Exclusive"}
+                                            {listing.bookingType === "capacity" ? "Capacity" : listing.bookingType === "viewing" ? "Viewing" : "Exclusive"}
                                         </span>
-                                        <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
-                                            ₦{(listing.pricing?.baseRatePerHour / 100 || 0).toLocaleString()}/hr
-                                        </span>
+                                        {listing.pricing?.baseRatePerHour > 0 && (
+                                            <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
+                                                ₦{(listing.pricing.baseRatePerHour / 100).toLocaleString()}/hr
+                                            </span>
+                                        )}
+                                        {listing.housingDetails?.nightlyRateKobo > 0 && (
+                                            <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
+                                                ₦{(listing.housingDetails.nightlyRateKobo / 100).toLocaleString()}/night
+                                            </span>
+                                        )}
+                                        {listing.location?.cityArea && (
+                                            <span className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-ink-muted)]">
+                                                {listing.location.cityArea}, {listing.location.state}
+                                            </span>
+                                        )}
                                     </div>
+                                    {listing.structuredDescription?.highlights?.length > 0 && (
+                                        <div className="pt-2">
+                                            <p className="text-xs font-semibold text-[var(--color-ink)] mb-1">Highlights:</p>
+                                            <ul className="text-xs text-[var(--color-ink-muted)] space-y-0.5">
+                                                {listing.structuredDescription.highlights.slice(0, 3).map((h, i) => (
+                                                    <li key={i}>• {h}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {rejectingId === listing.id ? (
