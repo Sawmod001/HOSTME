@@ -3,10 +3,11 @@ import { SECURITY_HEADERS, generateCSP, detectAttacks } from "@/lib/security";
 
 /**
  * Security middleware for Next.js.
- * Applies security headers and basic threat detection.
+ * Applies security headers, basic threat detection, and route protection.
  */
 export function middleware(request) {
   const response = NextResponse.next();
+  const { pathname } = new URL(request.url);
 
   // Apply security headers
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
@@ -36,6 +37,18 @@ export function middleware(request) {
   // Rate limiting headers
   const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
   response.headers.set("X-Request-ID", crypto.randomUUID());
+
+  // Block POST/PUT/PATCH/DELETE on payment and booking routes from non-origin requests
+  // (defense-in-depth for CSRF — primary validation is in route handlers)
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+    if (pathname.startsWith("/api/payments/") || pathname.startsWith("/api/bookings/")) {
+      const origin = request.headers.get("origin");
+      const host = request.headers.get("host");
+      if (origin && host && !origin.includes(host)) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
+    }
+  }
 
   return response;
 }

@@ -24,6 +24,16 @@ export async function POST(request) {
         if (booking.guest_id !== user.id) return forbidden();
         if (booking.status !== "awaiting_payment") return fail("Booking is not awaiting payment", 400);
 
+        // Check if booking has expired
+        if (booking.expires_at && new Date(booking.expires_at) < new Date()) {
+            await supabase.from("bookings").update({
+                status: "expired",
+                cancel_reason: "Payment deadline expired",
+                cancelled_at: new Date().toISOString(),
+            }).eq("id", bookingId);
+            return fail("Booking has expired", 410);
+        }
+
         // Check for existing successful payment
         const { data: existingPayment } = await supabase
             .from("payment_records")
@@ -34,7 +44,7 @@ export async function POST(request) {
 
         if (existingPayment) return fail("Payment already completed", 409);
 
-        const reference = `hostme-${booking.id}-${crypto.randomUUID().slice(0, 8)}`;
+        const reference = `clockhost-${booking.id}-${crypto.randomUUID().slice(0, 8)}`;
         const callbackUrl = `${process.env.CLOCKHOST_BASE_URL || process.env.HOSTME_BASE_URL || "http://localhost:3000"}/bookings/${booking.id}/pay/confirm`;
 
         // Initialize Paystack transaction

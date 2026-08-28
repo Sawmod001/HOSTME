@@ -7,6 +7,7 @@ import { ok, fail } from "@/lib/db/supabase-utils";
 
 // Refs come in the shape "<prefix>-<uuid>-<rand>"; the uuid contains dashes,
 // so split("-")[1] is wrong. Extract the full uuid by trimming the fixed parts.
+// Supports both legacy "hostme-" and new "clockhost-" prefixes.
 function extractIdFromRef(prefix, txRef) {
   if (!txRef?.startsWith(prefix + "-")) return null;
   const body = txRef.slice(prefix.length + 1);
@@ -70,7 +71,7 @@ export async function POST(request) {
             return ok({ received: true, finalized: result.ok });
         }
 
-        const bookingId = extractIdFromRef("hostme", txRef);
+        const bookingId = extractIdFromRef("clockhost", txRef) || extractIdFromRef("hostme", txRef);
         if (!bookingId) return fail("Invalid reference format", 400);
 
         // Server-side verification: confirm with Paystack that the transaction is real
