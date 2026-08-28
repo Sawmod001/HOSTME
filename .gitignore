@@ -47,3 +47,8 @@ dev-server.log
 
 # user uploads (not committed)
 public/uploads/
+
+# documentation (keep locally, don't push)
+docs/
+*.md
+!README.md
