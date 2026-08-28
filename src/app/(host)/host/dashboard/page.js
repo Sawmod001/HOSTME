@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, CalendarCheck, LayoutDashboard, Shield, CheckCircle2, Clock } from "lucide-react";
+import { Plus, CalendarCheck, LayoutDashboard, Shield, Clock } from "lucide-react";
 import DashboardLayout from "@/components/sidebar/DashboardLayout";
 import HostSidebar from "@/components/sidebar/HostSidebar";
 

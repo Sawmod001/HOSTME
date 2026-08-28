@@ -1,4 +1,3 @@
-import { pool } from "@/lib/db/connection";
 import { supabase } from "@/lib/db/supabase";
 import { sendBulkNotifications } from "@/lib/notifications";
 

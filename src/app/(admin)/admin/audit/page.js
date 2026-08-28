@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, Clock, AlertTriangle, Loader2 } from "lucide-react";
+import { Search, Clock, AlertTriangle, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/sidebar/DashboardLayout";
 import AdminSidebar from "@/components/sidebar/AdminSidebar";
 

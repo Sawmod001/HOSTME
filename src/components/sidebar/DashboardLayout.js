@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LogOut, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Logo from "@/components/Logo";
 
 export default function DashboardLayout({ children, sidebar, sidebarProps = {} }) {
