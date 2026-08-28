@@ -12,17 +12,18 @@ const GENDER_OPTIONS = [
 ];
 
 const VENUE_BUSINESS_TYPES = [
-  { value: "", label: "Select your business type" },
-  { value: "venue_owner", label: "Venue Owner" },
-  { value: "event_planner", label: "Event Planner" },
-  { value: "hospitality", label: "Hospitality Business" },
+  { value: "", label: "Select your venue type" },
+  { value: "lounge", label: "Lounge" },
+  { value: "bar", label: "Bar" },
+  { value: "club", label: "Club" },
+  { value: "leisure_entertainment", label: "Leisure / Entertainment Venue" },
+  { value: "other_venue", label: "Other Approved Venue Type" },
 ];
 
 const HOUSING_BUSINESS_TYPES = [
-  { value: "", label: "Select your business type" },
+  { value: "", label: "Select your role" },
+  { value: "housing_agent", label: "Housing Agent" },
   { value: "property_owner", label: "Property Owner" },
-  { value: "real_estate_agent", label: "Real Estate Agent" },
-  { value: "property_manager", label: "Property Manager" },
 ];
 
 const REFERRAL_OPTIONS = [
@@ -69,7 +70,7 @@ export default function CompleteProfilePage() {
       });
   }, [router]);
 
-  const isProvider = role === "venue_host" || role === "housing_agent";
+  const isProvider = role === "venue_host" || role === "shortlet_host";
   const businessTypes = role === "venue_host" ? VENUE_BUSINESS_TYPES : HOUSING_BUSINESS_TYPES;
 
   async function handleSubmit(event) {
@@ -177,13 +178,13 @@ export default function CompleteProfilePage() {
             <button
               type="button"
               className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
-                role === "housing_agent"
+                role === "shortlet_host"
                   ? "bg-[var(--color-primary)] text-white"
                   : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"
               }`}
-              onClick={() => setRole("housing_agent")}
+              onClick={() => setRole("shortlet_host")}
             >
-              Housing Agent
+              Shortlet Host
             </button>
           </div>
 

@@ -19,7 +19,7 @@ export async function GET(request) {
         let query = supabase.from("bookings").select();
 
         const role = user.role || "guest";
-        if (role === "venue_host" || role === "housing_agent") {
+        if (role === "venue_host" || role === "shortlet_host") {
             if (!user.providerProfile) return ok({ data: [] });
             const { data: listings } = await supabase
                 .from("listings")

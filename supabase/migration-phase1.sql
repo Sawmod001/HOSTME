@@ -8,6 +8,33 @@
 BEGIN;
 
 -- =============================================================================
+-- 0. ROLES: Update role CHECK constraint to match REMODEL-BLUEPRINT.md
+-- =============================================================================
+-- Old: guest, venue_host, housing_agent, admin
+-- New: guest, venue_host, shortlet_host, admin
+-- (housing_agent is now a business_type under shortlet_host, not a role)
+
+DO $$ BEGIN
+  ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('guest', 'venue_host', 'shortlet_host', 'admin'));
+
+-- Backfill: rename housing_agent role to shortlet_host
+UPDATE users SET role = 'shortlet_host' WHERE role = 'housing_agent';
+
+-- Update provider_profiles: rename provider_type housing_agent to shortlet_host
+UPDATE provider_profiles SET provider_type = 'shortlet_host' WHERE provider_type = 'housing_agent';
+
+-- Update the provider_type enum if it exists
+DO $$ BEGIN
+  ALTER TYPE provider_type RENAME VALUE 'housing_agent' TO 'shortlet_host';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+
+-- =============================================================================
 -- 1. BOOKING STATUS: Add missing states from state machine
 -- =============================================================================
 -- Current: pending, awaiting_payment, confirmed, completed, cancelled, rejected, lost_race

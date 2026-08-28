@@ -22,7 +22,7 @@ export async function requireAuthenticatedUser(request) {
 }
 
 /**
- * Require the authenticated user to be a host (venue_host or housing_agent).
+ * Require the authenticated user to be a host (venue_host or shortlet_host).
  * Returns the full user object or a NextResponse error.
  */
 export async function requireHost(request) {
@@ -30,7 +30,7 @@ export async function requireHost(request) {
   if (userOrResponse instanceof Response) return userOrResponse;
 
   const user = userOrResponse;
-  if (user.role !== "venue_host" && user.role !== "housing_agent") {
+  if (user.role !== "venue_host" && user.role !== "shortlet_host") {
     return fail("Host account required", 403);
   }
 

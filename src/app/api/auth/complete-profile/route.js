@@ -12,7 +12,7 @@ import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/db/audit";
 
-const VALID_ROLES = ["guest", "venue_host", "housing_agent"];
+const VALID_ROLES = ["guest", "venue_host", "shortlet_host"];
 
 const MAX_LENGTHS = {
   name: 100,
@@ -53,7 +53,7 @@ export async function POST(request) {
     const payload = await request.json();
 
     const selectedRole = VALID_ROLES.includes(payload?.role) ? payload.role : "guest";
-    const isProvider = selectedRole === "venue_host" || selectedRole === "housing_agent";
+    const isProvider = selectedRole === "venue_host" || selectedRole === "shortlet_host";
 
     if (isProvider) {
       if (!trim(payload?.businessName, MAX_LENGTHS.businessName)) {
