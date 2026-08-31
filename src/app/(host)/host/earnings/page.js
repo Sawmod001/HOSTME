@@ -108,7 +108,7 @@ export default function HostEarningsPage() {
                           {b.bookingType === "exclusive" ? "Exclusive" : "Capacity"} booking
                         </p>
                         <p className="text-xs text-[var(--color-ink-muted)]">
-                          {new Date(b.eventStart).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
+                          {new Date(b.eventStart).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short" })}
                         </p>
                       </div>
                       <div className="text-right">

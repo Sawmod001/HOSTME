@@ -108,9 +108,9 @@ export default function HostBookingDetailPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
               <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)] mb-3"><Calendar size={16} />Event</div>
-              <p className="text-sm font-semibold">{new Date(booking.eventStart).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</p>
+              <p className="text-sm font-semibold">{new Date(booking.eventStart).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short", year: "numeric" })}</p>
               <p className="text-xs text-[var(--color-ink-muted)]">
-                {new Date(booking.eventStart).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })} – {new Date(booking.eventEnd).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+                {new Date(booking.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} – {new Date(booking.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
@@ -123,7 +123,7 @@ export default function HostBookingDetailPage() {
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
             <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)] mb-3"><Clock size={16} />Timeline</div>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span>Booked</span><span>{new Date(booking.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
+              <div className="flex justify-between"><span>Booked</span><span>{new Date(booking.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
               <div className="flex justify-between"><span>Status</span><span className="capitalize">{booking.status.replace("_", " ")}</span></div>
               {booking.gatewayTransactionRef && <div className="flex justify-between"><span>Transaction</span><span className="text-xs">{booking.gatewayTransactionRef}</span></div>}
             </div>

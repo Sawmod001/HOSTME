@@ -12,7 +12,7 @@ export async function GET(request, { params }) {
         // can see their own membership; unauthenticated viewers get the plan
         // without a membership.
         let userId = null;
-        const sessionInfo = parseSessionToken(request);
+        const sessionInfo = await parseSessionToken(request);
         if (sessionInfo?.userId) {
             const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
             if (isValid) {

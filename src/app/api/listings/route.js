@@ -3,7 +3,7 @@ import { createListing, listListings, countListings, findProviderProfileById } f
 import { validateListingCreate, validateListingFilter } from "@/lib/validation";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { logAudit } from "@/lib/db/audit";
-import { toCamelCase, cachedOk, fail, ok } from "@/lib/db/supabase-utils";
+import { toCamelCase, cachedOk, privateOk, fail, ok } from "@/lib/db/supabase-utils";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request) {
@@ -70,10 +70,13 @@ export async function GET(request) {
             const page = items.slice(0, validation.data.limit);
             const nextCursor = hasMore && page.length > 0 ? page[page.length - 1].created_at : null;
 
-            return cachedOk({
+            const responseData = {
                 data: page.map(toCamelCase),
                 pagination: { nextCursor, hasMore },
-            });
+            };
+            // Only use CDN cache for public active listings; private/draft queries must not be cached publicly
+            const isPublicQuery = (!requested || requested === "active") && !providerProfileId;
+            return isPublicQuery ? cachedOk(responseData) : privateOk(responseData);
         } catch (databaseError) {
             console.error("DB fetch error:", databaseError);
             return fail("Failed to fetch listings", 500);

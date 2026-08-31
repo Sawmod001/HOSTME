@@ -45,7 +45,11 @@ export async function POST(request) {
         if (existingPayment) return fail("Payment already completed", 409);
 
         const reference = `clockhost-${booking.id}-${crypto.randomUUID().slice(0, 8)}`;
-        const callbackUrl = `${process.env.CLOCKHOST_BASE_URL || process.env.HOSTME_BASE_URL || "http://localhost:3000"}/bookings/${booking.id}/pay/confirm`;
+        const baseUrl = process.env.CLOCKHOST_BASE_URL || process.env.HOSTME_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+        if (!baseUrl) {
+          console.warn("CLOCKHOST_BASE_URL not set, callback URL may be incorrect");
+        }
+        const callbackUrl = `${baseUrl || "http://localhost:3000"}/bookings/${booking.id}/pay/confirm`;
 
         // Initialize Paystack transaction
         const paystackResult = await initializeTransaction({

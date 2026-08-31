@@ -53,10 +53,21 @@ function SignUpForm() {
 
       clearTimeout(timeout);
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
       if (!res.ok) {
-        setError(data.error || "Could not create account.");
+        if (res.status === 503) {
+          setError(data.error || "Authentication service is temporarily unavailable. Please wait a moment and try again.");
+        } else if (res.status === 403 && /CSRF/i.test(data.error || "")) {
+          setError("Security check failed. Please refresh the page and try again.");
+        } else {
+          setError(data.error || "Could not create account.");
+        }
         return;
       }
 
@@ -65,9 +76,11 @@ function SignUpForm() {
     } catch (err) {
       console.error("Sign-up client error:", err);
       if (err.name === "AbortError") {
-        setError("Request timed out (2 min). The server might be starting up or Clerk API is unreachable. Check the terminal for errors.");
+        setError("Request timed out. Please check your connection and try again.");
+      } else if (err.message && /Failed to fetch|NetworkError|fetch failed/i.test(err.message)) {
+        setError("Cannot reach the server. Please check your internet connection and refresh the page.");
       } else {
-        setError("Network error: " + (err.message || "Could not reach server. Is npm run dev running?"));
+        setError("Network error: " + (err.message || "Could not reach server. Is the site running?"));
       }
     } finally {
       clearTimeout(timeout);

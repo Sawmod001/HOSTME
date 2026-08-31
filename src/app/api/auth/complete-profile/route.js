@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/supabase-queries";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRedirectPath } from "@/lib/auth/redirect";
 import { logAudit } from "@/lib/db/audit";
 
 const VALID_ROLES = ["guest", "venue_host", "shortlet_host"];
@@ -40,7 +41,7 @@ export async function POST(request) {
     const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 10 }, "auth:complete-profile");
     if (rateLimited) return rateLimited;
 
-    const sessionInfo = parseSessionToken(request);
+    const sessionInfo = await parseSessionToken(request);
     if (!sessionInfo?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -167,7 +168,7 @@ export async function POST(request) {
       // Supabase unavailable — Clerk metadata has all critical data
     }
 
-    const redirectTo = isProvider ? "/host/dashboard" : "/dashboard";
+    const redirectTo = getRedirectPath({ role: selectedRole, profileCompleted: true });
 
     return NextResponse.json({
       ok: true,

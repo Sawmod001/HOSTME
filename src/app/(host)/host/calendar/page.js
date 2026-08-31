@@ -126,7 +126,7 @@ export default function HostCalendarPage() {
                     <div>
                       <p className="text-sm font-semibold">{b.bookingType === "exclusive" ? "Exclusive" : "Capacity"}</p>
                       <p className="text-xs text-[var(--color-ink-muted)]">
-                        {new Date(b.eventStart).toLocaleTimeString()} – {new Date(b.eventEnd).toLocaleTimeString()}
+                        {new Date(b.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })} – {new Date(b.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })}
                         {" · "}{b.headcount} guest{b.headcount > 1 ? "s" : ""}
                       </p>
                     </div>

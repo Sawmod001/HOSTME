@@ -164,9 +164,9 @@ export default function HostSlotsPage({ params }) {
                   <div key={slot.id} className="flex items-center justify-between rounded-xl border px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold">
-                        {new Date(slot.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(slot.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                         {" — "}
-                        {new Date(slot.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(slot.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                       </p>
                       <p className="text-xs text-[var(--color-ink-muted)]">
                         Capacity: {slot.capacity} | Booked: {slot.booked}

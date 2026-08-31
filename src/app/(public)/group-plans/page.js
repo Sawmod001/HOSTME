@@ -90,8 +90,8 @@ export default function MyGroupPlansPage() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-[var(--color-ink)]">{plan.listingTitle}</p>
                         <p className="mt-0.5 text-sm text-[var(--color-ink-muted)]">
-                          {new Date(plan.eventStart).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}{" "}
-                          {new Date(plan.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(plan.eventStart).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short" })}{" "}
+                          {new Date(plan.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${expired ? "bg-[#FEF3C7] text-[#B45309]" : STATUS_STYLE[plan.status] || "bg-[#F3F4F6] text-[#6B7280]"}`}>

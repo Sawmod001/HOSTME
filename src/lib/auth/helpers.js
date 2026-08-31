@@ -12,13 +12,20 @@ import { fail } from "@/lib/db/supabase-utils";
  *   const user = userOrResponse;
  */
 export async function requireAuthenticatedUser(request) {
-  const sessionInfo = parseSessionToken(request);
+  const sessionInfo = await parseSessionToken(request);
   if (!sessionInfo?.userId) return fail("Unauthorized", 401);
 
-  const user = await getUser(sessionInfo.userId);
-  if (!user) return fail("User not found", 404);
-
-  return user;
+  try {
+    const user = await getUser(sessionInfo.userId);
+    if (!user) return fail("User not found", 404);
+    return user;
+  } catch (e) {
+    // DB outage during auth should be 503 not 401 null
+    if (e?.message && /ECONN|ETIMEDOUT|ENOTFOUND|timeout/i.test(e.message)) {
+      return fail("Authentication service temporarily unavailable", 503);
+    }
+    throw e;
+  }
 }
 
 /**

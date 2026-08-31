@@ -102,7 +102,7 @@ export default function HostNotificationsPage() {
                 </div>
                 {n.created_at && (
                   <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-                    {new Date(n.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(n.created_at).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </p>
                 )}
               </div>

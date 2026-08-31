@@ -133,9 +133,9 @@ export default function HostBookingsPage() {
                       </span>
                     </div>
                     <p className="text-xs text-[var(--color-ink-muted)]">
-                      {new Date(booking.eventStart).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(booking.eventStart).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                       {" – "}
-                      {new Date(booking.eventEnd).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(booking.eventEnd).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

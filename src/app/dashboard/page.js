@@ -179,7 +179,7 @@ export default function GuestDashboardPage() {
                         </p>
                         <div className="mt-1 flex items-center gap-2 text-sm text-[var(--color-ink-muted)]">
                           <Calendar size={14} />
-                          {new Date(booking.eventStart).toLocaleDateString("en-NG", {
+                          {new Date(booking.eventStart).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos", 
                             weekday: "short", day: "numeric", month: "short", year: "numeric",
                           })}
                         </div>

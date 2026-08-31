@@ -6,7 +6,7 @@ import { supabase } from "@/lib/db/supabase";
 export async function GET(request, { params }) {
   try {
     const p = await params;
-    const sessionInfo = parseSessionToken(request);
+    const sessionInfo = await parseSessionToken(request);
     if (!sessionInfo?.userId) return unauthorised("No session");
     const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
     if (!isValid) return unauthorised("Invalid session");

@@ -11,7 +11,7 @@ const REDIRECTS = {
 
 export async function GET(request) {
   try {
-    const sessionInfo = parseSessionToken(request);
+    const sessionInfo = await parseSessionToken(request);
     if (!sessionInfo?.userId) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }

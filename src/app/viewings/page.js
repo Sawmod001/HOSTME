@@ -58,11 +58,11 @@ export default function ViewingsPage() {
                     <p className="font-semibold text-[var(--color-ink)]">{v.listing?.title || "Property"}</p>
                     <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)] mt-1">
                       <Calendar size={14} />
-                      {new Date(v.scheduledAt).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(v.scheduledAt).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short", year: "numeric" })}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)]">
                       <Clock size={14} />
-                      {new Date(v.scheduledAt).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(v.scheduledAt).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                       {" · "}{v.durationMinutes || 30} min
                     </div>
                     {v.listing?.location && (

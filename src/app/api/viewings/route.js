@@ -4,6 +4,7 @@ import { supabase } from "@/lib/db/supabase";
 import { logAudit } from "@/lib/db/audit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { sendNotification } from "@/lib/notifications";
 
 /**
  * GET /api/viewings
@@ -191,12 +192,12 @@ export async function POST(request) {
 
     if (viewingError) throw viewingError;
 
-    // Create notification for host
-    await supabase.from("notifications").insert({
-      user_id: hostId,
+    // Create notification for host via central service (respects preferences)
+    await sendNotification({
+      userId: hostId,
       type: "viewing_scheduled",
       title: "New Viewing Request",
-      body: `A guest requested a viewing for "${listing.title}" on ${scheduledDate.toLocaleDateString()}.`,
+      body: `A guest requested a viewing for "${listing.title}" on ${scheduledDate.toLocaleDateString("en-NG", { timeZone: "Africa/Lagos", day: "numeric", month: "short" })}.`,
       link: `/host/bookings`,
       metadata: { viewing_id: viewing.id, listing_id: listingId },
     });

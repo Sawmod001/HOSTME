@@ -26,17 +26,14 @@ function computeMultiGuestDiscount(headcount, listingPricing) {
 }
 
 /**
- * Compute venue-spend entitlement discount.
- * If the guest has spent >= venue_spend_threshold_kobo in the last 30 days,
- * apply venue_spend_discount_percent.
+ * Compute venue-spend entitlement (NOT a discount).
+ * Per PRODUCT_TRUTH TRUTH-3: displayed as "Includes ₦X venue spend", never subtracted from total.
+ * Formula: venue_spend_rate_kobo_per_guest_hour × headcount × hours
  */
-function computeVenueSpendDiscount(totalAmountKobo, listingPricing) {
-  const threshold = listingPricing?.venueSpendThresholdKobo || 0;
-  const discountPercent = listingPricing?.venueSpendDiscountPercent || 0;
-  if (threshold > 0 && totalAmountKobo >= threshold && discountPercent > 0) {
-    return discountPercent;
-  }
-  return 0;
+function computeVenueSpendEntitlement(headcount, hours, listingPricing) {
+  const rate = Number(listingPricing?.venueSpendRateKobo ?? listingPricing?.venue_spend_rate_kobo ?? 0);
+  if (!rate || !headcount || !hours) return 0;
+  return Math.round(rate * headcount * hours);
 }
 
 /**
@@ -69,11 +66,11 @@ function computeCommission(totalAmountKobo, listingPricing) {
  * Formula:
  *   base = baseRatePerHour × headcount × hours
  *   + add-ons (per-unit, matched by ID)
- *   - multi-guest discount (% off base)
+ *   - multi-guest discount (% off base, starting 2 guests §20)
  *   - hourly discount (% off base for long durations)
- *   - venue-spend entitlement discount (% off base)
- *   = totalAmountKobo
+ *   = subtotal → totalAmountKobo
  *
+ * venue_spend_entitlement is SEPARATE display-only (PRODUCT_TRUTH TRUTH-3) — never subtracted.
  * Commission is separate: commissionRate% of totalAmountKobo
  */
 export function computeCapacityPriceKobo({ listing, eventStart, eventEnd, headcount, addOnIds = [], includeRequired = false }) {
@@ -91,7 +88,7 @@ export function computeCapacityPriceKobo({ listing, eventStart, eventEnd, headco
 
   let subtotal = baseKobo + addOnsKobo;
 
-  // Multi-guest discount (applied to base only)
+  // Multi-guest discount (applied to base only, starts at 2 guests §20)
   const multiGuestDiscountPercent = computeMultiGuestDiscount(people, listing?.pricing);
   if (multiGuestDiscountPercent > 0) {
     const discount = Math.round(baseKobo * multiGuestDiscountPercent / 100);
@@ -102,13 +99,6 @@ export function computeCapacityPriceKobo({ listing, eventStart, eventEnd, headco
   const hourlyDiscountPercent = computeHourlyDiscount(hours, listing?.pricing);
   if (hourlyDiscountPercent > 0) {
     const discount = Math.round(baseKobo * hourlyDiscountPercent / 100);
-    subtotal -= discount;
-  }
-
-  // Venue-spend entitlement (applied to subtotal)
-  const venueSpendDiscountPercent = computeVenueSpendDiscount(subtotal, listing?.pricing);
-  if (venueSpendDiscountPercent > 0) {
-    const discount = Math.round(subtotal * venueSpendDiscountPercent / 100);
     subtotal -= discount;
   }
 
@@ -132,10 +122,9 @@ export function computeCommissionKobo(totalAmountKobo, listing) {
 }
 
 /**
- * Compute Paystack transaction fee.
- * Local cards: 1.5% capped at ₦2,000
- * International: 3.9% + ₦100
- * By default, the platform absorbs the fee.
+ * Compute Paystack transaction fee — PRODUCT_TRUTH TRUTH-10 / §17
+ * Formula: min(1.5%×amount + ₦100, ₦2000), ₦100 waived when amount < ₦2500
+ * International: 3.9% + ₦100 (cap ₦5000)
  */
 export function computePaystackFeeKobo(amountKobo, isInternational = false) {
   if (amountKobo <= 0) return 0;
@@ -146,14 +135,17 @@ export function computePaystackFeeKobo(amountKobo, isInternational = false) {
     return Math.round(Math.min(feeNaira, 5000) * 100);
   }
 
-  const feeNaira = amountNaira * 0.015;
+  const percentFee = amountNaira * 0.015;
+  const waived = amountKobo < 250000; // ₦2500 threshold — waive ₦100 flat
+  const feeNaira = percentFee + (waived ? 0 : 100);
   const cappedNaira = Math.min(feeNaira, 2000);
   return Math.round(cappedNaira * 100);
 }
 
 /**
  * Compute full pricing breakdown for a booking.
- * Returns all components needed for display and snapshot.
+ * Returns all components needed for display and snapshot — TRUTH-3/4, §69
+ * venue_spend_entitlement is display-only, never reduces total.
  */
 export function computePricingBreakdown({ listing, eventStart, eventEnd, headcount, addOnIds = [], includeRequired = false }) {
   const baseRatePerHour = Number(listing?.pricing?.baseRatePerHour) || 0;
@@ -177,15 +169,22 @@ export function computePricingBreakdown({ listing, eventStart, eventEnd, headcou
   const hourlyDiscountKobo = hourlyDiscountPercent > 0 ? Math.round(baseKobo * hourlyDiscountPercent / 100) : 0;
   subtotal -= hourlyDiscountKobo;
 
-  const venueSpendDiscountPercent = computeVenueSpendDiscount(subtotal, listing?.pricing);
-  const venueSpendDiscountKobo = venueSpendDiscountPercent > 0 ? Math.round(subtotal * venueSpendDiscountPercent / 100) : 0;
-  subtotal -= venueSpendDiscountKobo;
-
-  const totalAmountKobo = Math.max(0, Math.round(subtotal));
+  const totalAmountKoboBase = Math.max(0, Math.round(subtotal));
+  const exclusiveFeeKobo = listing?.booking_type === "exclusive" ? computeExclusiveFeeKobo(listing) : 0;
+  const totalAmountKobo = totalAmountKoboBase + exclusiveFeeKobo;
   const commissionRate = listing?.pricing?.commissionRatePercent ?? 5;
   const commissionKobo = computeCommission(totalAmountKobo, listing?.pricing);
 
-  const exclusiveFeeKobo = listing?.booking_type === "exclusive" ? computeExclusiveFeeKobo(listing) : 0;
+  // Venue-spend entitlement — display only (TRUTH-3), not a discount
+  const venueSpendEntitlementKobo = computeVenueSpendEntitlement(people, hours, listing?.pricing);
+  // Settlement split per §15 reference model: venue_component fixed ₦500/guest/hour when configured
+  const venueComponentKobo = (() => {
+    const fixed = listing?.pricing?.venueComponentRateKobo;
+    if (fixed != null) return Math.round(Number(fixed) * people * hours);
+    // Fallback to commission-based split not used when venue_component provided
+    return 0;
+  })();
+  const platformComponentKobo = venueComponentKobo ? Math.max(0, totalAmountKobo - venueComponentKobo) : totalAmountKobo - commissionKobo;
 
   return {
     baseRatePerHour,
@@ -197,12 +196,14 @@ export function computePricingBreakdown({ listing, eventStart, eventEnd, headcou
     multiGuestDiscountKobo,
     hourlyDiscountPercent,
     hourlyDiscountKobo,
-    venueSpendDiscountPercent,
-    venueSpendDiscountKobo,
+    venueSpendEntitlementKobo,
+    venueComponentKobo,
+    platformComponentKobo,
     exclusiveFeeKobo,
-    totalAmountKobo: totalAmountKobo + exclusiveFeeKobo,
+    totalAmountKobo,
     commissionRate,
-    commissionKobo: computeCommission(totalAmountKobo + exclusiveFeeKobo, listing?.pricing),
-    paystackFeeKobo: computePaystackFeeKobo(totalAmountKobo + exclusiveFeeKobo),
+    commissionKobo,
+    paystackFeeKobo: computePaystackFeeKobo(totalAmountKobo),
+    pricingRuleVersion: "1.0",
   };
 }

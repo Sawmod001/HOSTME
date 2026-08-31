@@ -159,9 +159,9 @@ export default function GroupPlanPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Group booking plan</p>
               <h1 className="mt-1 text-2xl font-semibold text-[var(--color-ink)]">{listing?.title || "Venue"}</h1>
               <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-                {listing?.location?.cityArea || ""} · {new Date(plan.eventStart).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}{" "}
-                {new Date(plan.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
-                {new Date(plan.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {listing?.location?.cityArea || ""} · {new Date(plan.eventStart).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short" })}{" "}
+                {new Date(plan.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} –{" "}
+                {new Date(plan.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${plan.status === "active" ? "bg-[#DBEAFE] text-[#1E40AF]" : plan.status === "finalized" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#F3F4F6] text-[#6B7280]"}`}>

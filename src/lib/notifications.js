@@ -19,6 +19,31 @@ export async function sendNotification({ userId, type, title, body, link, metada
     return { ok: false, error: "Missing required notification fields" };
   }
 
+  // Respect user notification preferences (AUDIT-NOTIF-001)
+  try {
+    const { data: prefs } = await supabase.from("notification_preferences").select("*").eq("user_id", userId).maybeSingle();
+    if (prefs) {
+      // Check global channel toggle and per-type toggle if present
+      const channelEnabled = prefs[`${channel}_enabled`] ?? prefs[channel] ?? true;
+      const typeEnabled = prefs[type] ?? prefs[`type_${type}`] ?? true;
+      if (channelEnabled === false || typeEnabled === false) {
+        return { ok: true, skipped: true, reason: "Preference disabled" };
+      }
+      // Check quiet hours if set
+      if (prefs.quiet_hours_start && prefs.quiet_hours_end) {
+        const now = new Date();
+        const hour = now.getHours();
+        const start = parseInt(prefs.quiet_hours_start.split(":")[0], 10);
+        const end = parseInt(prefs.quiet_hours_end.split(":")[0], 10);
+        const inQuiet = start <= end ? hour >= start && hour < end : hour >= start || hour < end;
+        if (inQuiet && type !== "booking_cancelled" && type !== "payment_confirmed") {
+          // Skip non-urgent during quiet hours
+          return { ok: true, skipped: true, reason: "Quiet hours" };
+        }
+      }
+    }
+  } catch {}
+
   try {
     const { error } = await supabase.from("notifications").insert({
       user_id: userId,

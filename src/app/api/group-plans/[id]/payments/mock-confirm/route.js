@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
             return fail("Too many attempts. Try again later.", 429);
         }
 
-        const sessionInfo = parseSessionToken(request);
+        const sessionInfo = await parseSessionToken(request);
         if (!sessionInfo?.userId) return unauthorised();
         const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);
         if (!isValid) return unauthorised();

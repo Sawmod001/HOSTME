@@ -228,8 +228,8 @@ export default function ExclusiveRequestPage({ params }) {
                                                 </span>
                                                 {(lock.startTime || lock.start) && (
                                                     <span className="text-[var(--color-ink-muted)]">
-                                                        {lock.startTime || new Date(lock.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                                        {lock.endTime || lock.end ? ` – ${lock.endTime || new Date(lock.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                                                        {lock.startTime || new Date(lock.start).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
+                                                        {lock.endTime || lock.end ? ` – ${lock.endTime || new Date(lock.end).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}` : ""}
                                                     </span>
                                                 )}
                                                 <span className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>

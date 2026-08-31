@@ -110,9 +110,9 @@ export default function GuestBookingDetailPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
             <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)] mb-3"><Calendar size={16} />Event</div>
-            <p className="text-sm font-semibold text-[var(--color-ink)]">{new Date(booking.eventStart).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</p>
+            <p className="text-sm font-semibold text-[var(--color-ink)]">{new Date(booking.eventStart).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short", year: "numeric" })}</p>
             <p className="text-xs text-[var(--color-ink-muted)]">
-              {new Date(booking.eventStart).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })} – {new Date(booking.eventEnd).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+              {new Date(booking.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} – {new Date(booking.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
@@ -125,8 +125,8 @@ export default function GuestBookingDetailPage() {
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
           <div className="flex items-center gap-2 text-sm text-[var(--color-ink-muted)] mb-3"><Clock size={16} />Timeline</div>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-[var(--color-ink-muted)]">Booked</span><span className="text-[var(--color-ink)]">{new Date(booking.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
-            {booking.paidAt && <div className="flex justify-between"><span className="text-[var(--color-ink-muted)]">Paid</span><span className="text-[var(--color-ink)]">{new Date(booking.paidAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>}
+            <div className="flex justify-between"><span className="text-[var(--color-ink-muted)]">Booked</span><span className="text-[var(--color-ink)]">{new Date(booking.createdAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
+            {booking.paidAt && <div className="flex justify-between"><span className="text-[var(--color-ink-muted)]">Paid</span><span className="text-[var(--color-ink)]">{new Date(booking.paidAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>}
             {booking.gatewayTransactionRef && <div className="flex justify-between"><span className="text-[var(--color-ink-muted)]">Transaction</span><span className="text-xs text-[var(--color-ink)]">{booking.gatewayTransactionRef}</span></div>}
           </div>
         </div>

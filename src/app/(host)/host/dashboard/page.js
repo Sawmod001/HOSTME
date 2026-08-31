@@ -232,7 +232,7 @@ export default function HostDashboardPage() {
                             {booking.bookingType === "exclusive" ? "Exclusive" : "Capacity"} booking
                           </p>
                           <p className="text-xs text-[var(--color-ink-muted)]">
-                            {new Date(booking.eventStart).toLocaleDateString("en-NG", {
+                            {new Date(booking.eventStart).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos", 
                               day: "numeric", month: "short",
                             })}
                             {" - "}

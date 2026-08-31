@@ -21,6 +21,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/whatsapp/webhook",
   "/api/health",
   "/api/search",
+  "/api/chat",
 ];
 
 const PUBLIC_LISTING_API = [
@@ -75,7 +76,6 @@ function isProtectedApi(pathname) {
     "/api/housing",
     "/api/provider",
     "/api/calendar",
-    "/api/chat",
     "/api/analytics",
     "/api/reviews",
     "/api/listings",
@@ -106,39 +106,42 @@ function profileIncompleteResponse(request, pathname) {
  * Only does session validation + security headers on page/API responses.
  * Skips RSC navigation fetches entirely to prevent breaking client-side routing.
  */
-export function middleware(request) {
+export async function middleware(request) {
   const { pathname } = new URL(request.url);
   const { method } = request;
 
-  // Skip middleware entirely for Next.js internal RSC/navigation fetches.
-  // These are client-side data requests that must not be redirected or modified.
   const rscHeader = request.headers.get("rsc");
   const nextRouterStateTree = request.headers.get("next-router-state-tree");
-  if (rscHeader || nextRouterStateTree) {
-  return response;
-  }
+  const isRsc = !!(rscHeader || nextRouterStateTree);
 
   const response = NextResponse.next();
 
-  // Apply security headers to page/API responses (not RSC)
+  // Apply security headers to all responses including RSC (defense in depth)
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
   }
   response.headers.set("Content-Security-Policy", generateCSP());
 
-  // CSRF defense for state-changing payment/booking routes
+  // CSRF defense for state-changing payment/booking routes - strict exact host match
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     if (pathname.startsWith("/api/payments/") || pathname.startsWith("/api/bookings/")) {
       const origin = request.headers.get("origin");
-      const host = request.headers.get("host");
-      if (origin && host && !origin.includes(host)) {
-        return new NextResponse("Forbidden", { status: 403 });
+      const host = request.headers.get("host") || request.headers.get("x-forwarded-host") || "";
+      if (origin && host) {
+        try {
+          const originHost = new URL(origin).host;
+          if (originHost !== host) {
+            return new NextResponse("Forbidden", { status: 403 });
+          }
+        } catch {
+          return new NextResponse("Forbidden", { status: 403 });
+        }
       }
     }
   }
 
-  // === AUTH CHECKS ===
-  const sessionInfo = parseSessionToken(request);
+  // === AUTH CHECKS — verified JWT via JWKS (cached) ===
+  const sessionInfo = await parseSessionToken(request);
   const isAuthenticated = !!sessionInfo?.userId;
 
   // Public pages and APIs — skip auth
@@ -146,40 +149,32 @@ export function middleware(request) {
     return response;
   }
 
-  // Protected page requires auth
+  // Protected page requires auth - for RSC, return 401 JSON instead of redirect to avoid breaking flight data
   if (isProtectedPath(pathname) && !isAuthenticated) {
+    if (isRsc) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: response.headers });
+    }
     return authFailResponse(request, pathname);
   }
 
-  // Protected API requires auth
+  // Protected API requires auth - always enforce even for RSC (prevents header bypass)
   if (isProtectedApi(pathname) && !isAuthenticated) {
     return authFailResponse(request, pathname);
   }
 
-  // Onboarding enforcement: authenticated user on protected page without completed profile
+  // Onboarding enforcement: use verified payload (no extra decode)
   if (isAuthenticated && isProtectedPath(pathname) && pathname !== "/complete-profile") {
     try {
-      const cookieHeader = request.headers.get("cookie") || "";
-      const cookies = Object.fromEntries(
-        cookieHeader.split(";").filter(Boolean).map((c) => {
-          const [k, ...v] = c.trim().split("=");
-          return [k, v.join("=")];
-        })
-      );
-      const token = cookies["__session"];
-      if (token) {
-        const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
-        const meta = payload.public_metadata || {};
-        if (meta.profileCompleted === false && pathname !== "/complete-profile") {
-          return profileIncompleteResponse(request, pathname);
-        }
+      const meta = sessionInfo?.payload?.public_metadata || {};
+      if (meta.profileCompleted === false && pathname !== "/complete-profile") {
+        return profileIncompleteResponse(request, pathname);
       }
     } catch {
       // If we can't parse the token, let the API route handle it
     }
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

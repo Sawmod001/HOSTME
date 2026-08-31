@@ -143,7 +143,7 @@ export default function HousingCalendarPage() {
               <ChevronLeft size={20} />
             </button>
             <h2 className="font-semibold text-[var(--color-ink)]">
-              {calMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+              {calMonth.toLocaleString("en-NG", { timeZone: "Africa/Lagos", month: "long", year: "numeric" })}
             </h2>
             <button onClick={() => setCalMonth(new Date(year, monthIdx + 1, 1))} className="rounded-lg p-2 hover:bg-[var(--color-surface-alt)]">
               <ChevronRight size={20} />
@@ -215,7 +215,7 @@ export default function HousingCalendarPage() {
               <div className="flex flex-wrap gap-2">
                 {blockedDates.map((b) => (
                   <div key={b.id} className="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2 py-1 text-xs text-red-700">
-                    <span>{new Date(b.blocked_date).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</span>
+                    <span>{new Date(b.blocked_date).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short" })}</span>
                     {b.booking_id ? (
                       <span className="text-[10px] text-red-500">(booking)</span>
                     ) : (

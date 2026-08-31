@@ -208,7 +208,7 @@ export default function NewGroupPlanPage() {
                         checked={selectedSlotId === slot.id}
                         onChange={() => setSelectedSlotId(slot.id)}
                       />
-                      {new Date(slot.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(slot.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(slot.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} – {new Date(slot.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className="text-xs font-semibold text-[#15803D]">{slot.available}/{slot.capacity} spots</span>
                   </label>

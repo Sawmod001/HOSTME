@@ -19,27 +19,31 @@ export async function POST(request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    const variants = [...new Set([trimmedEmail, trimmedEmail.toLowerCase(), trimmedEmail.toUpperCase()])];
+    // Clerk email lookup is case-insensitive for most instances — try lowercased first (fast path), then original.
+    const variants = [...new Set([trimmedEmail.toLowerCase(), trimmedEmail])];
     let matchedUser = null;
+    let lastFetchError = null;
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      for (const variant of variants) {
-        try {
-          const resp = await clerkFetch(`/users?email_address=${encodeURIComponent(variant)}`);
-          const users = Array.isArray(resp) ? resp : (resp.data || []);
-          if (users.length > 0) {
-            matchedUser = users[0];
-            break;
-          }
-        } catch {
-          // try next variant
+    for (const variant of variants) {
+      try {
+        const resp = await clerkFetch(`/users?email_address=${encodeURIComponent(variant)}`);
+        const users = Array.isArray(resp) ? resp : (resp.data || []);
+        if (users.length > 0) {
+          matchedUser = users[0];
+          break;
         }
+      } catch (e) {
+        lastFetchError = e;
+        // If it's a service-unavailable error, fail fast with 503 instead of masking as "invalid password"
+        if (e.status === 503 || e.status === 500) throw e;
+        // Otherwise try next variant
       }
-      if (matchedUser) break;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
     }
 
     if (!matchedUser) {
+      if (lastFetchError && (lastFetchError.status === 503 || lastFetchError.status === 500)) {
+        throw lastFetchError;
+      }
       return NextResponse.json({
         error: "Invalid email or password.",
       }, { status: 401 });
@@ -79,6 +83,13 @@ export async function POST(request) {
 
     return response;
   } catch (error) {
-    return NextResponse.json({ error: error.message || "Invalid credentials." }, { status: error.status || 401 });
+    // Map service-unavailable to 503 so client can show retry-friendly message
+    const status = error.status || 401;
+    const message = error.message || "Invalid credentials.";
+    // Don't leak internal stack traces for 500s; provide user-friendly fallback
+    if (status >= 500) {
+      return NextResponse.json({ error: message }, { status });
+    }
+    return NextResponse.json({ error: message }, { status });
   }
 }

@@ -142,9 +142,9 @@ export default function HostExclusiveLocksPage({ params }) {
                   <div key={lock.id} className="flex items-center justify-between rounded-xl border px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold">
-                        {new Date(lock.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(lock.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                         {" — "}
-                        {new Date(lock.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(lock.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}
                       </p>
                       <span className={`inline-flex items-center gap-1 text-xs mt-1 ${lock.status === "open" ? "text-[#15803D]" : "text-[#6B7280]"}`}>
                         {lock.status === "open" ? <Unlock size={12} /> : <Lock size={12} />}

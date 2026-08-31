@@ -6,7 +6,7 @@ import { computeCapacityPriceKobo } from "@/lib/bookings/pricing";
 
 export async function POST(request) {
     try {
-        const sessionInfo = parseSessionToken(request);
+        const sessionInfo = await parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Authentication required", 401);
 
         const isValid = await verifyClerkSession(sessionInfo.sessionId, sessionInfo.userId);

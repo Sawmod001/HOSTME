@@ -57,10 +57,21 @@ function SignInForm() {
 
       clearTimeout(timeout);
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
       if (!res.ok) {
-        setError(data.error || "Invalid email or password.");
+        if (res.status === 503) {
+          setError(data.error || "Authentication service is temporarily unavailable. Please wait a moment and try again.");
+        } else if (res.status === 403 && /CSRF/i.test(data.error || "")) {
+          setError("Security check failed. Please refresh the page and try again.");
+        } else {
+          setError(data.error || "Invalid email or password.");
+        }
         return;
       }
 
@@ -68,9 +79,11 @@ function SignInForm() {
       router.push(redirectTo || data.redirectTo || "/complete-profile");
     } catch (err) {
       if (err.name === "AbortError") {
-        setError("Request timed out. Please check that the server is running and try again.");
+        setError("Request timed out. Please check your connection and try again.");
+      } else if (err.message && /Failed to fetch|NetworkError|fetch failed/i.test(err.message)) {
+        setError("Cannot reach the server. Please check your internet connection and refresh the page.");
       } else {
-        setError("Connection error. Please try again.");
+        setError(err.message || "Connection error. Please try again.");
       }
     } finally {
       clearTimeout(timeout);

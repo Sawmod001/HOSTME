@@ -161,7 +161,7 @@ export default function AdminVerificationsPage() {
                         </p>
                       )}
                       <p className="text-xs text-[var(--color-ink-muted)]">
-                        Submitted {new Date(v.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                        Submitted {new Date(v.created_at).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     </div>
                   </div>

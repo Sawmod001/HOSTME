@@ -96,7 +96,7 @@ export default function HostReviewsPage() {
                   <p className="text-sm text-[var(--color-ink-muted)]">{review.comment}</p>
                 )}
                 <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-                  {new Date(review.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                  {new Date(review.created_at).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  day: "numeric", month: "short", year: "numeric" })}
                 </p>
               </div>
             ))}

@@ -28,7 +28,7 @@ export async function POST(request) {
     const csrfFail = validateCsrfOrigin(request);
     if (csrfFail) return csrfFail;
 
-    const sessionInfo = parseSessionToken(request);
+    const sessionInfo = await parseSessionToken(request);
     if (!sessionInfo?.userId) {
       return Response.json({ error: "Authentication required" }, { status: 401 });
     }

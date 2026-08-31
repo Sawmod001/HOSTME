@@ -256,7 +256,7 @@ export default function CheckoutPage() {
                                                 className="accent-[var(--color-primary)]"
                                             />
                                             <span>
-                                                {new Date(s.eventStart).toLocaleTimeString()} – {new Date(s.eventEnd).toLocaleTimeString()}
+                                                {new Date(s.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })} – {new Date(s.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })}
                                             </span>
                                         </span>
                                         <span className="text-xs text-[var(--color-ink-muted)]">
@@ -339,7 +339,7 @@ export default function CheckoutPage() {
                         )}
                         {slot ? (
                             <div className="mt-2 text-xs text-[var(--color-ink-muted)]">
-                                {new Date(slot.eventStart).toLocaleTimeString()} – {new Date(slot.eventEnd).toLocaleTimeString()}
+                                {new Date(slot.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })} – {new Date(slot.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos", hour: "2-digit", minute: "2-digit" })}
                                 {serverPrice && ` · ${serverPrice.breakdown.hours}h`}
                             </div>
                         ) : (

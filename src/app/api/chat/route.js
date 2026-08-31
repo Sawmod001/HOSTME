@@ -1,4 +1,4 @@
-import { requireAuthenticatedUser } from "@/lib/auth/helpers";
+import { parseSessionToken } from "@/lib/auth/getSessionUser";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { validateCsrfOrigin } from "@/lib/csrf";
 
@@ -27,10 +27,11 @@ export async function POST(request) {
     const csrfFail = validateCsrfOrigin(request);
     if (csrfFail) return csrfFail;
 
-    const userOrResponse = await requireAuthenticatedUser(request);
-    if (userOrResponse instanceof Response) return userOrResponse;
-
-    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: 20 }, "chat");
+    // Chat is public — allow guests but apply stricter rate limit for unauthenticated users
+    const sessionInfo = await parseSessionToken(request);
+    const isAuthenticated = !!sessionInfo?.userId;
+    const rateLimitMax = isAuthenticated ? 20 : 10;
+    const rateLimited = checkRateLimit(request, { windowMs: 60_000, max: rateLimitMax }, "chat");
     if (rateLimited) return rateLimited;
 
     const { message, history = [] } = await request.json();
@@ -61,10 +62,13 @@ export async function POST(request) {
     ];
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } }),
       }
     );

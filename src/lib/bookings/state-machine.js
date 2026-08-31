@@ -119,21 +119,28 @@ export async function transitionBooking({ bookingId, toStatus, actorId, actorRol
     return { ok: false, error: "You are not the guest for this booking" };
   }
 
-  // 4. Execute transition
+  // 4. Execute transition — optimistic lock on current status (prevents concurrent double-transition per CODE-001)
   const updateData = { status: toStatus, updated_at: new Date().toISOString() };
   if (toStatus === "rejected" && reason) {
     updateData.rejection_reason = reason;
+  }
+  if (toStatus.startsWith("cancelled_") && reason) {
+    updateData.cancel_reason = reason;
   }
 
   const { data: updated, error: updateError } = await supabase
     .from("bookings")
     .update(updateData)
     .eq("id", bookingId)
+    .eq("status", booking.status)
     .select()
-    .single();
+    .maybeSingle();
 
   if (updateError) {
     return { ok: false, error: updateError.message };
+  }
+  if (!updated) {
+    return { ok: false, error: `Booking status changed concurrently (was ${booking.status})` };
   }
 
   // 5. Side effects for cancellation

@@ -273,7 +273,7 @@ export default function AdminAuditPage() {
                         )}
                       </div>
                       <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                        Actor: {event.actor_id?.slice(0, 8)}... | {new Date(event.created_at).toLocaleString("en-NG")}
+                        Actor: {event.actor_id?.slice(0, 8)}... | {new Date(event.created_at).toLocaleString("en-NG", { timeZone: "Africa/Lagos", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </p>
                       {event.metadata && Object.keys(event.metadata).length > 0 && (
                         <p className="mt-1 text-xs text-[var(--color-ink-muted)]">

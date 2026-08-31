@@ -42,11 +42,15 @@ export async function POST(request) {
       );
       if (isDuplicate) {
         let found = null;
-        const variants = [...new Set([trimmedEmail, trimmedEmail.toLowerCase(), trimmedEmail.toUpperCase()])];
+        const variants = [...new Set([trimmedEmail.toLowerCase(), trimmedEmail])];
         for (const variant of variants) {
-          const resp = await clerkFetch(`/users?email_address=${encodeURIComponent(variant)}`);
-          const users = Array.isArray(resp) ? resp : (resp.data || []);
-          if (users.length > 0) { found = users[0]; break; }
+          try {
+            const resp = await clerkFetch(`/users?email_address=${encodeURIComponent(variant)}`);
+            const users = Array.isArray(resp) ? resp : (resp.data || []);
+            if (users.length > 0) { found = users[0]; break; }
+          } catch (lookupErr) {
+            if (lookupErr.status === 503 || lookupErr.status === 500) throw lookupErr;
+          }
         }
         if (!found) {
           return NextResponse.json({ error: "Account exists but could not be found. Try signing in." }, { status: 409 });
@@ -108,6 +112,11 @@ export async function POST(request) {
 
     return response;
   } catch (error) {
-    return NextResponse.json({ error: error.message || "Could not create account." }, { status: 400 });
+    const status = error.status || 400;
+    // Surface service-unavailable as 503 so client can show retry guidance
+    if (status === 503 || status === 500) {
+      return NextResponse.json({ error: error.message || "Authentication service temporarily unavailable. Please try again." }, { status });
+    }
+    return NextResponse.json({ error: error.message || "Could not create account." }, { status });
   }
 }

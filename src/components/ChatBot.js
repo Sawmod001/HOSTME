@@ -52,13 +52,26 @@ export default function ChatBot() {
         body: JSON.stringify({ message: msg, history }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No response");
+      if (!res.ok) {
+        // Provide friendly fallback for auth/rate-limit errors instead of raw "Unauthorized"
+        const raw = data.error || "No response";
+        if (res.status === 401 || /unauthorized/i.test(raw)) {
+          throw new Error("Please sign in for personalized help — but I can still answer general questions. Try rephrasing your message or refresh the page.");
+        }
+        if (res.status === 429) {
+          throw new Error(data.error || "Too many messages. Please wait a moment and try again.");
+        }
+        throw new Error(raw);
+      }
       const reply = data.note ? `${data.reply}\n\n_${data.note}_` : data.reply;
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (e) {
+      const msg = e.message && e.message !== "Failed to fetch"
+        ? e.message
+        : "Connection issue — please check your internet and try again.";
       setMessages((prev) => [...prev, {
         role: "assistant",
-        content: e.message,
+        content: msg,
         meta: { error: true },
       }]);
     } finally {

@@ -1,10 +1,11 @@
 import { clerkFetch } from "@/lib/auth/clerk";
+import { verifyClerkJwt } from "@/lib/auth/clerkJwt";
 
 const API = "https://api.clerk.com/v1";
 
-// Local JWT verification — decodes the __session cookie without a network call.
-// Returns { userId, sessionId, exp } or null if the token is missing/invalid.
-export function parseSessionToken(request) {
+// Verified JWT parsing — cryptographically verifies __session cookie via Clerk JWKS (cached).
+// Returns { userId, sessionId, payload } or null. Falls back to structural checks in dev/unconfigured.
+export async function parseSessionToken(request) {
   const cookieHeader = request.headers.get("cookie") || "";
   const cookies = Object.fromEntries(
     cookieHeader.split(";").filter(Boolean).map((c) => {
@@ -15,17 +16,47 @@ export function parseSessionToken(request) {
   const token = cookies["__session"];
   if (!token) return null;
 
-  try {
-    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
+  const payload = await verifyClerkJwt(token);
+  if (!payload) return null;
 
-    // Check expiry — reject expired tokens without a network call
+  const userId = payload.sub || payload.user_id;
+  const sessionId = payload.sid;
+  if (!userId || !sessionId) return null;
+  if (typeof userId !== "string" || !userId.startsWith("user_")) return null;
+
+  return {
+    userId,
+    sessionId,
+    payload,
+  };
+}
+
+// Sync structural check for cases where async verify is not possible (e.g., quick middleware pre-check)
+// Kept for internal use only — prefer async parseSessionToken.
+export function parseSessionTokenSync(request) {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split(";").filter(Boolean).map((c) => {
+      const [k, ...v] = c.trim().split("=");
+      return [k, v.join("=")];
+    })
+  );
+  const token = cookies["__session"];
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
+    if (!header.alg || header.alg === "none" || !["RS256", "ES256", "RS384"].includes(header.alg)) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) return null;
-
-    return {
-      userId: payload.sub || payload.user_id,
-      sessionId: payload.sid,
-    };
+    if (payload.iat && payload.iat > now + 60) return null;
+    const userId = payload.sub || payload.user_id;
+    const sessionId = payload.sid;
+    if (!userId || !sessionId) return null;
+    if (typeof userId !== "string" || !userId.startsWith("user_")) return null;
+    return { userId, sessionId };
   } catch {
     return null;
   }

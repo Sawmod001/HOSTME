@@ -6,7 +6,7 @@ import { toCamelCase, ok, fail, notFound, forbidden, parseId } from "@/lib/db/su
 export async function GET(request, { params }) {
     try {
         const p = await params;
-        const sessionInfo = parseSessionToken(request);
+        const sessionInfo = await parseSessionToken(request);
         if (!sessionInfo?.userId) return fail("Unauthorized", 401);
 
         const user = await getUser(sessionInfo.userId);

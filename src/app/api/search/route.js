@@ -94,8 +94,8 @@ export async function GET(request) {
       results_count: results?.length || 0,
     };
 
-    // Don't await — fire and forget
-    supabase.from("search_analytics").insert(analyticsPayload).then(() => {});
+    // Don't await — fire and forget, but catch unhandled rejections
+    supabase.from("search_analytics").insert(analyticsPayload).then(() => {}).catch(() => {});
 
     return ok({
       ok: true,

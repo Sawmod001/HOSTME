@@ -136,15 +136,35 @@ class PgQuery {
     return this;
   }
 
+  _validateIdentifier(name) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+      throw new Error(`Invalid identifier: ${name}`);
+    }
+  }
+
   _mapColumn(key) {
+    // Handle JSON operators -> and ->> with strict validation
     if (key.includes("->>")) {
       const parts = key.split("->>");
+      if (parts.length !== 2) throw new Error(`Invalid column: ${key}`);
+      this._validateIdentifier(parts[0]);
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(parts[1])) throw new Error(`Invalid JSON key: ${parts[1]}`);
       return `${parts[0]}->>'${parts[1]}'`;
     }
     if (key.includes("->")) {
       const parts = key.split("->");
+      if (parts.length !== 2) throw new Error(`Invalid column: ${key}`);
+      this._validateIdentifier(parts[0]);
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(parts[1])) throw new Error(`Invalid JSON key: ${parts[1]}`);
       return `${parts[0]}->'${parts[1]}'`;
     }
+    if (key.includes(".")) {
+      // For table-qualified columns like "provider_profiles.business_name"
+      const segments = key.split(".");
+      for (const seg of segments) this._validateIdentifier(seg);
+      return key;
+    }
+    this._validateIdentifier(key);
     return key;
   }
 
@@ -239,6 +259,8 @@ class PgQuery {
 
   async _execSelect() {
     const params = [];
+    if (this._table && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(this._table)) throw new Error(`Invalid table: ${this._table}`);
+    // _select is either "*" or trusted select string from hardcoded queries - validate table only
     let sql = `SELECT ${this._select === "*" ? "*" : this._select} FROM ${this._table}`;
 
     if (this._countExact && this._head) {
@@ -284,6 +306,8 @@ class PgQuery {
 
     if (type === "insert") {
       const keys = Object.keys(data);
+      for (const k of keys) this._validateIdentifier(k);
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(this._table)) throw new Error(`Invalid table: ${this._table}`);
       const values = Object.values(data);
       const cols = keys.join(", ");
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
@@ -291,6 +315,8 @@ class PgQuery {
       params.push(...values);
     } else if (type === "update") {
       const keys = Object.keys(data);
+      for (const k of keys) this._validateIdentifier(k);
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(this._table)) throw new Error(`Invalid table: ${this._table}`);
       const values = Object.values(data);
       const sets = keys.map((_, i) => `${keys[i]} = $${i + 1}`).join(", ");
       sql = `UPDATE ${this._table} SET ${sets}`;

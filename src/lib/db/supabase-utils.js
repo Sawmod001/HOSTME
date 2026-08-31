@@ -33,6 +33,15 @@ export function cachedOk(data, status = 200) {
   });
 }
 
+export function privateOk(data, status = 200) {
+  return Response.json(data, {
+    status,
+    headers: {
+      "Cache-Control": "private, no-store",
+    },
+  });
+}
+
 export function fail(error, status = 400) {
   const msg = typeof error === "object" && error !== null ? (error.message || JSON.stringify(error)) : String(error || "Something went wrong");
   return Response.json({ error: msg }, { status });

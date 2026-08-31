@@ -446,7 +446,7 @@ export default function ListingDetailPage({ params }) {
               <p className="text-sm font-semibold">Availability</p>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="rounded-lg p-1 hover:bg-[var(--color-surface-alt)]"><ChevronLeft size={16} /></button>
-                <span className="text-sm font-semibold">{calMonth.toLocaleString("default", { month: "long", year: "numeric" })}</span>
+                <span className="text-sm font-semibold">{calMonth.toLocaleString("en-NG", { timeZone: "Africa/Lagos", month: "long", year: "numeric" })}</span>
                 <button type="button" onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} className="rounded-lg p-1 hover:bg-[var(--color-surface-alt)]"><ChevronRight size={16} /></button>
               </div>
             </div>
@@ -489,14 +489,14 @@ export default function ListingDetailPage({ params }) {
 
           {isCapacity ? (
             <div className="border-t pt-4 space-y-3">
-              <p className="text-sm font-semibold flex items-center gap-2"><Clock size={16} />Slots for {selectedDate.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}</p>
+              <p className="text-sm font-semibold flex items-center gap-2"><Clock size={16} />Slots for {selectedDate.toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short" })}</p>
               {slots.length === 0 ? (
                 <p className="text-sm text-[var(--color-ink-muted)]">No slots available</p>
               ) : (
                 <div className="space-y-2">
                   {slots.map((slot) => (
                     <div key={slot.id} className="flex items-center justify-between rounded-xl border px-4 py-3">
-                      <span className="text-sm">{new Date(slot.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(slot.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="text-sm">{new Date(slot.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} – {new Date(slot.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}</span>
                       <span className={`text-xs font-semibold ${slot.available > 0 ? "text-[#15803D]" : "text-[#B91C1C]"}`}>
                         {slot.available}/{slot.capacity} {slot.available > 0 ? "available" : "full"}
                       </span>
@@ -507,14 +507,14 @@ export default function ListingDetailPage({ params }) {
             </div>
           ) : (
             <div className="border-t pt-4 space-y-3">
-              <p className="text-sm font-semibold flex items-center gap-2"><Clock size={16} />Time windows for {selectedDate.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}</p>
+              <p className="text-sm font-semibold flex items-center gap-2"><Clock size={16} />Time windows for {selectedDate.toLocaleDateString("en-NG", { timeZone: "Africa/Lagos",  weekday: "short", day: "numeric", month: "short" })}</p>
               {availability.length === 0 ? (
                 <p className="text-sm text-[var(--color-ink-muted)]">No windows available</p>
               ) : (
                 <div className="space-y-2">
                   {availability.map((win) => (
                     <div key={win.id} className="flex items-center justify-between rounded-xl border px-4 py-3">
-                      <span className="text-sm">{new Date(win.eventStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(win.eventEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="text-sm">{new Date(win.eventStart).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })} – {new Date(win.eventEnd).toLocaleTimeString("en-NG", { timeZone: "Africa/Lagos",  hour: "2-digit", minute: "2-digit" })}</span>
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold ${win.status === "open" ? "text-[#15803D]" : "text-[#6B7280]"}`}>
                         {win.status === "open" ? <><Check size={12} /> Open</> : <><X size={12} /> Locked</>}
                       </span>
