@@ -6,17 +6,28 @@ import Reveal from "./Reveal";
 const VERTICAL_ICONS = { venue: Building2, housing: Home };
 
 function formatPrice(listing) {
-  const kobo = listing.pricing?.baseRatePerHour ?? 0;
-  return `₦${(kobo / 100).toLocaleString()}`;
+  // §22 Price display safety — never assume baseRatePerHour for shortlets
+  if (listing.vertical === "housing" || listing.listingType === "housing" || listing.vertical === "shortlet") {
+    const monthly = listing.pricing?.monthlyRateKobo ?? listing.housingDetails?.monthlyRateKobo;
+    const nightly = listing.pricing?.nightlyRateKobo ?? listing.housingDetails?.nightlyRateKobo;
+    const kobo = monthly ?? nightly ?? 0;
+    if (!kobo) return "Price on request";
+    // Use monthly for housing per §41, fallback nightly
+    const period = monthly ? "/mo" : "/night";
+    return `₦${(kobo / 100).toLocaleString()}${period}`;
+  }
+  const kobo = listing.pricing?.baseRatePerHour ?? listing.pricing?.baseRate ?? 0;
+  if (!kobo) return "Price on request";
+  return `₦${(kobo / 100).toLocaleString()} /hr`;
 }
 
-export default function FeaturedSpaces({ listings, gate, loading }) {
+export default function FeaturedSpaces({ listings, gate, loading, title, subtitle, emptyTitle, emptySubtitle }) {
   return (
     <SectionContainer id="featured" className="bg-[var(--color-night)] py-16 sm:py-24">
       <SectionHeading
         eyebrow="Featured spaces"
-        title="Popular venues near you"
-        subtitle="Handpicked spaces that are ready to book right now."
+        title={title || "Popular venues near you"}
+        subtitle={subtitle || "Handpicked spaces that are ready to book right now."}
       />
 
       {loading ? (
@@ -37,14 +48,17 @@ export default function FeaturedSpaces({ listings, gate, loading }) {
             <Building2 size={28} aria-hidden="true" />
           </div>
           <h3 className="font-serif-display text-xl font-semibold text-[var(--color-night-text)]">
-            New spaces are on the way
+            {emptyTitle || "New spaces are on the way"}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-night-muted)]">
-            We are onboarding hosts in Ilorin. Stay close, the first venues go live very soon.
+            {emptySubtitle || "We are onboarding hosts in Ilorin. Stay close, the first venues go live very soon."}
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/sign-up" onClick={(e) => gate(e, "/sign-up")} className="btn-outline-night btn-outline-night-sm">
               Get notified
+            </Link>
+            <Link href="/sign-up" onClick={(e) => gate(e, "/sign-up")} className="btn-outline-night btn-outline-night-sm">
+              Become a Host
             </Link>
           </div>
         </div>

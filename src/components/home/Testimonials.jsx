@@ -13,6 +13,9 @@ function initials(name) {
 }
 
 export default function Testimonials() {
+  // §27 Do not redesign fake testimonials — show only real eligible reviews, else hide section
+  if (!TESTIMONIALS || TESTIMONIALS.length === 0) return null;
+
   return (
     <section className="border-t border-[var(--color-night-border-soft)] bg-[var(--color-night-soft)]">
       <SectionContainer className="py-16 sm:py-24">

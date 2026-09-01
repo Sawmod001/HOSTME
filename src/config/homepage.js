@@ -8,28 +8,68 @@ export const SITE = {
 };
 
 export const HERO = {
-  badge: "Nigeria's premier space marketplace",
-  titleLead: "Everything You Need",
-  titleAccent: "to Book",
-  titleAccentNote: "to Book",
-  subtitle: BRAND.subtitle,
+  badge: "Trusted spaces in Ilorin & beyond",
+  titleLead: "Find a place that",
+  titleAccent: "fits your plans.",
+  titleAccentNote: "fits your plans.",
+  subtitle: "Discover trusted venues and shortlet apartments, check availability, compare what each place offers, and book with confidence.",
   primaryCta: { label: "Browse spaces", href: "/listings" },
   secondaryCta: { label: "List your space", href: "/sign-up" },
   images: {
     background: {
-      src: "https://images.pexels.com/photos/6312353/pexels-photo-6312353.jpeg?auto=compress&cs=tinysrgb&w=1920",
-      alt: "Cozy shortlet interior with a warm sofa and soft light",
+      src: "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=1920",
+      alt: "Joyful friends celebrating in a Nigerian venue — real people, real moments",
       width: 1920,
       height: 1280,
     },
+    floating: [
+      "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
+    ],
   },
 };
 
+// §67 Navigation — ClockHost Explore Venues Shortlets How it works Become a Host Sign in
 export const NAV_LINKS = [
-  { label: "Browse spaces", href: "/listings" },
-  { label: "Group booking", href: "/group-plans" },
+  { label: "Venues", href: "/listings?vertical=venue" },
+  { label: "Shortlet Apartments", href: "/listings?vertical=housing" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Become a Host", href: "/sign-up" },
 ];
 
+// §17 Quick Discovery — with creative Nigeria people imagery
+export const QUICK_DISCOVERY = [
+  {
+    key: "venues",
+    label: "Venues",
+    title: "Find places to relax, meet friends, celebrate, or enjoy an activity.",
+    image: "https://images.pexels.com/photos/2603464/pexels-photo-2603464.jpeg?auto=compress&cs=tinysrgb&w=800",
+    href: "/listings?vertical=venue",
+    cta: "Explore Venues",
+  },
+  {
+    key: "shortlets",
+    label: "Shortlet Apartments",
+    title: "Find furnished apartments and short stays for your next trip, visit or temporary stay.",
+    image: "https://images.pexels.com/photos/1395967/pexels-photo-1395967.jpeg?auto=compress&cs=tinysrgb&w=800",
+    href: "/listings?vertical=housing",
+    cta: "Explore Shortlets",
+  },
+];
+
+// §19 Activity discovery — intents not business types
+export const ACTIVITIES = [
+  { label: "Birthday", href: "/listings?subVertical=birthday" },
+  { label: "Hangout", href: "/listings?subVertical=hangout" },
+  { label: "Relaxation", href: "/listings?subVertical=relaxation" },
+  { label: "Karaoke", href: "/listings?subVertical=karaoke" },
+  { label: "Games", href: "/listings?subVertical=games" },
+  { label: "Celebration", href: "/listings?subVertical=celebration" },
+  { label: "Recreation", href: "/listings?subVertical=recreation" },
+];
+
+// Legacy CATEGORIES kept for backward compat during transition — will be removed after §46 cleanup
 export const CATEGORIES = [
   { key: "birthday", icon: Cake, label: "Birthday", desc: "Party venues with decor and fun", href: "/listings?vertical=venue&subVertical=birthday" },
   { key: "exclusive_space", icon: Star, label: "Exclusive Space", desc: "Private halls and VIP rooms", href: "/listings?vertical=venue&subVertical=exclusive_space" },
@@ -38,69 +78,87 @@ export const CATEGORIES = [
   { key: "housing", icon: Home, label: "Housing & Shortlets", desc: "Apartments and short-term rentals", href: "/listings?vertical=housing" },
 ];
 
+// §23 Book by capacity / Book the whole space (was Shared seat/happening)
+export const BOOKING_MODELS = [
+  {
+    key: "capacity",
+    title: "Book by capacity",
+    desc: "Reserve space for yourself or your group while the venue remains open to others. Pay per person and secure your spot instantly.",
+    href: "/listings?bookingType=capacity",
+  },
+  {
+    key: "exclusive",
+    title: "Book the whole space",
+    desc: "Reserve an eligible space exclusively for a defined period. Perfect for private events and gatherings.",
+    href: "/listings?bookingType=exclusive",
+  },
+];
+
 export const HOW_IT_WORKS = [
   {
     icon: MapPin,
-    title: "Find a space",
-    desc: "Browse verified venues with clear pricing and availability, filtered by your city and occasion.",
+    title: "Discover a space",
+    desc: "Browse trusted venues and apartments with clear photos, pricing and availability — all reviewed before going live.",
   },
   {
     icon: CheckCircle2,
-    title: "Book in minutes",
-    desc: "Confirm a capacity slot instantly or request an exclusive space and pay to secure it.",
+    title: "Check availability & book",
+    desc: "Book by capacity for shared experiences or book the whole space for private use. Pay securely through Paystack.",
   },
   {
     icon: Zap,
     title: "Show up and enjoy",
-    desc: "Your booking details arrive right away, so you can focus on the moment.",
+    desc: "Your booking record and receipt arrive right away. Check in with your host and enjoy your time.",
   },
 ];
 
+// §24 Correct model: One owner pays, shares with invited, owner responsible — not everyone pays their share
 export const GROUP_BOOKING = {
   badge: "Group booking",
-  title: "Book together, split the cost",
+  title: "Book together, share the moment",
   subtitle:
-    "Planning a hangout, birthday or group night? Start a plan, share one link and everyone pays their own share.",
+    "One owner pays and shares the booking with invited people. Perfect for birthdays, hangouts and group nights — no split payments, just one responsible booking.",
   steps: [
     {
       icon: Users,
-      title: "Pick a venue and slot",
-      desc: "Choose a group-friendly venue, a date and the number of people you are bringing.",
+      title: "Owner creates the booking",
+      desc: "Choose a venue, date and headcount. The owner pays and becomes responsible for the reservation.",
     },
     {
       icon: Wallet,
-      title: "Share the invite link",
-      desc: "Send the link on WhatsApp, Instagram or anywhere and friends join with a tap.",
+      title: "Share with your group",
+      desc: "Send the booking details to friends on WhatsApp or anywhere. Everyone knows where to be.",
     },
     {
       icon: CheckCircle2,
-      title: "Everyone pays their share",
-      desc: "Each person pays only their part. The plan auto-confirms when the group fills up.",
+      title: "Check in together",
+      desc: "Show your booking record at the venue. The host verifies the owner and welcomes your group.",
     },
   ],
   cta: { label: "Find a group-friendly venue", href: "/listings?vertical=venue" },
 };
 
+// §25 Know what you're booking — Reviewed/Clear terms/Secure payments/Real records (not identity/escrow/insurance unless proven)
 export const WHY_CLOCKHOST = [
   {
     icon: ShieldCheck,
-    title: "Verified spaces",
-    desc: `Every listing is reviewed and approved by the ${BRAND.name} team before it goes live.`,
+    title: "Reviewed listings",
+    desc: `Every listing is reviewed by the ${BRAND.name} team before it goes live, so you see accurate photos and terms.`,
   },
   {
     icon: Zap,
-    title: "Instant booking",
-    desc: "Capacity spots reserve right away and exclusive spaces confirm in hours.",
-  },
-  {
-    icon: Users,
-    title: "Group-friendly payments",
-    desc: "Split venue costs fairly with one link and secure sharing.",
+    title: "Clear booking terms",
+    desc: "Availability, capacity, time and cancellation terms are shown before you pay — no surprises.",
   },
   {
     icon: Wallet,
-    title: "Transparent pricing",
-    desc: "Clear hourly rates in Naira with no hidden fees.",
+    title: "Secure payments",
+    desc: "Pay in Naira through Paystack with a real booking record and receipt you can show at the venue.",
+  },
+  {
+    icon: Users,
+    title: "Real booking records",
+    desc: "Guest reviews are tied to completed bookings, so what you read comes from real visits.",
   },
 ];
 
@@ -115,70 +173,52 @@ export const LOCATIONS = [
   { name: "Kano", area: "Kano State", query: "Kano" },
 ];
 
-export const TESTIMONIALS = [
-  {
-    quote:
-      "Booking the karaoke lounge took three minutes. Everyone paid their own share through the group link and we had the best night.",
-    name: "Fatima A.",
-    role: "Guests from GRA, Ilorin",
-  },
-  {
-    quote:
-      "I listed our event center and got my first booking within a week. The review process was clear and the payout was smooth.",
-    name: "Segun B.",
-    role: "Space host, Ilorin",
-  },
-  {
-    quote:
-      `We needed a private hall for our graduation photos. ${BRAND.name} handled the reservation and deposit, then confirmed everything for us.`,
-    name: "Amina K.",
-    role: "Guest from University of Ilorin",
-  },
-];
+// §27 Fabricated testimonials removed — render only if real eligible reviews exist, else hide section
+export const TESTIMONIALS = [];
 
 export const BOOKING_TYPES = {
-  eyebrow: "Two ways to book",
-  title: "Shared seat or the whole space",
+  eyebrow: "How booking works",
+  title: "Book by capacity or book the whole space",
   subtitle:
-    `Every space on ${BRAND.name} uses one of two booking models. Pick the one that fits how you like to book.`,
+    `Every space on ${BRAND.name} uses one of two clear booking models. Choose what fits your plans.`,
   columns: [
     {
       key: "capacity",
-      label: "Shared capacity",
+      label: "Book by capacity",
       icon: "seats",
-      tagline: "Book a spot in a happening",
-      href: "/listings?vertical=venue",
-      cta: "Browse shared spaces",
+      tagline: "Reserve space for yourself/group while the venue remains open to others.",
+      href: "/listings?bookingType=capacity",
+      cta: "Browse capacity spaces",
     },
     {
       key: "exclusive",
-      label: "Exclusive space",
+      label: "Book the whole space",
       icon: "lock",
-      tagline: "Take the whole space for yourself",
-      href: "/listings?vertical=venue&subVertical=exclusive_space",
+      tagline: "Reserve an eligible space exclusively for a defined period.",
+      href: "/listings?bookingType=exclusive",
       cta: "Browse exclusive spaces",
     },
   ],
   rows: [
     {
       label: "How it works",
-      capacity: "Reserve a slot in a shared experience, like a karaoke session or a group night.",
-      exclusive: "Request a private venue for a fixed time window, then pay to secure it.",
+      capacity: "Reserve space for yourself or your group while the venue remains open to others.",
+      exclusive: "Reserve an eligible space exclusively for a defined period.",
     },
     {
       label: "Payment",
-      capacity: "Pay per seat in Naira with a short payment hold.",
-      exclusive: "First successful payment wins the slot.",
+      capacity: "Pay per person in Naira with a short hold. Owner pays and shares with invited people.",
+      exclusive: "Pay the period rate to secure the whole space. First payment wins.",
     },
     {
       label: "Confirmation",
-      capacity: "Auto-confirms the moment your payment clears.",
-      exclusive: "Confirms after the host approves your request.",
+      capacity: "Host approves, then you pay. Auto-confirms when payment clears.",
+      exclusive: "Host approves exclusive requests before payment.",
     },
     {
       label: "Best for",
-      capacity: "Birthdays and group nights with friends.",
-      exclusive: "Private events, celebrations and VIP moments.",
+      capacity: "Relaxing, hangouts, karaoke, games with friends.",
+      exclusive: "Birthdays, celebrations, private gatherings.",
     },
   ],
 };
@@ -212,17 +252,18 @@ export const ROLES = {
     "Sign up once, then add the host side to your account from your profile. Your active role simply decides which dashboard you land on first.",
 };
 
+// §68 Have a space people would love? — Venue Host 1 listing, Shortlet multiple, no kitchen, no unlimited
 export const HOST_CTA = {
-  title: `Own a space? Start earning with ${BRAND.name}.`,
+  title: `Have a space people would love?`,
   subtitle:
-    "List your venue, apartment or shortlet in minutes. Reach thousands of local guests and get paid securely through Paystack.",
-  primaryCta: { label: "List your space", href: "/sign-up" },
-  secondaryCta: { label: "Browse as a guest", href: "/listings" },
+    "Become a Venue Host with one listing, or a Shortlet Host with multiple apartments. Reach guests in Ilorin and get paid securely through Paystack. See how hosting works.",
+  primaryCta: { label: "Become a Host", href: "/sign-up" },
+  secondaryCta: { label: "See how hosting works", href: "/listings" },
   perks: [
-    { title: "Instant payouts", desc: "Funds arrive via Paystack as bookings confirm." },
-    { title: "Free to list", desc: "Create listings and manage your spaces at no cost." },
-    { title: "Admin review", desc: "Every space is checked before it goes live." },
-    { title: "Photo & add-ons", desc: "Showcase your space with photos and extras." },
+    { title: "Venue Host — one listing", desc: "Manage one venue or outdoor space with clear availability and pricing." },
+    { title: "Shortlet Host — multiple", desc: "List several apartments with monthly pricing and viewings." },
+    { title: "Reviewed before live", desc: "Every space is checked before guests can book." },
+    { title: "Secure payments", desc: "Bookings create real records you can verify at check-in." },
   ],
 };
 

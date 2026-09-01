@@ -7,9 +7,9 @@ export default function WhyClockHost() {
     <section className="border-t border-[var(--color-night-border-soft)] bg-[var(--color-night-soft)]">
       <SectionContainer className="py-16 sm:py-24">
         <SectionHeading
-          eyebrow="Why ClockHost"
-          title="Built for hosts and guests alike"
-          subtitle="We removed the friction from booking spaces, so everyone enjoys the moment."
+          eyebrow="Trust & transparency"
+          title="Know what you're booking"
+          subtitle="Reviewed listings, clear terms, secure payments and real records from completed bookings — no surprises."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

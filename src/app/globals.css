@@ -19,18 +19,23 @@
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-fraunces);
 
-  --color-night: #0A1C14;
-  --color-night-soft: #0F241C;
-  --color-night-card: #142B21;
-  --color-night-elevated: #1B3427;
+  --color-night: #0A120F;
+  --color-night-soft: #0F1A15;
+  --color-night-card: #14201B;
+  --color-night-elevated: #1C2E24;
   --color-night-text: #F4EDDF;
-  --color-night-muted: #97A892;
-  --color-night-border: rgba(244, 237, 223, 0.11);
-  --color-night-border-soft: rgba(244, 237, 223, 0.07);
-  --color-flame: #C94428;
-  --color-flame-bright: #E8774F;
-  --color-flame-soft: rgba(201, 68, 40, 0.15);
-  --color-gold: #D9A866;
+  --color-night-muted: #A8B5A0;
+  --color-night-border: rgba(244, 237, 223, 0.1);
+  --color-night-border-soft: rgba(244, 237, 223, 0.06);
+  --color-flame: #E84A2A;
+  --color-flame-bright: #FF6B4A;
+  --color-flame-soft: rgba(232, 74, 42, 0.14);
+  --color-gold: #E8B86D;
+  --color-gold-soft: rgba(232, 184, 109, 0.12);
+  --color-amber: #F2B46A;
+  --motion-flame: radial-gradient(ellipse 70% 60% at 20% 15%, rgba(232,74,42,0.22) 0%, transparent 60%);
+  --motion-gold: radial-gradient(ellipse 60% 50% at 85% 85%, rgba(232,184,109,0.16) 0%, transparent 55%);
+  --motion-emerald: radial-gradient(ellipse 50% 70% at 50% 100%, rgba(20, 80, 60, 0.18) 0%, transparent 60%);
 }
 
 * {
