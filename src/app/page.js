@@ -52,7 +52,7 @@ export default function HomePage() {
     router.push(`/sign-up?next=${encodeURIComponent(href)}`);
   };
 
-  // §20-21 Split featured by real vertical — never fabricate
+  // §20-21 Split featured by real vertical never fabricate
   const venues = listings.filter((l) => (l.vertical || l.listingType) !== "housing" && (l.vertical || l.listingType) !== "shortlet");
   const shortlets = listings.filter((l) => (l.vertical || l.listingType) === "housing" || (l.vertical || l.listingType) === "shortlet");
 
@@ -65,21 +65,21 @@ export default function HomePage() {
           {/* §7 IA: Hero + Discovery Search */}
           <Hero gate={gate} />
 
-          {/* §17 Quick Discovery — Venues / Shortlets with real imagery */}
+          {/* §17 Quick Discovery Venues / Shortlets with real imagery */}
           <QuickDiscovery gate={gate} />
 
-          {/* §20 Featured Venues — Places worth discovering */}
+          {/* §20 Featured Venues Places worth discovering */}
           <FeaturedSpaces
             listings={loading ? [] : venues.slice(0, 6)}
             loading={loading}
             gate={gate}
             title="Places worth discovering"
-            subtitle="Real venues, real photos, real availability — no fake ratings."
+            subtitle="Real venues, real photos, real availability no fake ratings."
             emptyTitle="Your next venue is coming"
             emptySubtitle="We're bringing trusted venues onto ClockHost in Ilorin."
           />
 
-          {/* §21 Featured Shortlets — Stay somewhere that feels right */}
+          {/* §21 Featured Shortlets Stay somewhere that feels right */}
           <FeaturedSpaces
             listings={loading ? [] : shortlets.slice(0, 6)}
             loading={loading}
@@ -87,25 +87,25 @@ export default function HomePage() {
             title="Stay somewhere that feels right"
             subtitle="Furnished apartments with honest pricing, location and amenities."
             emptyTitle="Your next stay is coming"
-            emptySubtitle="We're onboarding shortlet hosts in Ilorin — the first apartments go live soon."
+            emptySubtitle="We're onboarding shortlet hosts in Ilorin the first apartments go live soon."
           />
 
-          {/* §23 Booking models — Book by capacity / Book the whole space */}
+          {/* §23 Booking models Book by capacity / Book the whole space */}
           <TwoWaysToBook gate={gate} />
 
-          {/* §7 How Venue Booking Works — keep existing HowItWorks but now after booking models */}
+          {/* §7 How Venue Booking Works keep existing HowItWorks but now after booking models */}
           <HowItWorks gate={gate} />
 
-          {/* §25 Trust — Know what you're booking */}
+          {/* §25 Trust Know what you're booking */}
           <WhyClockHost />
 
           {/* §19 Activity discovery */}
           <ActivityDiscovery gate={gate} />
 
-          {/* §26 Location discovery — Discover spaces in Ilorin, real data */}
+          {/* §26 Location discovery Discover spaces in Ilorin, real data */}
           <Locations gate={gate} />
 
-          {/* Host CTA §68 — Have a space people would love? */}
+          {/* Host CTA §68 Have a space people would love? */}
           <HostCta gate={gate} />
 
           {/* §28 FAQ accordion */}

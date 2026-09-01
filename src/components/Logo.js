@@ -1,19 +1,34 @@
 "use client";
 
-export default function Logo({ size = "md", className = "" }) {
+export default function Logo({ size = "md", className = "", variant = "light", href = "/" }) {
   const sizes = {
+    sm: "h-7 w-7",
+    md: "h-8 w-8",
+    lg: "h-10 w-10",
+  };
+  const textSizes = {
     sm: "text-xl",
     md: "text-2xl",
     lg: "text-4xl",
   };
-
+  const isDark = variant === "dark";
   return (
-    <span
+    <a
+      href={href}
       aria-label="ClockHost"
-      role="img"
-      className={`font-bold tracking-tight ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex items-center gap-2 font-bold tracking-tight ${className} ${isDark ? "text-white" : "text-[var(--color-ink)]"}`}
+      style={{ fontFamily: "var(--font-manrope), var(--font-geist-sans), sans-serif" }}
     >
-      Clock<span className="text-[var(--color-flame)]">Host</span>
-    </span>
+      <img
+        src="/logo.svg"
+        alt=""
+        className={`${sizes[size] || sizes.md} shrink-0 rounded-lg`}
+        width={32}
+        height={32}
+      />
+      <span className={`${textSizes[size] || textSizes.md}`}>
+        Clock<span className="text-[var(--color-flame)]">Host</span>
+      </span>
+    </a>
   );
 }

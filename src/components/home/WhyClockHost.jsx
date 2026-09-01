@@ -9,7 +9,7 @@ export default function WhyClockHost() {
         <SectionHeading
           eyebrow="Trust & transparency"
           title="Know what you're booking"
-          subtitle="Reviewed listings, clear terms, secure payments and real records from completed bookings — no surprises."
+          subtitle="Reviewed listings, clear terms, secure payments and real records from completed bookings"
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -6,13 +6,11 @@ import Reveal from "./Reveal";
 const VERTICAL_ICONS = { venue: Building2, housing: Home };
 
 function formatPrice(listing) {
-  // §22 Price display safety — never assume baseRatePerHour for shortlets
   if (listing.vertical === "housing" || listing.listingType === "housing" || listing.vertical === "shortlet") {
     const monthly = listing.pricing?.monthlyRateKobo ?? listing.housingDetails?.monthlyRateKobo;
     const nightly = listing.pricing?.nightlyRateKobo ?? listing.housingDetails?.nightlyRateKobo;
     const kobo = monthly ?? nightly ?? 0;
     if (!kobo) return "Price on request";
-    // Use monthly for housing per §41, fallback nightly
     const period = monthly ? "/mo" : "/night";
     return `₦${(kobo / 100).toLocaleString()}${period}`;
   }
@@ -95,7 +93,6 @@ export default function FeaturedSpaces({ listings, gate, loading, title, subtitl
                     )}
                     <span className="absolute bottom-3 left-3 z-10 rounded-lg border border-[var(--color-night-border)] bg-[var(--color-night)]/85 px-3 py-1.5 text-sm font-bold text-[var(--color-night-text)] backdrop-blur-sm">
                       {formatPrice(listing)}
-                      <span className="text-[11px] font-medium text-[var(--color-night-muted)]"> /hr</span>
                     </span>
                   </div>
                   <div className="p-5">

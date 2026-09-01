@@ -9,7 +9,7 @@ export default function ActivityDiscovery({ gate }) {
       <SectionHeading
         eyebrow="Explore by activity"
         title="Looking for something specific?"
-        subtitle="Browse by how you want to spend your time — not by internal business types."
+        subtitle="Browse by how you want to spend your time not by internal business types."
       />
 
       {/* Desktop: horizontal cards, Mobile: horizontal scroll per §19 */}

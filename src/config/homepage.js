@@ -8,17 +8,17 @@ export const SITE = {
 };
 
 export const HERO = {
-  badge: "Trusted spaces in Ilorin & beyond",
+  badge: "Real spaces trusted bookings",
   titleLead: "Find a place that",
   titleAccent: "fits your plans.",
   titleAccentNote: "fits your plans.",
-  subtitle: "Discover trusted venues and shortlet apartments, check availability, compare what each place offers, and book with confidence.",
+  subtitle: "Discover trusted venues and shortlet apartments check availability compare what each place offers and book with confidence.",
   primaryCta: { label: "Browse spaces", href: "/listings" },
   secondaryCta: { label: "List your space", href: "/sign-up" },
   images: {
     background: {
       src: "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=1920",
-      alt: "Joyful friends celebrating in a Nigerian venue — real people, real moments",
+      alt: "Joyful friends celebrating in a Nigerian venue real people real moments",
       width: 1920,
       height: 1280,
     },
@@ -30,7 +30,7 @@ export const HERO = {
   },
 };
 
-// §67 Navigation — ClockHost Explore Venues Shortlets How it works Become a Host Sign in
+// §67 Navigation ClockHost Explore Venues Shortlets How it works Become a Host Sign in
 export const NAV_LINKS = [
   { label: "Venues", href: "/listings?vertical=venue" },
   { label: "Shortlet Apartments", href: "/listings?vertical=housing" },
@@ -38,13 +38,13 @@ export const NAV_LINKS = [
   { label: "Become a Host", href: "/sign-up" },
 ];
 
-// §17 Quick Discovery — art-directed with 5 provided Nigeria images (editorial hospitality)
+// §17 Quick Discovery — Venues lounge + Shortlets apartment
 export const QUICK_DISCOVERY = [
   {
     key: "venues",
     label: "Venues",
     title: "Find places to relax, meet friends, celebrate, or enjoy an activity.",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
+    image: "https://images.pexels.com/photos/2603464/pexels-photo-2603464.jpeg?auto=format&fit=crop&w=800&q=80",
     href: "/listings?vertical=venue",
     cta: "Explore Venues",
   },
@@ -58,7 +58,7 @@ export const QUICK_DISCOVERY = [
   },
 ];
 
-// §19 Activity discovery — intents not business types
+// §19 Activity discovery intents not business types
 export const ACTIVITIES = [
   { label: "Birthday", href: "/listings?subVertical=birthday" },
   { label: "Hangout", href: "/listings?subVertical=hangout" },
@@ -69,7 +69,7 @@ export const ACTIVITIES = [
   { label: "Recreation", href: "/listings?subVertical=recreation" },
 ];
 
-// Legacy CATEGORIES kept for backward compat during transition — will be removed after §46 cleanup
+// Legacy CATEGORIES kept for backward compat during transition will be removed after §46 cleanup
 export const CATEGORIES = [
   { key: "birthday", icon: Cake, label: "Birthday", desc: "Party venues with decor and fun", href: "/listings?vertical=venue&subVertical=birthday" },
   { key: "exclusive_space", icon: Star, label: "Exclusive Space", desc: "Private halls and VIP rooms", href: "/listings?vertical=venue&subVertical=exclusive_space" },
@@ -98,7 +98,7 @@ export const HOW_IT_WORKS = [
   {
     icon: MapPin,
     title: "Discover a space",
-    desc: "Browse trusted venues and apartments with clear photos, pricing and availability — all reviewed before going live.",
+    desc: "Browse trusted venues and apartments with clear photos, pricing and availability all reviewed before going live.",
   },
   {
     icon: CheckCircle2,
@@ -112,12 +112,12 @@ export const HOW_IT_WORKS = [
   },
 ];
 
-// §24 Correct model: One owner pays, shares with invited, owner responsible — not everyone pays their share
+// §24 Correct model: One owner pays, shares with invited, owner responsible not everyone pays their share
 export const GROUP_BOOKING = {
   badge: "Group booking",
   title: "Book together, share the moment",
   subtitle:
-    "One owner pays and shares the booking with invited people. Perfect for birthdays, hangouts and group nights — no split payments, just one responsible booking.",
+    "One owner pays and shares the booking with invited people. Perfect for birthdays, hangouts and group nights no split payments, just one responsible booking.",
   steps: [
     {
       icon: Users,
@@ -138,7 +138,7 @@ export const GROUP_BOOKING = {
   cta: { label: "Find a group-friendly venue", href: "/listings?vertical=venue" },
 };
 
-// §25 Know what you're booking — Reviewed/Clear terms/Secure payments/Real records (not identity/escrow/insurance unless proven)
+// §25 Know what you're booking Reviewed/Clear terms/Secure payments/Real records (not identity/escrow/insurance unless proven)
 export const WHY_CLOCKHOST = [
   {
     icon: ShieldCheck,
@@ -148,7 +148,7 @@ export const WHY_CLOCKHOST = [
   {
     icon: Zap,
     title: "Clear booking terms",
-    desc: "Availability, capacity, time and cancellation terms are shown before you pay — no surprises.",
+    desc: "Availability, capacity, time and cancellation terms are shown before you pay no surprises.",
   },
   {
     icon: Wallet,
@@ -173,7 +173,7 @@ export const LOCATIONS = [
   { name: "Kano", area: "Kano State", query: "Kano" },
 ];
 
-// §27 Fabricated testimonials removed — render only if real eligible reviews exist, else hide section
+// §27 Fabricated testimonials removed render only if real eligible reviews exist, else hide section
 export const TESTIMONIALS = [];
 
 export const BOOKING_TYPES = {
@@ -252,7 +252,7 @@ export const ROLES = {
     "Sign up once, then add the host side to your account from your profile. Your active role simply decides which dashboard you land on first.",
 };
 
-// §68 Have a space people would love? — Venue Host 1 listing, Shortlet multiple, no kitchen, no unlimited
+// §68 Have a space people would love? Venue Host 1 listing, Shortlet multiple, no kitchen, no unlimited
 export const HOST_CTA = {
   title: `Have a space people would love?`,
   subtitle:
@@ -260,8 +260,8 @@ export const HOST_CTA = {
   primaryCta: { label: "Become a Host", href: "/sign-up" },
   secondaryCta: { label: "See how hosting works", href: "/listings" },
   perks: [
-    { title: "Venue Host — one listing", desc: "Manage one venue or outdoor space with clear availability and pricing." },
-    { title: "Shortlet Host — multiple", desc: "List several apartments with monthly pricing and viewings." },
+    { title: "Venue Host one listing", desc: "Manage one venue or outdoor space with clear availability and pricing." },
+    { title: "Shortlet Host multiple", desc: "List several apartments with monthly pricing and viewings." },
     { title: "Reviewed before live", desc: "Every space is checked before guests can book." },
     { title: "Secure payments", desc: "Bookings create real records you can verify at check-in." },
   ],
