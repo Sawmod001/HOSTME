@@ -1,76 +1,135 @@
+"use client";
+
 import Link from "next/link";
-import { Users, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { SectionContainer } from "./Section";
 import Reveal from "./Reveal";
 import { HOW_IT_WORKS, GROUP_BOOKING } from "@/config/homepage";
 
 export default function HowItWorks({ gate }) {
   return (
-    <SectionContainer className="bg-[var(--color-night)] py-16 sm:py-24">
-      <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.6fr]">
-        <Reveal>
-          <div className="lg:sticky lg:top-28">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">How it works</p>
-            <h2 className="font-serif-display text-3xl font-semibold tracking-tight text-[var(--color-night-text)] sm:text-4xl">
-              Book a space in three steps
-            </h2>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--color-night-muted)] sm:text-base">
-              Search, reserve and go. No phone calls, no guesswork.
-            </p>
-            <div className="mt-8 hidden h-px w-24 bg-[var(--color-flame-bright)]/60 lg:block" aria-hidden="true" />
-          </div>
-        </Reveal>
+    <section className="relative overflow-hidden bg-[#FDF8F3] py-16 sm:py-24">
+      {/* Subtle editorial background — warm off-white, not pure white */}
+      <div className="absolute inset-0" aria-hidden="true">
+        <div className="absolute -top-20 -right-20 h-[420px] w-[420px] rounded-full bg-[var(--color-gold-soft)] blur-[80px]" />
+        <div className="absolute -bottom-20 -left-20 h-[360px] w-[360px] rounded-full bg-[var(--color-flame-soft)] blur-[70px]" />
+      </div>
 
-        <div>
-          <ol className="relative space-y-10">
-            <div
-              aria-hidden="true"
-              className="absolute bottom-8 left-[1.35rem] top-8 w-px bg-[var(--color-night-border)]"
-            />
+      <SectionContainer className="relative">
+        <div className="grid items-start gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          {/* Left: editorial with vertical text + giant numeral */}
+          <div className="relative lg:sticky lg:top-24">
+            <Reveal>
+              <div className="flex gap-4">
+                <span className="hidden select-none text-[72px] font-bold leading-none text-black/[0.04] sm:block" style={{ fontFamily: "var(--font-instrument-serif), serif" }}>
+                  01
+                </span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-flame)]" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>
+                    How it works
+                  </p>
+                  <h2 className="mt-2 font-bold leading-[0.95] tracking-tight text-[var(--color-ink)]" style={{ fontFamily: "var(--font-manrope), sans-serif", fontSize: "clamp(28px, 4vw, 40px)" }}>
+                    Book a space
+                    <span className="block font-normal italic" style={{ fontFamily: "var(--font-instrument-serif), serif" }}>
+                      in three steps
+                    </span>
+                  </h2>
+                  <p className="mt-3 max-w-sm text-sm leading-relaxed text-[var(--color-ink-muted)]">
+                    Search, reserve and go. No phone calls, no guesswork. Every step is verified.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Vertical label — editorial detail */}
+            <div className="absolute -left-8 top-1/2 hidden -translate-y-1/2 -rotate-90 lg:block" aria-hidden="true">
+              <span className="text-[11px] font-bold tracking-[0.2em] text-black/20" style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}>
+                CLOCKHOST • HOW IT WORKS
+              </span>
+            </div>
+
+            {/* Small editorial image — thatched gazebo */}
+            <motion.div
+              className="mt-8 hidden overflow-hidden rounded-2xl lg:block"
+              style={{ aspectRatio: "4/3" }}
+              initial={{ clipPath: "inset(0 100% 0 0)" }}
+              whileInView={{ clipPath: "inset(0 0% 0 0)" }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.0, ease: [0.21, 0.47, 0.32, 0.98] }}
+            >
+              <img
+                src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80"
+                alt="Outdoor thatched venue — editorial detail"
+                className="h-full w-full object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
+                loading="lazy"
+              />
+              <div className="absolute bottom-2 left-2 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[var(--color-ink)]">ILORIN • VERIFIED</div>
+            </motion.div>
+          </div>
+
+          {/* Right: steps with giant numerals */}
+          <ol className="space-y-8">
             {HOW_IT_WORKS.map((step, i) => {
               const Icon = step.icon;
               const num = String(i + 1).padStart(2, "0");
               return (
-                <Reveal key={step.title} delay={i * 100}>
-                  <li className="relative flex gap-6">
-                    <span className="font-serif-display relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-night-border)] bg-[var(--color-night-elevated)] text-sm font-semibold text-[var(--color-flame-bright)]">
-                      {num}
-                    </span>
-                    <div className="pt-1.5">
-                      <h3 className="flex items-center gap-2.5 font-semibold text-[var(--color-night-text)]">
-                        <Icon size={16} className="text-[var(--color-flame-bright)]" aria-hidden="true" />
-                        {step.title}
-                      </h3>
-                      <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-[var(--color-night-muted)]">{step.desc}</p>
-                    </div>
-                  </li>
-                </Reveal>
+                <motion.li
+                  key={step.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="group relative flex gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+                >
+                  <span className="font-bold leading-none text-[var(--color-flame)]/15" style={{ fontFamily: "var(--font-instrument-serif), serif", fontSize: "42px" }}>
+                    {num}
+                  </span>
+                  <div className="pt-1">
+                    <h3 className="flex items-center gap-2 font-semibold text-[var(--color-ink)]" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>
+                      <Icon size={16} className="text-[var(--color-flame)]" aria-hidden="true" />
+                      {step.title}
+                    </h3>
+                    <p className="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-ink-muted)]">{step.desc}</p>
+                  </div>
+                  {/* Animated underline on hover */}
+                  <span className="absolute bottom-0 left-6 right-6 h-px origin-left scale-x-0 bg-[var(--color-flame)]/20 transition-transform duration-300 group-hover:scale-x-100" aria-hidden="true" />
+                </motion.li>
               );
             })}
           </ol>
         </div>
-      </div>
 
-      <Reveal delay={150}>
-        <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-3xl border border-[var(--color-gold)]/25 bg-[var(--color-night-elevated)] px-7 py-6 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-4">
-            <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-gold)]/15 text-[var(--color-gold)]">
-              <Users size={20} aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-night-text)]">{GROUP_BOOKING.title}</p>
-              <p className="mt-1 max-w-xl text-xs leading-relaxed text-[var(--color-night-muted)]">{GROUP_BOOKING.subtitle}</p>
+        {/* Group booking callout — editorial, not just button */}
+        <motion.div
+          className="mt-12 overflow-hidden rounded-[20px] border border-black/5 bg-white p-6 shadow-sm sm:p-7"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--color-flame)]/10 text-[var(--color-flame)] sm:flex">
+                <span className="text-sm font-bold">G</span>
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--color-ink)]" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>
+                  {GROUP_BOOKING.title}
+                </p>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--color-ink-muted)]">{GROUP_BOOKING.subtitle}</p>
+              </div>
             </div>
+            <Link
+              href={GROUP_BOOKING.cta.href}
+              onClick={(e) => gate(e, GROUP_BOOKING.cta.href)}
+              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--color-ink)] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-black"
+            >
+              {GROUP_BOOKING.cta.label} <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
           </div>
-          <Link
-            href={GROUP_BOOKING.cta.href}
-            onClick={(e) => gate(e, GROUP_BOOKING.cta.href)}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--color-flame)] px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-[var(--color-flame-bright)]"
-          >
-            {GROUP_BOOKING.cta.label} <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-      </Reveal>
-    </SectionContainer>
+        </motion.div>
+      </SectionContainer>
+    </section>
   );
 }

@@ -38,13 +38,13 @@ export const NAV_LINKS = [
   { label: "Become a Host", href: "/sign-up" },
 ];
 
-// §17 Quick Discovery — with creative Nigeria people imagery
+// §17 Quick Discovery — art-directed with 5 provided Nigeria images (editorial hospitality)
 export const QUICK_DISCOVERY = [
   {
     key: "venues",
     label: "Venues",
     title: "Find places to relax, meet friends, celebrate, or enjoy an activity.",
-    image: "https://images.pexels.com/photos/2603464/pexels-photo-2603464.jpeg?auto=compress&cs=tinysrgb&w=800",
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
     href: "/listings?vertical=venue",
     cta: "Explore Venues",
   },
@@ -52,7 +52,7 @@ export const QUICK_DISCOVERY = [
     key: "shortlets",
     label: "Shortlet Apartments",
     title: "Find furnished apartments and short stays for your next trip, visit or temporary stay.",
-    image: "https://images.pexels.com/photos/1395967/pexels-photo-1395967.jpeg?auto=compress&cs=tinysrgb&w=800",
+    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
     href: "/listings?vertical=housing",
     cta: "Explore Shortlets",
   },

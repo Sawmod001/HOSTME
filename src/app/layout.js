@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces, Manrope, Instrument_Serif, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ChatBot from "@/components/ChatBot";
 import { BRAND } from "@/config/brand";
@@ -18,6 +18,24 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata = {
@@ -56,7 +74,7 @@ export default function RootLayout({ children }) {
   return (
     <html
         lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${manrope.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">{children}<ChatBot /></body>
       </html>
